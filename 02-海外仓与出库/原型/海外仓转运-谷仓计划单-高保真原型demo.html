@@ -1,0 +1,1259 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WMS系统 - 海外仓转运（谷仓计划单）</title>
+  <style>
+    :root {
+      --bg: #f3f4f7;
+      --card: #ffffff;
+      --line: #e5e7ec;
+      --text: #303133;
+      --muted: #909399;
+      --primary: #2f56d8;
+      --primary-hover: #2445b8;
+      --danger: #f56c6c;
+      --ok: #67c23a;
+      --warn: #e6a23c;
+      --head-bg: #f5f6f9;
+      --sidebar: #00796b;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg);
+    }
+  button, input, select, textarea { font: inherit; }
+    a { color: var(--primary); text-decoration: none; cursor: pointer; }
+    a:hover { text-decoration: underline; }
+
+    .app { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 200px; flex-shrink: 0; background: var(--sidebar); color: #fff;
+      display: flex; flex-direction: column;
+    }
+    .sidebar-brand { padding: 14px 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,.12); }
+    .sidebar-search { margin: 8px; padding: 6px 8px; border-radius: 4px; border: none; font-size: 12px; }
+    .sidebar-nav { flex: 1; overflow-y: auto; padding: 4px 0; }
+    .sidebar-nav a {
+      display: block; padding: 10px 14px; color: rgba(255,255,255,.85); text-decoration: none; font-size: 12px;
+    }
+    .sidebar-nav a:hover { background: rgba(0,0,0,.08); }
+    .sidebar-nav a.active { background: rgba(0,0,0,.15); color: #fff; }
+    .sidebar-nav .sub { padding-left: 28px; font-size: 11px; }
+
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .sys-top {
+      background: var(--card); border-bottom: 1px solid var(--line);
+      padding: 6px 14px; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--muted);
+    }
+    .sys-top .user { display: flex; align-items: center; gap: 10px; }
+    .page-tabs {
+      display: flex; gap: 0; background: #fafafa; border-bottom: 1px solid var(--line); padding: 0 8px;
+    }
+    .page-tabs button {
+      border: none; background: transparent; padding: 10px 16px; cursor: pointer; font-size: 12px; color: var(--muted);
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .page-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--card); font-weight: 600; }
+    .page-tabs button .close { margin-left: 6px; opacity: .5; }
+
+    .content { flex: 1; padding: 0; overflow: auto; }
+    .breadcrumb-bar {
+      background: var(--card); border-bottom: 1px solid var(--line); padding: 8px 12px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+    }
+    .breadcrumb { color: var(--muted); font-size: 12px; }
+    .breadcrumb b { color: var(--text); font-weight: 600; }
+    .bar-icons { display: flex; gap: 12px; color: var(--muted); font-size: 11px; align-items: center; }
+    .bar-icons span { cursor: pointer; }
+    .bar-icons span:hover { color: var(--primary); }
+
+    .inner { padding: 10px 12px 20px; }
+    .warehouse-tabs { display: flex; gap: 0; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+    .warehouse-tabs button {
+      border: none; background: transparent; padding: 8px 18px; cursor: pointer; font-size: 13px; color: var(--muted);
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .warehouse-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; background: var(--card); }
+
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 8px; padding: 10px;
+    }
+    .grid {
+      display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 8px 10px; align-items: end;
+    }
+    .grid-3 { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+    .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .field input, .field select, .field textarea {
+      width: 100%; border: 1px solid #dcdfe6; border-radius: 4px; padding: 6px 8px; font-size: 12px; background: #fff;
+    }
+    .field input:read-only, .field select:disabled { background: #f5f7fa; color: #606266; }
+    .field-inline { display: flex; gap: 4px; }
+    .field-inline select { width: 110px; flex-shrink: 0; }
+    .req { color: var(--danger); margin-left: 2px; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; align-items: center; }
+    button {
+      border: 1px solid #dcdfe6; background: #fff; color: var(--text); border-radius: 4px; padding: 6px 12px;
+      cursor: pointer; font-size: 12px; white-space: nowrap;
+    }
+    button:hover { opacity: .92; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-plain { background: #fff; color: var(--primary); border-color: #c6d4f5; }
+    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-success { background: var(--ok); color: #fff; border-color: var(--ok); }
+
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown-menu {
+      display: none; position: absolute; top: 100%; left: 0; min-width: 140px; background: #fff;
+      border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.1); z-index: 50; margin-top: 2px;
+    }
+    .dropdown-menu.show { display: block; }
+    .dropdown-menu button {
+      display: block; width: 100%; text-align: left; border: none; border-radius: 0; background: #fff; padding: 8px 12px;
+    }
+    .dropdown-menu button:hover { background: #f5f7fa; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }
+    table { border-collapse: collapse; font-size: 11px; min-width: max-content; width: 100%; }
+    th, td { border: 1px solid #ebeef5; padding: 6px 8px; text-align: left; white-space: nowrap; vertical-align: middle; }
+    th { background: var(--head-bg); color: #606266; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+    tbody tr:hover { background: #fafafa; }
+    tbody tr.selected { background: #ecf5ff; }
+    .tag {
+      display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 11px; border: 1px solid transparent;
+    }
+    .tag-wait { background: #fdf6ec; color: #e6a23c; border-color: #f5dab1; }
+    .tag-ok { background: #f0f9eb; color: #67c23a; border-color: #c2e7b0; }
+    .tag-info { background: #ecf5ff; color: #409eff; border-color: #b3d8ff; }
+    .tag-gray { background: #f4f4f5; color: #909399; border-color: #d3d4d6; }
+    .tag-danger { background: #fef0f0; color: #f56c6c; border-color: #fbc4c4; }
+    .link-btn { color: var(--primary); cursor: pointer; border: none; background: none; padding: 0; font-size: 11px; }
+    .link-btn:hover { text-decoration: underline; }
+
+    .pager {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 0; font-size: 11px; color: var(--muted);
+    }
+    .pager select, .pager input { padding: 4px 6px; border: 1px solid #dcdfe6; border-radius: 4px; }
+    .note {
+      font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.6;
+      padding: 8px 10px; background: #f9fafc; border: 1px dashed var(--line); border-radius: 4px;
+    }
+    .panel-hidden { display: none !important; }
+    .empty-box { text-align: center; padding: 48px 20px; color: var(--muted); }
+
+    .modal-mask {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center;
+      z-index: 400; padding: 16px;
+    }
+    .modal-mask.show { display: flex; }
+    .modal {
+      background: #fff; border-radius: 6px; width: min(960px, 96vw); max-height: 90vh; display: flex; flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18);
+    }
+    .modal-lg { width: min(1080px, 98vw); }
+    .modal-header {
+      padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between;
+      font-size: 15px; font-weight: 600;
+    }
+    .modal-close { border: none; background: none; font-size: 18px; cursor: pointer; color: var(--muted); line-height: 1; }
+    .modal-body { padding: 12px 16px; overflow-y: auto; flex: 1; }
+    .modal-footer {
+      padding: 10px 16px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+    .section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+    .section-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+    .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 14px; }
+    .form-grid .span2 { grid-column: span 2; }
+    .form-grid .span3 { grid-column: span 3; }
+    .radio-row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+    .radio-row label { display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; }
+    .err { color: var(--danger); font-size: 11px; margin-top: 4px; }
+    .help { color: var(--muted); font-size: 11px; margin-top: 3px; }
+
+    .sub-table-wrap { border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+    .sub-table-wrap table { min-width: 100%; }
+    .sub-table-wrap th { position: static; }
+    .sub-table-actions { display: flex; gap: 4px; }
+    .sub-table-actions button { padding: 2px 8px; font-size: 11px; }
+
+    .box-group { border: 1px solid var(--line); border-radius: 4px; margin-bottom: 10px; overflow: hidden; }
+    .box-group-head {
+      background: var(--head-bg); padding: 8px 12px; font-weight: 600; font-size: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .box-group-body { padding: 0; }
+
+    .toast {
+      position: fixed; right: 16px; bottom: 16px; min-width: 280px; max-width: 420px; background: #fff;
+      border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 12px 14px;
+      z-index: 500; display: none; font-size: 12px;
+    }
+    .toast.show { display: block; }
+    .toast.err { border-left: 4px solid var(--danger); }
+    .toast.ok { border-left: 4px solid var(--ok); }
+    .toast.warn { border-left: 4px solid var(--warn); }
+
+    .log-list { font-size: 11px; line-height: 1.8; }
+    .log-list li { border-bottom: 1px dashed var(--line); padding: 6px 0; }
+    .file-link { color: var(--primary); cursor: pointer; }
+    .mono { font-family: Consolas, "Courier New", monospace; letter-spacing: 0.02em; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-brand">WMS 仓储系统</div>
+      <input class="sidebar-search" type="text" placeholder="请输入搜索字段" />
+      <nav class="sidebar-nav">
+        <a href="#">首页</a>
+        <a href="#" class="active">调拨管理</a>
+        <a href="#" class="sub active">新调拨</a>
+        <a href="#" class="sub">海外仓转运</a>
+        <a href="#">入库管理</a>
+        <a href="#">出库管理</a>
+        <a href="#">系统设置</a>
+      </nav>
+    </aside>
+
+    <div class="main">
+      <div class="sys-top">
+        <span>系统更新时间：2026-05-21 17:22:54</span>
+        <div class="user">
+          <span>☁ 📄 ⚙</span>
+          <span>黄思敏</span>
+          <span>退出</span>
+        </div>
+      </div>
+
+      <div class="page-tabs">
+        <button type="button">首页</button>
+        <button type="button" class="active">海外仓转运 <span class="close">×</span></button>
+      </div>
+
+      <div class="content">
+        <div class="breadcrumb-bar">
+          <div class="breadcrumb">调拨管理 &gt; 新调拨 &gt; <b>海外仓转运</b></div>
+          <div class="bar-icons">
+            <span>保存搜索条件</span><span>读取搜索条件</span><span>⛶</span><span>?</span><span>筛选</span><span>按钮</span>
+          </div>
+        </div>
+
+        <div class="inner">
+          <!-- 西邮 / 谷仓 页签 -->
+          <div class="warehouse-tabs" id="warehouseTabs">
+            <button type="button" data-wh="xiyou">西邮</button>
+            <button type="button" class="active" data-wh="gucang">谷仓</button>
+          </div>
+
+          <!-- 西邮占位（对齐线上已有能力） -->
+          <section id="panelXiyou" class="panel-hidden">
+            <div class="card">
+              <p class="note" style="margin:0">西邮页签已在线上实现（B2B 出库单）。本原型聚焦 <b>谷仓 · 计划单</b> 增量能力，请切换至「谷仓」页签演示。</p>
+            </div>
+          </section>
+
+          <!-- 谷仓页签 -->
+          <section id="panelGucang">
+            <!-- 筛选区 -->
+            <div class="card">
+              <div class="grid">
+                <div class="field">
+                  <label>调拨单号</label>
+                  <div class="field-inline">
+                    <select id="fFieldType"><option>调拨单号</option></select>
+                    <input type="text" id="fTransferNo" placeholder="多个值使用空格隔开" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label>单据类型</label>
+                  <select id="fDocType">
+                    <option value="">全部</option>
+                    <option>计划单</option>
+                    <option>出库单</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>推送状态</label>
+                  <select id="fPushStatus">
+                    <option value="">全部</option>
+                    <option>待推送</option>
+                    <option>已推送</option>
+                    <option>取消推送</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>调拨单状态</label>
+                  <select id="fTransferStatus">
+                    <option value="">全部</option>
+                    <option>待审核</option>
+                    <option>待发货</option>
+                    <option>待入库</option>
+                    <option>已完成</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>海外仓状态</label>
+                  <select id="fOwStatus">
+                    <option value="">全部</option>
+                    <option>废弃</option>
+                    <option>草稿</option>
+                    <option>异常</option>
+                    <option>待配货</option>
+                    <option>已完成</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>需求提出人</label>
+                  <input type="text" id="fRequester" placeholder="需求提出人" />
+                </div>
+                <div class="field">
+                  <label>创建时间</label>
+                  <input type="text" id="fDateRange" value="2026-04-25 - 2026-05-25" />
+                </div>
+              </div>
+              <div class="toolbar">
+                <button type="button" class="btn-primary" id="btnSearch">搜索</button>
+                <button type="button" class="btn-plain" id="btnReset">重置</button>
+              </div>
+            </div>
+
+            <!-- 工具栏 -->
+            <div class="card">
+              <div class="toolbar">
+                <div class="dropdown" id="addDropdown">
+                  <button type="button" class="btn-primary" id="btnAddToggle">+ 新增 ▾</button>
+                  <div class="dropdown-menu" id="addMenu">
+                    <button type="button" data-action="add-plan">计划装箱单</button>
+                  </div>
+                </div>
+                <button type="button" class="btn-primary" id="btnEdit">编辑</button>
+                <button type="button" class="btn-primary" id="btnAuditPush">审核推送</button>
+                <button type="button" class="btn-danger" id="btnCancel">取消</button>
+                <button type="button" class="btn-primary" id="btnSync">同步详情</button>
+              </div>
+              <p class="note">
+                谷仓页签不含「补充转运信息」筛选。列表 <b>单号</b> 均为 <code>TO</code> 开头（与出库单共用流水域）。<b>审核推送</b>无业务弹窗、支持多选；仅 <b>推送状态</b>，无审核状态。筛选含 <b>单据类型</b>。物理仓界面不展示，后端按调出仓写 wp_code。
+              </p>
+            </div>
+
+            <!-- 列表 -->
+            <div class="card">
+              <div class="pager">
+                <span id="selInfo">已选 0 条</span>
+                <span id="totalInfo">共 0 条</span>
+                <select id="pageSize"><option>10条/页</option><option selected>20条/页</option><option>50条/页</option></select>
+                <span>&lt; 1 &gt;</span>
+                <span>前往 <input type="number" value="1" style="width:40px" min="1" /> 页</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th><input type="checkbox" id="chkAll" /></th>
+                      <th>单号</th>
+                      <th>调拨单号</th>
+                      <th>调出仓库</th>
+                      <th>调入仓库</th>
+                      <th>销售组</th>
+                      <th>需求提出人</th>
+                      <th>单据类型</th>
+                      <th>类型</th>
+                      <th>装箱类型</th>
+                      <th>shipmentId</th>
+                      <th>推送状态</th>
+                      <th>海外仓单号</th>
+                      <th>海外仓状态</th>
+                      <th>备注</th>
+                      <th>仓库信息</th>
+                      <th>转运详情</th>
+                      <th>创建人/创建时间</th>
+                      <th>更新人/更新时间</th>
+                      <th>日志</th>
+                    </tr>
+                  </thead>
+                  <tbody id="listBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/编辑 共用弹窗（审核推送无业务弹窗） -->
+  <div class="modal-mask" id="modalForm">
+    <div class="modal modal-lg" role="dialog">
+      <div class="modal-header">
+        <span id="formTitle">新增计划单</span>
+        <button type="button" class="modal-close" data-close="modalForm">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="formErr" class="err" style="display:none;margin-bottom:8px"></div>
+
+        <div class="section">
+          <div class="section-title">出库信息</div>
+          <div class="form-grid">
+            <div class="field span2">
+              <label>调拨单号<span class="req">*</span></label>
+              <div class="field-inline">
+                <input type="text" id="fmTransferNo" placeholder="请输入调拨单号" />
+                <button type="button" class="btn-primary" id="btnQueryTransfer" style="flex-shrink:0">查询</button>
+              </div>
+              <div class="help" id="queryHint">新增、编辑均须先【查询】通过后再保存；编辑可改绑调拨单</div>
+            </div>
+            <div class="field">
+              <label>类型<span class="req">*</span></label>
+              <input type="text" id="fmType" value="FBA 计划单" readonly />
+            </div>
+            <div class="field">
+              <label>发货仓库<span class="req">*</span>（区域仓）</label>
+              <select id="fmShipWarehouse">
+                <option value="">请选择</option>
+                <option value="USEA">USEA-美东区域仓</option>
+                <option value="USWE">USWE-美西区域仓</option>
+              </select>
+            </div>
+            <div class="field span3">
+              <div class="help" style="margin:0">物理仓界面不展示；保存/推送时后端按调拨调出仓写入 wp_code。</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">库内操作</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>条形码换标服务<span class="req">*</span></label>
+              <div class="radio-row" id="rgChangeLabel">
+                <label><input type="radio" name="changeLabel" value="1" checked /> 是</label>
+                <label><input type="radio" name="changeLabel" value="0" /> 否</label>
+              </div>
+            </div>
+            <div class="field" id="wrapLabelQty">
+              <label>每单件换标数量<span class="req">*</span></label>
+              <select id="fmLabelQty">
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </div>
+            <div class="field" id="wrapLabelOpt">
+              <label>换标要求<span class="req">*</span></label>
+              <select id="fmLabelOpt">
+                <option value="1">替换外箱原 sku 标签</option>
+                <option value="2">拆箱为每个内件贴标</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Transparency 标签贴标服务<span class="req">*</span></label>
+              <div class="radio-row" id="rgStickLabel">
+                <label><input type="radio" name="stickLabel" value="0" checked /> 否</label>
+                <label><input type="radio" name="stickLabel" value="1" /> 是</label>
+              </div>
+            </div>
+            <div class="field span2" id="wrapTransparencyFile" style="display:none">
+              <label>Transparency 标签文件<span class="req">*</span></label>
+              <input type="file" id="fmTransparencyFile" accept=".pdf" />
+              <div class="help">PDF，70mm×30mm，仅允许上传 1 份</div>
+              <div id="fileUploaded" class="help" style="display:none;color:var(--ok)"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">商品明细</div>
+          <div class="sub-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:50px">序号</th>
+                  <th>产品编码<span class="req">*</span></th>
+                  <th id="colFnsku">平台编码<span class="req">*</span></th>
+                  <th style="width:100px">数量<span class="req">*</span></th>
+                  <th style="width:80px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="productBody"></tbody>
+            </table>
+          </div>
+          <button type="button" class="btn-plain" id="btnAddProductRow" style="margin-top:8px">+ 添加行</button>
+        </div>
+      </div>
+      <div class="modal-footer" id="formFooter">
+        <button type="button" data-close="modalForm">取消</button>
+        <button type="button" class="btn-primary" id="btnSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 查询计划单（只读） -->
+  <div class="modal-mask" id="modalView">
+    <div class="modal modal-lg" role="dialog">
+      <div class="modal-header">
+        <span>查询计划单</span>
+        <button type="button" class="modal-close" data-close="modalView">×</button>
+      </div>
+      <div class="modal-body" id="viewBody"></div>
+      <div class="modal-footer">
+        <button type="button" data-close="modalView">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 日志 -->
+  <div class="modal-mask" id="modalLog">
+    <div class="modal" role="dialog">
+      <div class="modal-header">
+        <span>操作日志</span>
+        <button type="button" class="modal-close" data-close="modalLog">×</button>
+      </div>
+      <div class="modal-body">
+        <ul class="log-list" id="logList"></ul>
+      </div>
+      <div class="modal-footer">
+        <button type="button" data-close="modalLog">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== 演示数据 =====
+    const MOCK_TRANSFERS = {
+      'DB20260520001': {
+        shipWarehouse: 'USEA', shipWarehouseName: 'USEA-美东区域仓',
+        physWarehouse: 'NJ01', physWarehouseName: 'NJ01-新泽西1号仓',
+        outWarehouse: '谷仓处理中心 / NJ01-新泽西1号仓',
+        inWarehouse: 'FBA / AMAZON.US',
+        salesGroup: '北美一组', requester: '张三',
+        products: [
+          { sku: 'GC-SKU-10001', fnsku: 'X001ABC123', qty: 120, maxQty: 150 },
+          { sku: 'GC-SKU-10002', fnsku: 'X002DEF456', qty: 80, maxQty: 100 }
+        ]
+      },
+      'DB20260518002': {
+        shipWarehouse: 'USWE', shipWarehouseName: 'USWE-美西区域仓',
+        physWarehouse: 'LA02', physWarehouseName: 'LA02-洛杉矶2号仓',
+        outWarehouse: '谷仓处理中心 / LA02-洛杉矶2号仓',
+        inWarehouse: 'FBA / AMAZON.US',
+        salesGroup: '北美二组', requester: '李四',
+        products: [{ sku: 'GC-SKU-20001', fnsku: 'X003GHI789', qty: 60, maxQty: 60 }]
+      }
+    };
+
+    let rows = [
+      {
+        id: 'r1', orderNo: 'TO2026052000001', transferNo: 'DB20260520001',
+        outWarehouse: '谷仓处理中心 / NJ01-新泽西1号仓', inWarehouse: 'FBA / AMAZON.US',
+        salesGroup: '北美一组', requester: '张三',
+        docType: '计划单', planType: 'FBA 计划单', packType: '', shipmentId: '',
+        pushStatus: '待推送', owOrderNo: '', owStatus: '',
+        remark: '待销售完善换标信息',
+        warehouseInfo: '',         shipWarehouse: 'USEA', shipWarehouseName: 'USEA-美东区域仓',
+        physWarehouse: 'NJ01', physWarehouseName: 'NJ01-新泽西1号仓',
+        changeLabel: '1', labelQty: '1', labelOpt: '1', stickLabel: '0', transparencyFile: '',
+        products: [
+          { sku: 'GC-SKU-10001', fnsku: 'X001ABC123', qty: 120 },
+          { sku: 'GC-SKU-10002', fnsku: 'X002DEF456', qty: 80 }
+        ],
+        boxList: [],
+        creator: '张三', createTime: '2026-05-20 10:15:22',
+        updater: '张三', updateTime: '2026-05-20 10:15:22',
+        logs: ['2026-05-20 10:15:22 张三 新增计划单保存']
+      },
+      {
+        id: 'r2', orderNo: 'TO2026051800001', transferNo: 'DB20260518002',
+        outWarehouse: '谷仓处理中心 / LA02-洛杉矶2号仓', inWarehouse: 'FBA / AMAZON.US',
+        salesGroup: '北美二组', requester: '李四',
+        docType: '计划单', planType: 'FBA 计划单', packType: '', shipmentId: '',
+        pushStatus: '已推送', owOrderNo: 'PL202605180001', owStatus: '待配货',
+        remark: '',
+        warehouseInfo: '总箱数：3',
+        shipWarehouse: 'USWE', shipWarehouseName: 'USWE-美西区域仓',
+        physWarehouse: 'LA02', physWarehouseName: 'LA02-洛杉矶2号仓',
+        changeLabel: '1', labelQty: '1', labelOpt: '1', stickLabel: '0', transparencyFile: '',
+        products: [{ sku: 'GC-SKU-20001', fnsku: 'X003GHI789', qty: 60 }],
+        boxList: [
+          {
+            boxNo: 'BM202605180001-1', size: '40*30*25', weight: '12.5',
+            items: [{ sku: 'GC-SKU-20001', qty: 30 }]
+          },
+          {
+            boxNo: 'BM202605180001-2', size: '40*30*25', weight: '12.3',
+            items: [{ sku: 'GC-SKU-20001', qty: 30 }]
+          }
+        ],
+        creator: '李四', createTime: '2026-05-18 14:20:00',
+        updater: '王物流', updateTime: '2026-05-19 09:30:11',
+        logs: [
+          '2026-05-18 14:20:00 李四 新增计划单保存',
+          '2026-05-19 09:30:11 王物流 审核推送成功，计划单号 PL202605180001',
+          '2026-05-19 15:00:00 王物流 同步详情，总箱数 3'
+        ]
+      },
+      {
+        id: 'r3', orderNo: 'TO2026041000001', transferNo: 'DB20260410003',
+        outWarehouse: '谷仓处理中心 / NJ01-新泽西1号仓', inWarehouse: 'FBA / AMAZON.US',
+        salesGroup: '北美一组', requester: '王五',
+        docType: '计划单', planType: 'FBA 计划单', packType: '', shipmentId: '',
+        pushStatus: '已推送', owOrderNo: 'PL202604100088', owStatus: '已完成',
+        remark: '已完成装箱',
+        warehouseInfo: '总箱数：5',
+        shipWarehouse: 'USEA', shipWarehouseName: 'USEA-美东区域仓',
+        physWarehouse: 'NJ01', physWarehouseName: 'NJ01-新泽西1号仓',
+        changeLabel: '1', labelQty: '1', labelOpt: '2', stickLabel: '1', transparencyFile: 'transparency_labels.pdf',
+        products: [{ sku: 'GC-SKU-30001', fnsku: 'X004JKL012', qty: 200 }],
+        boxList: [
+          {
+            boxNo: 'BM202604100088-1', size: '50*40*30', weight: '18.0',
+            items: [{ sku: 'GC-SKU-30001', qty: 100 }]
+          },
+          {
+            boxNo: 'BM202604100088-2', size: '50*40*30', weight: '17.8',
+            items: [{ sku: 'GC-SKU-30001', qty: 100 }]
+          }
+        ],
+        creator: '王五', createTime: '2026-04-10 11:00:00',
+        updater: '系统', updateTime: '2026-04-15 16:45:00',
+        logs: [
+          '2026-04-10 11:00:00 王五 新增计划单保存',
+          '2026-04-11 08:00:00 王物流 审核推送成功',
+          '2026-04-15 16:45:00 系统 同步详情，状态已完成，总箱数 5'
+        ]
+      },
+      {
+        id: 'r4', orderNo: 'TO2026030100001', transferNo: 'DB20260301004',
+        outWarehouse: '谷仓处理中心 / LA02-洛杉矶2号仓', inWarehouse: 'FBA / AMAZON.US',
+        salesGroup: '北美二组', requester: '赵六',
+        docType: '计划单', planType: 'FBA 计划单', packType: '', shipmentId: '',
+        pushStatus: '取消推送', owOrderNo: 'PL202603010004', owStatus: '废弃',
+        remark: '运营取消',
+        warehouseInfo: '总箱数：0',
+        shipWarehouse: 'USWE', shipWarehouseName: 'USWE-美西区域仓',
+        physWarehouse: 'LA02', physWarehouseName: 'LA02-洛杉矶2号仓',
+        changeLabel: '0', labelQty: '1', labelOpt: '1', stickLabel: '0', transparencyFile: '',
+        products: [{ sku: 'GC-SKU-40001', fnsku: '', qty: 50 }],
+        boxList: [],
+        creator: '赵六', createTime: '2026-03-01 09:00:00',
+        updater: '赵六', updateTime: '2026-03-02 10:00:00',
+        logs: ['2026-03-02 10:00:00 赵六 取消计划单']
+      }
+    ];
+
+    let filteredRows = [...rows];
+    let selectedIds = new Set();
+    let formMode = 'add'; // add | edit
+    let editingId = null;
+    let queryPassed = false;
+
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    /** 单号：TO + yyyyMMdd + 5位流水，按日自增、全局唯一 */
+    function formatDateKey(d) {
+      const p = n => String(n).padStart(2, '0');
+      return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate());
+    }
+
+    function generateOrderNo(date) {
+      const dayKey = formatDateKey(date || new Date());
+      const prefix = 'TO' + dayKey;
+      let maxSeq = 0;
+      rows.forEach(r => {
+        if (r.orderNo && r.orderNo.startsWith(prefix) && r.orderNo.length === prefix.length + 5) {
+          const seq = parseInt(r.orderNo.slice(-5), 10);
+          if (seq > maxSeq) maxSeq = seq;
+        }
+      });
+      const next = maxSeq + 1;
+      if (next > 99999) throw new Error('当日单号流水已达上限');
+      return prefix + String(next).padStart(5, '0');
+    }
+
+    function toast(msg, type = 'ok') {
+      const el = $('#toast');
+      el.textContent = msg;
+      el.className = 'toast show ' + type;
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove('show'), 3200);
+    }
+
+    function tagPush(s) {
+      const map = { '待推送': 'tag-wait', '已推送': 'tag-ok', '取消推送': 'tag-gray' };
+      return `<span class="tag ${map[s] || 'tag-gray'}">${s}</span>`;
+    }
+    function tagOw(s) {
+      if (!s) return '';
+      const map = { '废弃': 'tag-gray', '草稿': 'tag-info', '异常': 'tag-danger', '待配货': 'tag-wait', '已完成': 'tag-ok' };
+      return `<span class="tag ${map[s] || 'tag-info'}">${s}</span>`;
+    }
+
+    function renderList() {
+      const tbody = $('#listBody');
+      if (!filteredRows.length) {
+        tbody.innerHTML = '<tr><td colspan="20" class="empty-box">暂无数据</td></tr>';
+      } else {
+        tbody.innerHTML = filteredRows.map(r => `
+          <tr data-id="${r.id}" class="${selectedIds.has(r.id) ? 'selected' : ''}">
+            <td><input type="checkbox" class="row-chk" data-id="${r.id}" ${selectedIds.has(r.id) ? 'checked' : ''} /></td>
+            <td class="mono">${r.orderNo || '—'}</td>
+            <td>${r.transferNo}</td>
+            <td>${r.outWarehouse}</td>
+            <td>${r.inWarehouse}</td>
+            <td>${r.salesGroup}</td>
+            <td>${r.requester}</td>
+            <td><span class="tag tag-info">${r.docType}</span></td>
+            <td><span class="tag tag-info">${r.planType}</span></td>
+            <td>${r.packType || '—'}</td>
+            <td>${r.shipmentId || '—'}</td>
+            <td>${tagPush(r.pushStatus)}</td>
+            <td>${r.owOrderNo || '—'}</td>
+            <td>${tagOw(r.owStatus)}</td>
+            <td>${r.remark || '—'}</td>
+            <td>${r.warehouseInfo || '—'}</td>
+            <td><button type="button" class="link-btn" data-view="${r.id}">查看</button></td>
+            <td>${r.creator}<br/>${r.createTime}</td>
+            <td>${r.updater}<br/>${r.updateTime}</td>
+            <td><button type="button" class="link-btn" data-log="${r.id}">查看</button></td>
+          </tr>
+        `).join('');
+      }
+      $('#totalInfo').textContent = '共 ' + filteredRows.length + ' 条';
+      $('#selInfo').textContent = '已选 ' + selectedIds.size + ' 条';
+      $('#chkAll').checked = filteredRows.length > 0 && filteredRows.every(r => selectedIds.has(r.id));
+    }
+
+    function getSelectedRows() {
+      return rows.filter(r => selectedIds.has(r.id));
+    }
+
+    function openModal(id) { $('#' + id).classList.add('show'); }
+    function closeModal(id) { $('#' + id).classList.remove('show'); }
+
+    // 页签切换
+    $('#warehouseTabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-wh]');
+      if (!btn) return;
+      $$('#warehouseTabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const wh = btn.dataset.wh;
+      $('#panelXiyou').classList.toggle('panel-hidden', wh !== 'xiyou');
+      $('#panelGucang').classList.toggle('panel-hidden', wh !== 'gucang');
+    });
+
+    // 新增下拉
+    $('#btnAddToggle').addEventListener('click', (e) => {
+      e.stopPropagation();
+      $('#addMenu').classList.toggle('show');
+    });
+    document.addEventListener('click', () => $('#addMenu').classList.remove('show'));
+    $('#addMenu').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const action = e.target.dataset.action;
+      if (action === 'add-plan') {
+        $('#addMenu').classList.remove('show');
+        openFormModal('add');
+      }
+    });
+
+    // 列表勾选
+    $('#listBody').addEventListener('change', (e) => {
+      if (e.target.classList.contains('row-chk')) {
+        const id = e.target.dataset.id;
+        if (e.target.checked) selectedIds.add(id); else selectedIds.delete(id);
+        renderList();
+      }
+    });
+    $('#listBody').addEventListener('click', (e) => {
+      const viewBtn = e.target.closest('[data-view]');
+      const logBtn = e.target.closest('[data-log]');
+      if (viewBtn) openViewModal(viewBtn.dataset.view);
+      if (logBtn) openLogModal(logBtn.dataset.log);
+    });
+    $('#chkAll').addEventListener('change', (e) => {
+      if (e.target.checked) filteredRows.forEach(r => selectedIds.add(r.id));
+      else filteredRows.forEach(r => selectedIds.delete(r.id));
+      renderList();
+    });
+
+    // 搜索/重置
+    $('#btnSearch').addEventListener('click', () => {
+      const no = $('#fTransferNo').value.trim().toLowerCase();
+      const doc = $('#fDocType').value;
+      const push = $('#fPushStatus').value;
+      const ow = $('#fOwStatus').value;
+      const req = $('#fRequester').value.trim().toLowerCase();
+      filteredRows = rows.filter(r => {
+        if (no && !r.transferNo.toLowerCase().includes(no)) return false;
+        if (doc && r.docType !== doc) return false;
+        if (push && r.pushStatus !== push) return false;
+        if (ow && r.owStatus !== ow) return false;
+        if (req && !r.requester.toLowerCase().includes(req)) return false;
+        return true;
+      });
+      selectedIds.clear();
+      renderList();
+      toast('搜索完成');
+    });
+    $('#btnReset').addEventListener('click', () => {
+      $('#fTransferNo').value = '';
+      $('#fDocType').value = '';
+      $('#fPushStatus').value = '';
+      $('#fTransferStatus').value = '';
+      $('#fOwStatus').value = '';
+      $('#fRequester').value = '';
+      filteredRows = [...rows];
+      selectedIds.clear();
+      renderList();
+      toast('已重置');
+    });
+
+    // 工具栏按钮
+    $('#btnEdit').addEventListener('click', () => {
+      const sel = getSelectedRows();
+      if (sel.length !== 1) return toast('请选择单选数据操作！', 'err');
+      const r = sel[0];
+      if (r.docType !== '计划单') return toast('请选择计划单类型数据！', 'err');
+      if (r.pushStatus !== '待推送')
+        return toast('仅可编辑待推送的计划单！', 'err');
+      openFormModal('edit', r.id);
+    });
+
+    $('#btnAuditPush').addEventListener('click', () => {
+      const sel = getSelectedRows();
+      if (!sel.length) return toast('请勾选需要审核推送的数据！', 'err');
+      if (sel.some(r => r.docType !== '计划单')) return toast('演示页仅支持计划单审核推送', 'err');
+      if (sel.some(r => r.pushStatus !== '待推送')) return toast('请仅选择待推送状态的数据！', 'err');
+      if (!window.confirm(`确定审核推送选中的 ${sel.length} 条记录吗？`)) return;
+      sel.forEach(r => {
+        r.pushStatus = '已推送';
+        r.owOrderNo = 'PL' + Date.now().toString().slice(-8) + Math.random().toString(36).slice(2, 5);
+        r.owStatus = '待配货';
+        r.updater = '当前用户';
+        r.updateTime = nowStr();
+        r.logs.push(r.updateTime + ' 当前用户 审核推送 plan_order/create 成功');
+      });
+      selectedIds.clear();
+      renderList();
+      toast('审核推送完成（演示，无业务弹窗）');
+    });
+
+    $('#btnCancel').addEventListener('click', () => {
+      const sel = getSelectedRows();
+      if (!sel.length) return toast('请勾选已推送的计划单进行操作！', 'err');
+      if (sel.some(r => r.pushStatus !== '已推送' || r.docType !== '计划单'))
+        return toast('请勾选已推送的计划单进行操作！', 'err');
+      sel.forEach(r => {
+        r.pushStatus = '取消推送';
+        r.owStatus = '废弃';
+        r.updater = '当前用户';
+        r.updateTime = nowStr();
+        r.logs.push(nowStr() + ' 当前用户 取消计划单');
+      });
+      selectedIds.clear();
+      renderList();
+      toast('取消成功，已调用 plan_order/cancel（演示）');
+    });
+
+    $('#btnSync').addEventListener('click', () => {
+      const sel = getSelectedRows();
+      const targets = sel.length ? sel : filteredRows.filter(r => r.pushStatus === '已推送');
+      if (!targets.length || targets.some(r => r.pushStatus !== '已推送'))
+        return toast('请选择已推送的数据进行操作', 'err');
+      targets.forEach(r => {
+        if (!r.boxList.length) {
+          const boxes = ['BM' + r.owOrderNo + '-1', 'BM' + r.owOrderNo + '-2'];
+          r.boxList = boxes.map(boxNo => ({
+            boxNo, size: '40*30*25', weight: '10.0',
+            items: r.products.map(p => ({ sku: p.sku, qty: p.qty }))
+          }));
+          if (MOCK_TRANSFERS[r.transferNo]) MOCK_TRANSFERS[r.transferNo].cartonNos = boxes;
+        }
+        r.warehouseInfo = '总箱数：' + r.boxList.length;
+        if (r.owStatus === '待配货') r.owStatus = '待配货';
+        r.updater = '当前用户';
+        r.updateTime = nowStr();
+        r.logs.push(nowStr() + ' 当前用户 同步详情 box_list');
+      });
+      renderList();
+      toast('同步详情成功（演示 plan_order/box_list）');
+    });
+
+    function nowStr() {
+      const d = new Date();
+      const p = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
+
+    // ===== 表单弹窗 =====
+    function existsPlanOnTransfer(transferNo, excludeId) {
+      return rows.some(r => r.transferNo === transferNo && r.docType === '计划单'
+        && r.owStatus !== '废弃' && r.id !== excludeId);
+    }
+
+    function openFormModal(mode, rowId) {
+      formMode = mode;
+      editingId = rowId || null;
+      queryPassed = mode !== 'add';
+      $('#formErr').style.display = 'none';
+
+      $('#formTitle').textContent = mode === 'add' ? '新增计划单' : '编辑计划单';
+
+      const footer = $('#formFooter');
+      footer.innerHTML = '<button type="button" data-close="modalForm">取消</button><button type="button" class="btn-primary" id="btnSave">保存</button>';
+      $('#btnSave').addEventListener('click', doSave, { once: true });
+
+      $('#fmTransferNo').readOnly = false;
+      $('#btnQueryTransfer').style.display = '';
+      $('#queryHint').style.display = '';
+
+      if (mode === 'add') {
+        resetForm();
+      } else {
+        const r = rows.find(x => x.id === rowId);
+        fillForm(r);
+        queryPassed = true;
+      }
+      toggleChangeLabelFields();
+      toggleStickLabelFields();
+      openModal('modalForm');
+    }
+
+    function resetForm() {
+      $('#fmTransferNo').value = '';
+      $('#fmShipWarehouse').value = '';
+      document.querySelector('input[name="changeLabel"][value="1"]').checked = true;
+      document.querySelector('input[name="stickLabel"][value="0"]').checked = true;
+      $('#fmLabelQty').value = '1';
+      $('#fmLabelOpt').value = '1';
+      $('#fmTransparencyFile').value = '';
+      $('#fileUploaded').style.display = 'none';
+      renderProductRows([{ sku: '', fnsku: '', qty: '' }]);
+    }
+
+    function fillForm(r) {
+      $('#fmTransferNo').value = r.transferNo;
+      $('#fmShipWarehouse').value = r.shipWarehouse;
+      document.querySelector(`input[name="changeLabel"][value="${r.changeLabel}"]`).checked = true;
+      document.querySelector(`input[name="stickLabel"][value="${r.stickLabel}"]`).checked = true;
+      $('#fmLabelQty').value = r.labelQty;
+      $('#fmLabelOpt').value = r.labelOpt;
+      if (r.transparencyFile) {
+        $('#fileUploaded').style.display = '';
+        $('#fileUploaded').textContent = '已上传：' + r.transparencyFile;
+      }
+      renderProductRows(r.products.map(p => ({ ...p })));
+    }
+
+    function renderProductRows(items) {
+      const showFnsku = document.querySelector('input[name="changeLabel"]:checked').value === '1';
+      $('#colFnsku').style.display = showFnsku ? '' : 'none';
+      const tbody = $('#productBody');
+      tbody.innerHTML = items.map((p, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>
+            <select class="prod-sku" data-i="${i}">
+              <option value="">请选择</option>
+              <option value="GC-SKU-10001" ${p.sku==='GC-SKU-10001'?'selected':''}>GC-SKU-10001</option>
+              <option value="GC-SKU-10002" ${p.sku==='GC-SKU-10002'?'selected':''}>GC-SKU-10002</option>
+              <option value="GC-SKU-20001" ${p.sku==='GC-SKU-20001'?'selected':''}>GC-SKU-20001</option>
+              <option value="GC-SKU-30001" ${p.sku==='GC-SKU-30001'?'selected':''}>GC-SKU-30001</option>
+            </select>
+          </td>
+          <td class="col-fnsku" style="display:${showFnsku?'':'none'}">
+            <input type="text" class="prod-fnsku" value="${p.fnsku || ''}" placeholder="FNSKU" />
+          </td>
+          <td><input type="number" class="prod-qty" value="${p.qty || ''}" min="1" style="width:80px" /></td>
+          <td>
+            <div class="sub-table-actions">
+              <button type="button" class="btn-plain btn-add-row">+</button>
+              <button type="button" class="btn-danger btn-del-row">-</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function getProductRows() {
+      const trs = $$('#productBody tr');
+      return [...trs].map(tr => ({
+        sku: tr.querySelector('.prod-sku').value,
+        fnsku: tr.querySelector('.prod-fnsku')?.value || '',
+        qty: parseInt(tr.querySelector('.prod-qty').value, 10) || 0
+      }));
+    }
+
+    function toggleChangeLabelFields() {
+      const yes = document.querySelector('input[name="changeLabel"]:checked').value === '1';
+      $('#wrapLabelQty').style.display = yes ? '' : 'none';
+      $('#wrapLabelOpt').style.display = yes ? '' : 'none';
+      $$('.col-fnsku').forEach(el => el.style.display = yes ? '' : 'none');
+      $('#colFnsku').style.display = yes ? '' : 'none';
+    }
+
+    function toggleStickLabelFields() {
+      const yes = document.querySelector('input[name="stickLabel"]:checked').value === '1';
+      $('#wrapTransparencyFile').style.display = yes ? '' : 'none';
+    }
+
+    $$('#rgChangeLabel input').forEach(el => el.addEventListener('change', toggleChangeLabelFields));
+    $$('#rgStickLabel input').forEach(el => el.addEventListener('change', toggleStickLabelFields));
+
+    $('#fmTransparencyFile').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (f) {
+        if (!f.name.toLowerCase().endsWith('.pdf')) {
+          toast('请上传 PDF 格式文件', 'err');
+          e.target.value = '';
+          return;
+        }
+        $('#fileUploaded').style.display = '';
+        $('#fileUploaded').textContent = '已选择：' + f.name;
+      }
+    });
+
+    $('#btnQueryTransfer').addEventListener('click', () => {
+      const no = $('#fmTransferNo').value.trim();
+      if (!no) return showFormErr('请填写调拨单号并查询！');
+      if (no === 'DB-NON-GC') return showFormErr('该调拨单调出处理中心非谷仓处理中心，不可新增谷仓计划单！');
+      const mock = MOCK_TRANSFERS[no];
+      if (!mock) return showFormErr('该调拨单状态不允许操作！仅待发货、待审核状态可操作！');
+      const excludeId = formMode === 'edit' ? editingId : null;
+      if (existsPlanOnTransfer(no, excludeId)) return showFormErr('该调拨单已存在谷仓且业务类型=计划单且海外仓状态不为作废，不可重复新增！');
+      queryPassed = true;
+      $('#fmShipWarehouse').value = mock.shipWarehouse;
+      renderProductRows(mock.products.map(p => ({ sku: p.sku, fnsku: p.fnsku, qty: p.qty })));
+      hideFormErr();
+      toast('查询成功，已带出发货仓库及商品明细');
+    });
+
+    $('#productBody').addEventListener('click', (e) => {
+      if (e.target.classList.contains('btn-add-row')) {
+        const items = getProductRows();
+        items.push({ sku: '', fnsku: '', qty: '' });
+        renderProductRows(items);
+      }
+      if (e.target.classList.contains('btn-del-row')) {
+        const items = getProductRows();
+        if (items.length <= 1) return toast('至少保留一行商品明细', 'warn');
+        const tr = e.target.closest('tr');
+        const idx = [...tr.parentNode.children].indexOf(tr);
+        items.splice(idx, 1);
+        renderProductRows(items);
+      }
+    });
+    $('#btnAddProductRow').addEventListener('click', () => {
+      const items = getProductRows();
+      items.push({ sku: '', fnsku: '', qty: '' });
+      renderProductRows(items);
+    });
+
+    function showFormErr(msg) {
+      const el = $('#formErr');
+      el.textContent = msg;
+      el.style.display = '';
+    }
+    function hideFormErr() { $('#formErr').style.display = 'none'; }
+
+    function validateForm() {
+      hideFormErr();
+      if (!queryPassed) return showFormErr('请填写调拨单号并查询！'), false;
+      if (!$('#fmTransferNo').value.trim()) return showFormErr('请填写调拨单号并查询！'), false;
+      if (!$('#fmShipWarehouse').value)
+        return showFormErr('请完善发货仓库！'), false;
+
+      const changeLabel = document.querySelector('input[name="changeLabel"]:checked').value;
+      const stickLabel = document.querySelector('input[name="stickLabel"]:checked').value;
+      if (changeLabel === '1') {
+        if (!$('#fmLabelOpt').value || !$('#fmLabelQty').value)
+          return showFormErr('换标为是时，请完善换标要求及平台编码'), false;
+      }
+      if (stickLabel === '1') {
+        const hasFile = $('#fmTransparencyFile').files.length || $('#fileUploaded').style.display !== 'none';
+        if (!hasFile) return showFormErr('请上传 Transparency 标签文件（PDF）'), false;
+      }
+
+      const products = getProductRows();
+      if (!products.length || products.some(p => !p.sku || p.qty <= 0))
+        return showFormErr('请至少维护一行商品明细'), false;
+      const skus = products.map(p => p.sku);
+      if (new Set(skus).size !== skus.length) return showFormErr('产品编码不可重复'), false;
+      if (changeLabel === '1' && products.some(p => !p.fnsku.trim()))
+        return showFormErr('换标为是时，请完善换标要求及平台编码'), false;
+
+      return true;
+    }
+
+    function collectFormData() {
+      const transferNo = $('#fmTransferNo').value.trim();
+      const mock = MOCK_TRANSFERS[transferNo] || {};
+      const changeLabel = document.querySelector('input[name="changeLabel"]:checked').value;
+      const stickLabel = document.querySelector('input[name="stickLabel"]:checked').value;
+      const file = $('#fmTransparencyFile').files[0];
+      return {
+        transferNo,
+        outWarehouse: mock.outWarehouse || '谷仓处理中心',
+        inWarehouse: mock.inWarehouse || 'FBA / AMAZON.US',
+        salesGroup: mock.salesGroup || '北美一组',
+        requester: mock.requester || '当前用户',
+        shipWarehouse: $('#fmShipWarehouse').value,
+        shipWarehouseName: $('#fmShipWarehouse option:checked').textContent,
+        physWarehouse: mock.physWarehouse || '',
+        physWarehouseName: mock.physWarehouseName || '',
+        changeLabel, labelQty: $('#fmLabelQty').value, labelOpt: $('#fmLabelOpt').value,
+        stickLabel,
+        transparencyFile: file ? file.name : (editingId ? rows.find(r=>r.id===editingId)?.transparencyFile : ''),
+        products: getProductRows()
+      };
+    }
+
+    function doSave() {
+      if (!validateForm()) return;
+      const data = collectFormData();
+      const ts = nowStr();
+
+      if (formMode === 'add') {
+        let orderNo;
+        try {
+          orderNo = generateOrderNo();
+        } catch (e) {
+          return toast(e.message, 'err');
+        }
+        rows.unshift({
+          id: 'r' + Date.now(),
+          orderNo,
+          transferNo: data.transferNo,
+          outWarehouse: data.outWarehouse, inWarehouse: data.inWarehouse,
+          salesGroup: data.salesGroup, requester: data.requester,
+          docType: '计划单', planType: 'FBA 计划单', packType: '', shipmentId: '',
+          pushStatus: '待推送', owOrderNo: '', owStatus: '', remark: '',
+          warehouseInfo: '',           ...data, boxList: [],
+          creator: '当前用户', createTime: ts,
+          updater: '当前用户', updateTime: ts,
+          logs: [ts + ' 当前用户 新增计划单保存，单号 ' + orderNo]
+        });
+        filteredRows = [...rows];
+        toast('保存成功，单号 ' + orderNo + '（待推送）');
+      } else {
+        const r = rows.find(x => x.id === editingId);
+        Object.assign(r, data, { updater: '当前用户', updateTime: ts });
+        r.logs.push(ts + ' 当前用户 编辑计划单保存');
+        toast('保存成功');
+      }
+      closeModal('modalForm');
+      renderList();
+    }
+
+    // 查询计划单（只读）
+    function openViewModal(id) {
+      const r = rows.find(x => x.id === id);
+      if (!r || r.docType !== '计划单') return toast('仅计划单可查看转运详情', 'warn');
+
+      const changeLabelText = r.changeLabel === '1' ? '是' : '否';
+      const stickLabelText = r.stickLabel === '1' ? '是' : '否';
+      const labelOptText = r.labelOpt === '1' ? '替换外箱原 sku 标签' : '拆箱为每个内件贴标';
+
+      let boxHtml = '';
+      if (r.boxList && r.boxList.length) {
+        boxHtml = r.boxList.map(box => `
+          <div class="box-group">
+            <div class="box-group-head">
+              <span>箱唛号：${box.boxNo}</span>
+              <span>${box.size} CM · ${box.weight} KG</span>
+            </div>
+            <div class="box-group-body">
+              <table>
+                <thead><tr><th>商品编码</th><th>数量</th><th>箱子尺寸(CM)</th><th>箱子重量(KG)</th></tr></thead>
+                <tbody>
+                  ${box.items.map(it => `
+                    <tr>
+                      <td>${it.sku}</td><td>${it.qty}</td>
+                      <td>${box.size}</td><td>${box.weight}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        boxHtml = '<p class="note" style="margin:0">暂无装箱信息，请对已推送计划单执行同步详情</p>';
+      }
+
+      $('#viewBody').innerHTML = `
+        <div class="section">
+          <div class="section-title">出库信息</div>
+          <div class="form-grid">
+            <div class="field"><label>单号</label><input readonly value="${r.orderNo || '—'}" /></div>
+            <div class="field"><label>计划单号</label><input readonly value="${r.owOrderNo || '—'}" /></div>
+            <div class="field"><label>调拨单号</label><input readonly value="${r.transferNo}" /></div>
+            <div class="field"><label>类型</label><input readonly value="${r.planType}" /></div>
+            <div class="field"><label>发货仓库</label><input readonly value="${r.shipWarehouseName || r.shipWarehouse}" /></div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">库内操作</div>
+          <div class="form-grid">
+            <div class="field"><label>条形码换标服务</label><input readonly value="${changeLabelText}" /></div>
+            ${r.changeLabel === '1' ? `
+              <div class="field"><label>每单件换标数量</label><input readonly value="${r.labelQty}" /></div>
+              <div class="field"><label>换标要求</label><input readonly value="${labelOptText}" /></div>
+            ` : ''}
+            <div class="field"><label>Transparency 标签贴标服务</label><input readonly value="${stickLabelText}" /></div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">商品明细</div>
+          <div class="sub-table-wrap">
+            <table>
+              <thead><tr><th>序号</th><th>产品编码</th>${r.changeLabel==='1'?'<th>平台编码</th>':''}<th>数量</th></tr></thead>
+              <tbody>
+                ${r.products.map((p,i)=>`<tr><td>${i+1}</td><td>${p.sku}</td>${r.changeLabel==='1'?`<td>${p.fnsku||'—'}</td>`:''}<td>${p.qty}</td></tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">附件</div>
+          <div class="field">
+            <label>Transparency 附件</label>
+            ${r.transparencyFile ? `<span class="file-link">${r.transparencyFile}</span>` : '<span class="help">—</span>'}
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">装箱信息</div>
+          ${boxHtml}
+        </div>
+      `;
+      openModal('modalView');
+    }
+
+    function openLogModal(id) {
+      const r = rows.find(x => x.id === id);
+      $('#logList').innerHTML = (r?.logs || []).map(l => `<li>${l}</li>`).join('') || '<li>暂无日志</li>';
+      openModal('modalLog');
+    }
+
+    // 关闭弹窗
+    document.addEventListener('click', (e) => {
+      const closeId = e.target.dataset.close;
+      if (closeId) closeModal(closeId);
+      if (e.target.classList.contains('modal-mask')) closeModal(e.target.id);
+    });
+
+    renderList();
+  </script>
+</body>
+</html>
