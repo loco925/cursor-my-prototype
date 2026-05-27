@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>发货限制工作台 - 完整版高保真原型</title>
+  <style>
+    :root {
+      --bg: #f0f2f5; --card: #fff; --line: #e4e7ed; --text: #303133; --muted: #909399;
+      --primary: #009688; --sidebar: #00796b; --head-bg: #f5f7fa;
+      --orange: #e6a23c; --green: #67c23a; --danger: #f56c6c; --blue: #409eff; --purple: #7b1fa2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Microsoft YaHei", Arial, sans-serif; font-size: 12px; color: var(--text); background: var(--bg); }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 210px; flex-shrink: 0; background: var(--sidebar); color: #fff; display: flex; flex-direction: column; }
+    .sidebar-brand { padding: 14px 12px; font-weight: 700; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,.12); }
+    .sidebar-search { margin: 8px; padding: 6px 8px; border-radius: 4px; border: none; font-size: 12px; }
+    .sidebar-nav { flex: 1; overflow-y: auto; }
+    .sidebar-nav .group { padding: 8px 14px 4px; font-size: 11px; color: rgba(255,255,255,.55); }
+    .sidebar-nav a { display: block; padding: 8px 14px 8px 22px; color: rgba(255,255,255,.85); text-decoration: none; font-size: 12px; }
+    .sidebar-nav a.active { background: rgba(0,0,0,.18); color: #fff; font-weight: 600; }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar { background: var(--card); border-bottom: 1px solid var(--line); padding: 8px 14px; display: flex; justify-content: space-between; align-items: center; }
+    .breadcrumb { color: var(--muted); font-size: 11px; }
+    .proto-banner { background: #e8f5e9; border-bottom: 1px solid #a5d6a7; padding: 6px 14px; font-size: 11px; line-height: 1.5; }
+    .proto-banner .tag { background: var(--orange); color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-right: 6px; }
+    .page-tabs { display: flex; background: #fafafa; border-bottom: 1px solid var(--line); padding: 0 8px; }
+    .page-tabs button { border: none; background: transparent; padding: 11px 18px; cursor: pointer; font-size: 12px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; position: relative; }
+    .page-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--card); font-weight: 600; }
+    .page-tabs .badge { position: absolute; top: 4px; right: 2px; background: var(--danger); color: #fff; font-size: 10px; padding: 0 5px; border-radius: 8px; }
+    .content { flex: 1; padding: 10px 12px 24px; overflow: auto; }
+    .panel { display: none; } .panel.active { display: block; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 4px; margin-bottom: 8px; padding: 10px; }
+    .card-title { font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: repeat(6, minmax(110px, 1fr)); gap: 8px 10px; align-items: end; }
+    .grid-5 { grid-template-columns: repeat(5, minmax(120px, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
+    .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .field input, .field select, .field textarea { width: 100%; border: 1px solid #dcdfe6; border-radius: 4px; padding: 6px 8px; font-size: 12px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; align-items: center; }
+    button { border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
+    .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-plain { color: var(--primary); border-color: #b2dfdb; }
+    .btn-green { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-orange { background: var(--orange); color: #fff; border-color: var(--orange); }
+    .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .btn-link { border: none; background: transparent; color: var(--primary); padding: 0 4px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; }
+    table { border-collapse: collapse; font-size: 11px; min-width: max-content; width: 100%; }
+    th, td { border: 1px solid #ebeef5; padding: 6px 8px; text-align: left; white-space: nowrap; vertical-align: middle; }
+    th { background: var(--head-bg); font-weight: 600; color: #606266; }
+    tbody tr:hover { background: #fafafa; }
+    tbody tr.row-warn { background: #fff8e1; }
+    tbody tr.row-full { background: #ffebee; }
+    .pager { padding: 8px 0; font-size: 11px; color: var(--muted); }
+    .note { font-size: 11px; color: var(--muted); line-height: 1.6; padding: 8px 10px; background: #fafafa; border-radius: 4px; border-left: 3px solid var(--primary); margin-top: 8px; }
+    .note-warn { border-left-color: var(--orange); background: #fff8e1; }
+    .note-info { border-left-color: var(--blue); background: #ecf5ff; }
+    .stat-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 8px; }
+    .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 10px; }
+    .stat-card .label { font-size: 11px; color: var(--muted); }
+    .stat-card .value { font-size: 18px; font-weight: 700; margin-top: 4px; }
+    .stat-card .sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; }
+    .badge-green { background: #e8f5e9; color: #2e7d32; }
+    .badge-gray { background: #f5f5f5; color: #757575; }
+    .badge-orange { background: #fff3e0; color: #e65100; }
+    .badge-red { background: #ffebee; color: #c62828; }
+    .badge-blue { background: #e3f2fd; color: #1565c0; }
+    .badge-purple { background: #f3e5f5; color: #7b1fa2; }
+    .dim-tag { display: inline-block; background: #eceff1; color: #455a64; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin: 1px 2px 1px 0; }
+    .pool-tag { background: #ede7f6; color: #5e35b1; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer; }
+    .rate-bar { display: inline-flex; align-items: center; gap: 5px; }
+    .rate-bar .bar { width: 56px; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+    .rate-bar .fill { height: 100%; }
+    .fill-ok { background: var(--green); } .fill-mid { background: var(--orange); } .fill-high { background: var(--danger); }
+    .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 300; }
+    .modal-mask.show { display: flex; }
+    .modal { background: #fff; border-radius: 4px; max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 4px 24px rgba(0,0,0,.18); }
+    .modal.sm { width: min(540px, 94vw); }
+    .modal.md { width: min(760px, 96vw); }
+    .modal.lg { width: min(1080px, 98vw); }
+    .modal-header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { margin: 0; font-size: 15px; }
+    .modal-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
+    .modal-footer { padding: 10px 16px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
+    .wizard-steps { display: flex; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+    .wizard-steps .step { flex: 1; text-align: center; padding: 8px 4px 10px; font-size: 11px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .wizard-steps .step.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+    .wizard-steps .step.done { color: var(--green); }
+    .wizard-panel { display: none; } .wizard-panel.active { display: block; }
+    .dim-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+    .dim-box { border: 1px solid var(--line); border-radius: 4px; padding: 8px; }
+    .dim-box h4 { margin: 0 0 6px; font-size: 11px; color: var(--muted); }
+    .chk-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 8px; max-height: 220px; overflow-y: auto; border: 1px solid var(--line); padding: 8px; border-radius: 4px; }
+    .chk-grid label { display: flex; align-items: flex-start; gap: 4px; font-size: 11px; cursor: pointer; }
+    .chk-grid .meta { color: var(--muted); font-size: 10px; }
+    .pool-options { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    .pool-opt { border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; cursor: pointer; font-size: 11px; }
+    .pool-opt.selected { border-color: var(--primary); background: #e0f2f1; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .toast { position: fixed; top: 16px; right: 16px; background: #323232; color: #fff; padding: 10px 16px; border-radius: 4px; z-index: 500; opacity: 0; transition: .25s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    .alert-bar { background: #ffebee; border: 1px solid #ef9a9a; color: #c62828; padding: 6px 10px; border-radius: 4px; font-size: 11px; margin-bottom: 8px; display: none; }
+    .alert-bar.show { display: block; }
+    .refresh-dot { display: inline-block; width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; margin-right: 4px; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+    .diff-old { color: var(--danger); text-decoration: line-through; }
+    .diff-new { color: var(--green); font-weight: 600; }
+    .log-item { border-bottom: 1px solid var(--line); padding: 6px 0; font-size: 11px; }
+    .assumption-list { margin: 4px 0 0; padding-left: 18px; }
+    .assumption-list li { margin: 2px 0; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-brand">物流管理系统</div>
+    <input class="sidebar-search" placeholder="搜索菜单..." />
+    <nav class="sidebar-nav">
+      <div class="group">小包管理</div>
+      <a href="#">邮寄方式管理</a>
+      <a class="active" href="#">发货限制工作台</a>
+      <div class="group">说明</div>
+      <a href="#" onclick="toast('原三页已合并至本工作台');return false">原：配置 / 审核 / 报表 V2</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="breadcrumb">物流系统 / 小包管理 / <b>发货限制工作台</b></div>
+      <span style="font-size:11px;color:var(--muted)">洛瑶 · 2026-05-26</span>
+    </div>
+    <div class="proto-banner">
+      <span class="tag">完整版原型</span>
+      五维任意组合 · 智能渠道筛选 · 占用监控（实时刷新）· 三页合一 · 共享池（货代/国家/平台）· 行级混用 · 审核流
+      · 已拍板：<b>销售组仅 AND 组合、不做共享池</b> · <b>多层规则同时命中须全部满足</b>
+    </div>
+    <div class="page-tabs" id="mainTabs">
+      <button data-tab="monitor" class="active">占用监控</button>
+      <button data-tab="rules">规则管理 <span class="badge" id="ruleCount">0</span></button>
+      <button data-tab="approval">待我审核 <span class="badge" id="apprBadge">0</span></button>
+    </div>
+    <div class="content">
+
+      <!-- ===== 占用监控 ===== -->
+      <section class="panel active" id="panel-monitor">
+        <div class="alert-bar" id="alertBar">⚠ 占用率 ≥90% 预警：<span id="alertText"></span></div>
+        <div class="stat-row">
+          <div class="stat-card"><div class="label">今日监控规则</div><div class="value" id="stRules">0</div><div class="sub">已启用 · 当天</div></div>
+          <div class="stat-card"><div class="label">≥90% 预警</div><div class="value" style="color:var(--danger)" id="st90">0</div><div class="sub">自动告警</div></div>
+          <div class="stat-card"><div class="label">已打满</div><div class="value" style="color:var(--orange)" id="stFull">0</div><div class="sub">剩余=0</div></div>
+          <div class="stat-card"><div class="label">共享池</div><div class="value" style="color:var(--purple)" id="stPool">0</div><div class="sub">货代/国家/平台</div></div>
+          <div class="stat-card"><div class="label">刷新</div><div class="value" style="font-size:13px"><span class="refresh-dot"></span><span id="refreshTime">--</span></div><div class="sub">30 秒轮询</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">筛选 <span style="font-weight:400;font-size:10px;color:var(--muted)">默认：当天 · 已启用 · 占用率降序</span></div>
+          <div class="grid">
+            <div class="field"><label>订单生成时间</label><input type="date" id="mDate" /></div>
+            <div class="field"><label>货代</label><select id="mCarrier"><option value="">全部</option></select></div>
+            <div class="field"><label>邮寄方式</label><input id="mPost" placeholder="名称/编码" /></div>
+            <div class="field"><label>收件国</label><select id="mCountry"><option value="">全部</option></select></div>
+            <div class="field"><label>平台</label><select id="mPlatform"><option value="">全部</option></select></div>
+            <div class="field"><label>销售组</label><select id="mSales"><option value="">全部</option></select></div>
+            <div class="field"><label>是否泡货</label><select id="mBubble"><option value="">全部</option><option value="0">否</option><option value="1">是</option></select></div>
+            <div class="field"><label>规则状态</label><select id="mStatus"><option value="enabled" selected>已启用</option><option value="all">全部</option><option value="disabled">已停用</option></select></div>
+            <div class="field"><label>占用状态</label><select id="mOcc"><option value="">全部</option><option value="warn">≥90%预警</option><option value="full">已打满</option><option value="avail">有余量</option></select></div>
+            <div class="field"><label>限额类型</label><select id="mLimitType"><option value="">全部</option><option value="pool">共享池</option><option value="channel">渠道独立</option></select></div>
+          </div>
+          <div class="toolbar">
+            <button class="btn-primary" onclick="renderMonitor()">搜索</button>
+            <button onclick="resetMonitor()">重置</button>
+            <button class="btn-plain" onclick="toast('已导出监控报表')">导出</button>
+            <span style="margin-left:auto;font-size:11px;color:var(--muted)">排序：<b style="color:var(--primary)">占用率 ↓</b></span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>货代</th><th>邮寄方式</th><th>平台</th><th>收件国</th><th>销售组</th><th>泡货</th>
+                  <th>维度标签</th><th>首选占比</th><th>最大订单数</th><th>最小订单数</th>
+                  <th>占用订单数</th><th>首选订单数</th><th>剩余</th><th>占用率↓</th>
+                  <th>状态</th><th>配置时间</th><th>审核时间</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="monitorBody"></tbody>
+            </table>
+          </div>
+          <div class="pager" id="monitorPager"></div>
+        </div>
+        <div class="note note-info">
+          <b>监控能力</b>：按渠道+目的国展示限制与占用；支持货代/渠道/目的国/平台/销售组/泡货组合筛选；配置时间、审核时间、占用实时刷新（30s）；行内可查看池详情、跳转调整限额、查看变更日志。
+        </div>
+      </section>
+
+      <!-- ===== 规则管理 ===== -->
+      <section class="panel" id="panel-rules">
+        <div class="card">
+          <div class="grid">
+            <div class="field"><label>货代</label><select id="rCarrier"><option value="">全部</option></select></div>
+            <div class="field"><label>邮寄方式</label><input id="rPost" placeholder="名称/编码" /></div>
+            <div class="field"><label>平台</label><select id="rPlatform"><option value="">全部</option></select></div>
+            <div class="field"><label>收件国</label><select id="rCountry"><option value="">全部</option></select></div>
+            <div class="field"><label>销售组</label><select id="rSales"><option value="">全部</option></select></div>
+            <div class="field"><label>配置状态</label><select id="rStatus"><option value="">全部</option><option value="enabled">已启用</option><option value="disabled">已停用</option><option value="pending">待审核</option></select></div>
+          </div>
+          <div class="toolbar">
+            <button class="btn-primary" onclick="openWizard()">新建规则（五维组合）</button>
+            <button class="btn-plain" onclick="openImport()">导入</button>
+            <button class="btn-plain" onclick="toast('已导出 '+rules.length+' 条')">导出</button>
+            <button class="btn-green" onclick="batchOp('enable')">启用</button>
+            <button class="btn-orange" onclick="batchOp('disable')">停用</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" onchange="toggleAllRules(this)" /></th>
+                  <th>货代</th><th>邮寄方式</th><th>编码</th><th>状态</th>
+                  <th>平台</th><th>收件国</th><th>销售组</th><th>泡货</th>
+                  <th>维度标签</th><th>首选占比</th><th>最大订单数</th><th>最小订单数</th>
+                  <th>限额类型</th><th>添加/修改</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="rulesBody"></tbody>
+            </table>
+          </div>
+          <div class="pager" id="rulesPager"></div>
+        </div>
+        <div class="note">
+          <b>规则模型</b>：货代、邮寄方式、国家、销售组、平台、泡货五维（可扩展）任意 AND 组合；未选=全部/通配。<b>共享池仅限货代/国家/平台</b>；<b>销售组仅作组合维，不做共享池</b>（已拍板）。同一行可混用占比+最大/最小订单数。多条规则同时命中（如国家级池 280 单 + 渠道独立 100 单）时 <b>须全部满足</b>（已拍板，非取最严）。
+        </div>
+        <div class="note note-info">
+          <b>其他约定</b>：货代/国家/平台级规则保存时展开为具体邮寄方式行并关联同一 poolId；占比分母沿用现网「当日初始匹配该渠道序号」；V1 重量段已下线不纳入。
+        </div>
+      </section>
+
+      <!-- ===== 待我审核 ===== -->
+      <section class="panel" id="panel-approval">
+        <div class="card">
+          <div class="grid grid-4">
+            <div class="field"><label>审批编号</label><input id="aNo" placeholder="QL..." /></div>
+            <div class="field"><label>货代</label><select id="aCarrier"><option value="">全部</option></select></div>
+            <div class="field"><label>状态</label><select id="aStatus"><option value="pending">待审核</option><option value="all">全部</option></select></div>
+            <div class="field"><label>创建时间</label><input type="date" id="aDate" /></div>
+          </div>
+          <div class="toolbar">
+            <button class="btn-primary" onclick="renderApproval()">搜索</button>
+            <button class="btn-green" onclick="openBatchAppr()">批量审核</button>
+            <button class="btn-danger" onclick="toast('已删除选中')">删除</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><input type="checkbox" onchange="toggleAllAppr(this)" /></th>
+                  <th>审批编号</th><th>类型</th><th>货代</th><th>邮寄方式</th>
+                  <th>五维组合</th><th>变更摘要</th><th>状态</th><th>创建</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="approvalBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="note">任意改动均走审批；通过后规则启用并同步至占用监控。启用/停用维持现网逻辑。</div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- 新建规则向导 -->
+<div class="modal-mask" id="wizardMask">
+  <div class="modal lg">
+    <div class="modal-header"><h3>新建规则 · 五维任意组合</h3><button class="btn-link" onclick="closeModal('wizardMask')">✕</button></div>
+    <div class="modal-body">
+      <div class="wizard-steps">
+        <div class="step active" data-s="1">① 五维组合</div>
+        <div class="step" data-s="2">② 智能渠道筛选</div>
+        <div class="step" data-s="3">③ 限额设置</div>
+        <div class="step" data-s="4">④ 预览提交</div>
+      </div>
+
+      <div class="wizard-panel active" data-p="1">
+        <div class="note note-warn" style="margin-bottom:10px">情况 1–3：指定邮寄方式组合；情况 4–6：先选货代/国家/平台共享池，再智能筛渠道批量展开。</div>
+        <div class="dim-matrix">
+          <div class="dim-box"><h4>货代</h4><select id="wCarrier"><option value="">全部货代</option></select></div>
+          <div class="dim-box"><h4>邮寄方式</h4><select id="wPostType"><option value="">全部（由步骤②勾选）</option></select></div>
+          <div class="dim-box"><h4>收件国</h4><select id="wCountry"><option value="">全部国家</option></select></div>
+          <div class="dim-box"><h4>平台</h4><select id="wPlatform"><option value="">全部平台</option></select></div>
+          <div class="dim-box"><h4>销售组</h4><select id="wSales"><option value="">全部销售组</option></select></div>
+          <div class="dim-box"><h4>是否泡货</h4><select id="wBubble"><option value="">不限</option><option value="0">否</option><option value="1">是</option></select></div>
+        </div>
+        <div class="field"><label>共享池维度（仅货代/国家/平台；销售组不可做池 · 情况 1–3 选「渠道独立」）</label></div>
+        <div class="pool-options" id="poolOpts">
+          <div class="pool-opt selected" data-pool="channel" onclick="pickPool('channel',this)">渠道独立（不共享池）</div>
+          <div class="pool-opt" data-pool="carrier" onclick="pickPool('carrier',this)">货代级共享池</div>
+          <div class="pool-opt" data-pool="country" onclick="pickPool('country',this)">国家级共享池</div>
+          <div class="pool-opt" data-pool="platform" onclick="pickPool('platform',this)">平台级共享池</div>
+        </div>
+        <div class="note" style="margin-top:8px;font-size:10px">销售组在上方矩阵中选择，仅缩小命中范围（AND），不与货代/国家/平台并列做配额池。</div>
+      </div>
+
+      <div class="wizard-panel" data-p="2">
+        <div class="note note-warn" id="poolScopeNote" style="margin-bottom:10px;display:none">
+          <b>共享池说明</b>：下方勾选的是「<b>纳入本池的渠道范围</b>」，不是给每个渠道各配一笔额度。
+          步骤③只填<b>一次</b>「池总限额」——例如货代今天合计 200 票，选 3 个渠道也是 3 个渠道<b>加起来</b>不超过 200。
+        </div>
+        <div class="field" id="allCarrierWrap" style="display:none;margin-bottom:8px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text)">
+            <input type="checkbox" id="wAllCarrierCh" onchange="toggleAllCarrierChannels()" />
+            <b>该货代下全部启用小包渠道纳入本池</b>（无需逐个勾选，情况 4 推荐）
+          </label>
+        </div>
+        <div class="grid grid-5" style="margin-bottom:8px">
+          <div class="field"><label>货代</label><select id="fCarrier" onchange="filterChannels()"></select></div>
+          <div class="field"><label>收件国</label><select id="fCountry" onchange="filterChannels()"><option value="">全部</option></select></div>
+          <div class="field"><label>平台</label><select id="fPlatform" onchange="filterChannels()"><option value="">全部</option></select></div>
+          <div class="field"><label>邮寄方式类型</label><select id="fType" onchange="filterChannels()"><option value="">全部</option><option>标准</option><option>经济</option><option>快线</option><option>优先</option></select></div>
+          <div class="field"><label>普货/特货</label><select id="fCargo" onchange="filterChannels()"><option value="">全部</option><option>普货</option><option>特货</option></select></div>
+          <div class="field"><label>渠道状态</label><select id="fStatus" onchange="filterChannels()"><option value="enabled" selected>仅启用</option><option value="">全部</option></select></div>
+          <div class="field"><label>已配优先级</label><select id="fPriority" onchange="filterChannels()"><option value="">不限</option><option value="1">是</option><option value="0">否</option></select></div>
+          <div class="field"><label>销售组可走</label><select id="fSales" onchange="filterChannels()"><option value="">不限</option></select></div>
+          <div class="field"><label>&nbsp;</label><button class="btn-plain" style="width:100%" onclick="selectAllCh()">全选匹配</button></div>
+        </div>
+        <div class="note" id="poolHint">智能筛选：按目的国反查可走货代与邮寄方式（情况 5）</div>
+        <div class="chk-grid" id="chList"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">已纳入本池 <b id="chCount">0</b> 个渠道（合计共用步骤③的<b>一个</b>池总限额）</div>
+      </div>
+
+      <div class="wizard-panel" data-p="3">
+        <div class="note note-info" id="poolLimitNote" style="display:none;margin-bottom:10px">
+          <b>货代/国家/平台池</b>：此处「池总限额」= 用户心智里的「今天一共能走 N 票」。各渠道行上的「最大订单数」留空（显示 -），占用按池汇总校验。
+        </div>
+        <div class="split">
+          <div id="channelLimitCol">
+            <div class="field"><label>首选订单占比（%）</label><input type="number" id="wRatio" min="0" max="100" step="0.1" placeholder="-" /></div>
+            <div class="field" id="wMaxWrap"><label>最大订单数（仅渠道独立时填写）</label><input type="number" id="wMax" min="1" placeholder="-" /></div>
+            <div class="field"><label>最小订单数</label><input type="number" id="wMin" min="0" placeholder="-" /></div>
+            <div class="note" id="limitHint">行级混用：占比、最大、最小可同时配置，至少填一项。</div>
+          </div>
+          <div>
+            <div class="field" id="wPoolMaxWrap"><label>池总限额 *（本池所有渠道合计不超过此数）</label><input type="number" id="wPoolMax" placeholder="如：货代今天共 200 票" /></div>
+            <div class="field"><label>占比分母说明</label><textarea rows="3" readonly style="background:#fafafa;font-size:11px">按「当日初始匹配该渠道序号」计算首选占比，与现网报表 V2 一致。</textarea></div>
+          </div>
+        </div>
+        <div id="wErr" style="color:var(--danger);font-size:11px;display:none;margin-top:8px"></div>
+      </div>
+
+      <div class="wizard-panel" data-p="4">
+        <div class="note note-info" id="prevSum"></div>
+        <div class="table-wrap" style="margin-top:8px">
+          <table><thead><tr><th>货代</th><th>邮寄方式</th><th>平台</th><th>国家</th><th>销售组</th><th>泡货</th><th>占比</th><th>渠道最大</th><th>最小</th><th>池总限额（合计）</th><th>池ID</th></tr></thead><tbody id="prevBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('wizardMask')">取消</button>
+      <button id="wPrev" onclick="wStep(-1)" style="display:none">上一步</button>
+      <button class="btn-primary" id="wNext" onclick="wStep(1)">下一步</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑规则 -->
+<div class="modal-mask" id="editMask">
+  <div class="modal md">
+    <div class="modal-header"><h3 id="editTitle">编辑规则</h3><button class="btn-link" onclick="closeModal('editMask')">✕</button></div>
+    <div class="modal-body" id="editBody"></div>
+    <div class="modal-footer">
+      <button onclick="closeModal('editMask')">取消</button>
+      <button class="btn-primary" onclick="saveEdit()">提交审核</button>
+    </div>
+  </div>
+</div>
+
+<!-- 共享池 -->
+<div class="modal-mask" id="poolMask">
+  <div class="modal md">
+    <div class="modal-header"><h3 id="poolTitle">共享池</h3><button class="btn-link" onclick="closeModal('poolMask')">✕</button></div>
+    <div class="modal-body">
+      <div class="stat-row" style="grid-template-columns:repeat(3,1fr)">
+        <div class="stat-card"><div class="label">池限额</div><div class="value" id="pMax">-</div></div>
+        <div class="stat-card"><div class="label">已占用</div><div class="value" id="pUsed">-</div></div>
+        <div class="stat-card"><div class="label">占用率</div><div class="value" id="pRate">-</div></div>
+      </div>
+      <div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>邮寄方式</th><th>国家</th><th>平台</th><th>本渠道占用</th><th>占池比</th></tr></thead><tbody id="pBody"></tbody></table></div>
+      <div class="toolbar" style="margin-top:10px"><button class="btn-primary" onclick="editFromPool()">调整池限额</button></div>
+    </div>
+    <div class="modal-footer"><button onclick="closeModal('poolMask')">关闭</button></div>
+  </div>
+</div>
+
+<!-- 审批详情 -->
+<div class="modal-mask" id="apprMask">
+  <div class="modal md">
+    <div class="modal-header"><h3>审批详情</h3><button class="btn-link" onclick="closeModal('apprMask')">✕</button></div>
+    <div class="modal-body" id="apprBody"></div>
+    <div class="modal-footer">
+      <button onclick="closeModal('apprMask')">关闭</button>
+      <button class="btn-danger" onclick="apprAct('reject')">驳回</button>
+      <button class="btn-green" onclick="apprAct('approve')">通过</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量审核 -->
+<div class="modal-mask" id="batchMask">
+  <div class="modal sm">
+    <div class="modal-header"><h3>批量审核</h3><button class="btn-link" onclick="closeModal('batchMask')">✕</button></div>
+    <div class="modal-body"><p>待审 <b id="batchN">0</b> 条</p><div class="field"><label>意见</label><textarea id="batchCmt" rows="2"></textarea></div></div>
+    <div class="modal-footer">
+      <button onclick="closeModal('batchMask')">取消</button>
+      <button class="btn-danger" onclick="batchAct('reject')">驳回</button>
+      <button class="btn-green" onclick="batchAct('approve')">通过</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导入 -->
+<div class="modal-mask" id="importMask">
+  <div class="modal sm">
+    <div class="modal-header"><h3>导入规则</h3><button class="btn-link" onclick="closeModal('importMask')">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label>模板</label><button class="btn-link" onclick="toast('已下载导入模板')">下载 Excel 模板</button></div>
+      <div class="field"><label>文件 *</label><input type="file" id="importFile" accept=".xlsx,.xls" /></div>
+      <div class="note">模板含五维字段、占比/最大/最小、共享池标识、泡货。</div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('importMask')">取消</button>
+      <button class="btn-primary" onclick="doImport()">校验并导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 变更日志 -->
+<div class="modal-mask" id="logMask">
+  <div class="modal sm">
+    <div class="modal-header"><h3>变更日志</h3><button class="btn-link" onclick="closeModal('logMask')">✕</button></div>
+    <div class="modal-body" id="logBody"></div>
+    <div class="modal-footer"><button onclick="closeModal('logMask')">关闭</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CARRIERS = ['4PX递四方','递四方','燕文','云途','万邦'];
+const COUNTRIES = ['美国','英国','德国','法国','俄罗斯','澳大利亚'];
+const PLATFORMS = ['Amazon','Ozon','eBay','Wish','Shopee'];
+const SALES = ['精铺组','半精品组','FBA组','全部销售组'];
+
+const CHANNELS = [
+  { code:'4PX-US-STD', carrier:'4PX递四方', name:'4PX标准小包-美国', country:'美国', platform:'全部平台', type:'标准', cargo:'普货', status:'enabled', priority:1 },
+  { code:'4PX-US-ECO', carrier:'递四方', name:'递四方美国经济小包', country:'美国', platform:'全部平台', type:'经济', cargo:'普货', status:'enabled', priority:1 },
+  { code:'4PX-US-EXP', carrier:'递四方', name:'递四方美国快线', country:'美国', platform:'全部平台', type:'快线', cargo:'普货', status:'enabled', priority:0 },
+  { code:'4PX-US-PRI', carrier:'递四方', name:'递四方美国优先', country:'美国', platform:'全部平台', type:'优先', cargo:'特货', status:'enabled', priority:1 },
+  { code:'4PX-RU-STD', carrier:'递四方', name:'递四方俄罗斯标准', country:'俄罗斯', platform:'Ozon', type:'标准', cargo:'普货', status:'enabled', priority:1 },
+  { code:'YW-UK-STD', carrier:'燕文', name:'燕文英国标准', country:'英国', platform:'Amazon', type:'标准', cargo:'普货', status:'enabled', priority:1 },
+  { code:'YT-DE-STD', carrier:'云途', name:'云途德国标准', country:'德国', platform:'Amazon', type:'标准', cargo:'普货', status:'enabled', priority:0 },
+  { code:'4PX-AU-STD', carrier:'4PX递四方', name:'4PX澳大利亚标准', country:'澳大利亚', platform:'eBay', type:'标准', cargo:'普货', status:'enabled', priority:0 },
+];
+
+const POOLS = {
+  'POOL-US': { label:'美国 · 国家级共享池', max:280, dim:'country' },
+  'POOL-OZ': { label:'Ozon · 平台级共享池', max:2000, dim:'platform' },
+  'POOL-YT': { label:'云途 · 货代级共享池', max:300, dim:'carrier' },
+};
+
+let rules = [
+  { id:1, carrier:'4PX递四方', code:'4PX-US-STD', name:'4PX标准小包-美国', status:'enabled', platform:'全部平台', country:'美国', sales:'全部销售组', bubble:'否', ratio:'-', max:100, min:'-', poolId:null, poolDim:'channel', used:92, preferred:88, addTime:'2026-03-01', auditTime:'2026-03-02 10:00', modifier:'张三' },
+  { id:2, carrier:'递四方', code:'4PX-US-ECO', name:'递四方美国经济小包', status:'enabled', platform:'全部平台', country:'美国', sales:'全部销售组', bubble:'否', ratio:'30', max:'-', min:'-', poolId:'POOL-US', poolDim:'country', used:78, preferred:70, addTime:'2026-02-15', auditTime:'2026-02-16 09:30', modifier:'李四' },
+  { id:3, carrier:'递四方', code:'4PX-US-EXP', name:'递四方美国快线', status:'enabled', platform:'全部平台', country:'美国', sales:'全部销售组', bubble:'否', ratio:'-', max:'-', min:'-', poolId:'POOL-US', poolDim:'country', used:112, preferred:105, addTime:'2026-02-15', auditTime:'2026-02-16 09:30', modifier:'李四' },
+  { id:4, carrier:'递四方', code:'4PX-US-PRI', name:'递四方美国优先', status:'enabled', platform:'全部平台', country:'美国', sales:'全部销售组', bubble:'否', ratio:'20', max:'-', min:'10', poolId:'POOL-US', poolDim:'country', used:90, preferred:82, addTime:'2026-02-15', auditTime:'2026-02-16 09:30', modifier:'李四' },
+  { id:5, carrier:'递四方', code:'4PX-RU-STD', name:'递四方俄罗斯标准', status:'enabled', platform:'Ozon', country:'俄罗斯', sales:'精铺组', bubble:'否', ratio:'-', max:'-', min:'-', poolId:'POOL-OZ', poolDim:'platform', used:1850, preferred:1800, addTime:'2026-01-20', auditTime:'2026-01-21 14:00', modifier:'王五' },
+  { id:6, carrier:'燕文', code:'YW-UK-STD', name:'燕文英国标准', status:'enabled', platform:'Amazon', country:'英国', sales:'FBA组', bubble:'否', ratio:'50', max:500, min:'50', poolId:null, poolDim:'channel', used:420, preferred:400, addTime:'2026-04-01', auditTime:'2026-04-02 11:00', modifier:'赵六' },
+  { id:7, carrier:'云途', code:'YT-DE-STD', name:'云途德国标准', status:'enabled', platform:'Amazon', country:'德国', sales:'半精品组', bubble:'否', ratio:'-', max:'-', min:'-', poolId:'POOL-YT', poolDim:'carrier', used:285, preferred:270, addTime:'2026-04-10', auditTime:'2026-04-11 08:00', modifier:'张三' },
+  { id:8, carrier:'4PX递四方', code:'4PX-AU-STD', name:'4PX澳大利亚标准', status:'disabled', platform:'eBay', country:'澳大利亚', sales:'全部销售组', bubble:'否', ratio:'-', max:150, min:'-', poolId:null, poolDim:'channel', used:0, preferred:0, addTime:'2026-05-01', auditTime:'2026-05-02 16:00', modifier:'李四' },
+];
+
+let approvals = [
+  { id:'QL20260526001', type:'新增', carrier:'递四方', post:'递四方法国标准', dims:'法国/全部平台/全部销售组', summary:'国家级共享池 500 单', status:'pending', user:'洛瑶', time:'2026-05-26 09:12', diff:{max:['-','500'],ratio:['-','-'],min:['-','-']} },
+  { id:'QL20260526002', type:'修改', carrier:'4PX递四方', post:'4PX标准小包-美国', dims:'美国/全部平台', summary:'最大 100→120', status:'pending', user:'洛瑶', time:'2026-05-26 10:05', diff:{max:['100','120'],ratio:['-','-'],min:['-','-']} },
+  { id:'QL20260525003', type:'新增', carrier:'燕文', post:'燕文英国快线', dims:'英国/Amazon/FBA组', summary:'占比40%+最大800+最小50', status:'pending', user:'张三', time:'2026-05-25 16:30', diff:{max:['-','800'],ratio:['-','40'],min:['-','50']} },
+  { id:'QL20260525004', type:'修改', carrier:'递四方', post:'俄罗斯标准', dims:'Ozon/俄罗斯', summary:'平台池 2000→2500', status:'pending', user:'王五', time:'2026-05-25 11:00', diff:{max:['2000','2500'],ratio:['-','-'],min:['-','-']} },
+  { id:'QL20260524005', type:'停用', carrier:'4PX递四方', post:'4PX澳大利亚标准', dims:'eBay/澳大利亚', summary:'停用规则', status:'pending', user:'李四', time:'2026-05-24 14:20', diff:{max:['150','150'],ratio:['-','-'],min:['-','-']} },
+];
+
+let wStepN = 1, poolPick = 'channel', editId = null, curPool = null, curAppr = null;
+let tick = 0;
+
+function today() { return new Date().toISOString().slice(0,10); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+
+function fillSel(id, arr, all) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `<option value="">${all||'全部'}</option>` + arr.map(v=>`<option>${v}</option>`).join('');
+}
+
+function init() {
+  ['mCarrier','rCarrier','aCarrier','wCarrier','fCarrier'].forEach(i=>fillSel(i,CARRIERS));
+  ['mCountry','rCountry','wCountry','fCountry'].forEach(i=>fillSel(i,COUNTRIES));
+  ['mPlatform','rPlatform','wPlatform','fPlatform'].forEach(i=>fillSel(i,PLATFORMS));
+  ['mSales','rSales','wSales','fSales'].forEach(i=>fillSel(i,SALES));
+  const wpt = document.getElementById('wPostType');
+  wpt.innerHTML = '<option value="">全部（步骤②勾选）</option>' + CHANNELS.map(c=>`<option value="${c.code}">${c.name}</option>`).join('');
+  document.getElementById('mDate').value = today();
+  document.getElementById('mainTabs').onclick = e => {
+    const b = e.target.closest('button[data-tab]');
+    if (!b) return;
+    document.querySelectorAll('#mainTabs button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    document.getElementById('panel-'+b.dataset.tab).classList.add('active');
+  };
+  document.querySelectorAll('.modal-mask').forEach(m=>m.onclick=e=>{if(e.target===m)m.classList.remove('show');});
+  renderAll();
+  setInterval(simulateRefresh, 30000);
+  updateClock();
+  setInterval(updateClock, 1000);
+}
+
+function dimTags(r) {
+  const t = [];
+  if (r.poolDim && r.poolDim !== 'channel') t.push(`<span class="dim-tag">${{carrier:'货代池',country:'国家池',platform:'平台池'}[r.poolDim]}</span>`);
+  if (r.carrier) t.push(`<span class="dim-tag">货代:${r.carrier}</span>`);
+  if (r.country && r.country !== '全部') t.push(`<span class="dim-tag">国:${r.country}</span>`);
+  if (r.platform && r.platform !== '全部平台') t.push(`<span class="dim-tag">平台:${r.platform}</span>`);
+  if (r.sales && r.sales !== '全部销售组') t.push(`<span class="dim-tag">组:${r.sales}</span>`);
+  if (r.bubble === '是') t.push(`<span class="dim-tag">泡货</span>`);
+  return t.join('') || '<span class="dim-tag">渠道独立</span>';
+}
+
+function statusBadge(s) {
+  return {enabled:'<span class="badge badge-green">已启用</span>',disabled:'<span class="badge badge-gray">已停用</span>',pending:'<span class="badge badge-orange">待审核</span>'}[s]||s;
+}
+
+function poolUsed(pid) { return rules.filter(r=>r.poolId===pid && r.status==='enabled').reduce((s,r)=>s+(r.used||0),0); }
+
+function getMax(r) {
+  if (r.poolId && POOLS[r.poolId]) return POOLS[r.poolId].max;
+  return r.max === '-' ? null : +r.max;
+}
+
+function occRate(r) {
+  const max = getMax(r);
+  if (!max) return 0;
+  const used = r.poolId ? poolUsed(r.poolId) : (r.used||0);
+  return Math.min(100, Math.round(used/max*1000)/10);
+}
+
+function rateHtml(rate) {
+  const c = rate>=90?'fill-high':rate>=70?'fill-mid':'fill-ok';
+  return `<span class="rate-bar"><span class="bar"><span class="fill ${c}" style="width:${Math.min(100,rate)}%"></span></span><b>${rate}%</b></span>`;
+}
+
+function limitType(r) {
+  if (r.poolId) return `<span class="pool-tag" onclick="showPool('${r.poolId}')">🔗 ${{country:'国家级',platform:'平台级',carrier:'货代级'}[r.poolDim]||'共享'}池</span>`;
+  return '<span class="badge badge-blue">渠道独立</span>';
+}
+
+function renderMonitor() {
+  const st = document.getElementById('mStatus').value;
+  const occ = document.getElementById('mOcc').value;
+  const lt = document.getElementById('mLimitType').value;
+  const seen = new Set();
+  let list = rules.filter(r => {
+    if (st==='enabled' && r.status!=='enabled') return false;
+    if (st==='disabled' && r.status!=='disabled') return false;
+    if (document.getElementById('mCarrier').value && r.carrier!==document.getElementById('mCarrier').value) return false;
+    if (document.getElementById('mCountry').value && r.country!==document.getElementById('mCountry').value) return false;
+    if (document.getElementById('mPlatform').value && r.platform!==document.getElementById('mPlatform').value && r.platform!=='全部平台') return false;
+    if (document.getElementById('mSales').value && r.sales!==document.getElementById('mSales').value && r.sales!=='全部销售组') return false;
+    if (document.getElementById('mPost').value && !r.name.includes(document.getElementById('mPost').value) && !r.code.includes(document.getElementById('mPost').value)) return false;
+    const rate = occRate(r);
+    const max = getMax(r);
+    const used = r.poolId ? poolUsed(r.poolId) : r.used;
+    const rem = max ? max-used : null;
+    if (occ==='warn' && rate<90) return false;
+    if (occ==='full' && rem!==0) return false;
+    if (occ==='avail' && rem===0) return false;
+    if (lt==='pool' && !r.poolId) return false;
+    if (lt==='channel' && r.poolId) return false;
+    if (r.poolId && seen.has(r.poolId)) return false;
+    if (r.poolId) seen.add(r.poolId);
+    return true;
+  });
+  list.sort((a,b)=>occRate(b)-occRate(a));
+
+  const warn90 = list.filter(r=>occRate(r)>=90);
+  document.getElementById('alertBar').classList.toggle('show', warn90.length>0);
+  document.getElementById('alertText').textContent = warn90.map(r=>r.name).slice(0,3).join('、')+(warn90.length>3?'…':'');
+
+  document.getElementById('monitorBody').innerHTML = list.map(r=>{
+    const rate = occRate(r);
+    const max = getMax(r);
+    const used = r.poolId ? poolUsed(r.poolId) : r.used;
+    const rem = max!=null ? Math.max(0,max-used) : '-';
+    const rowCls = rate>=100?'row-full':rate>=90?'row-warn':'';
+    const pref = r.poolId ? rules.filter(x=>x.poolId===r.poolId).reduce((s,x)=>s+(x.preferred||0),0) : r.preferred;
+    return `<tr class="${rowCls}">
+      <td>${r.carrier}</td><td>${r.name}${r.poolId?' 等':''}</td><td>${r.platform}</td><td>${r.country}</td><td>${r.sales}</td><td>${r.bubble}</td>
+      <td>${dimTags(r)}</td>
+      <td>${r.ratio==='-'?'-':r.ratio+'%'}</td><td>${max??'-'}</td><td>${r.min==='-'?'-':r.min}</td>
+      <td><b>${used}</b></td><td>${pref}</td><td>${rem}</td><td>${rateHtml(rate)}</td>
+      <td>${statusBadge(r.status)}</td><td>${r.addTime}</td><td>${r.auditTime}</td>
+      <td>
+        ${r.poolId?`<button class="btn-link" onclick="showPool('${r.poolId}')">查看池</button>`:''}
+        <button class="btn-link" onclick="jumpEdit(${r.id})">调整</button>
+        <button class="btn-link" onclick="showLog(${r.id})">查看</button>
+      </td></tr>`;
+  }).join('');
+
+  document.getElementById('monitorPager').textContent = `共 ${list.length} 条 · ${document.getElementById('mDate').value}`;
+  document.getElementById('stRules').textContent = list.length;
+  document.getElementById('st90').textContent = warn90.length;
+  document.getElementById('stFull').textContent = list.filter(r=>{const m=getMax(r);return m&&occRate(r)>=100;}).length;
+  document.getElementById('stPool').textContent = [...new Set(list.filter(r=>r.poolId).map(r=>r.poolId))].length;
+}
+
+function renderRules() {
+  document.getElementById('rulesBody').innerHTML = rules.map(r=>`<tr>
+    <td><input type="checkbox" class="rc" data-id="${r.id}"/></td>
+    <td>${r.carrier}</td><td>${r.name}</td><td>${r.code}</td><td>${statusBadge(r.status)}</td>
+    <td>${r.platform}</td><td>${r.country}</td><td>${r.sales}</td><td>${r.bubble}</td>
+    <td>${dimTags(r)}</td>
+    <td>${r.ratio==='-'?'-':r.ratio+'%'}</td><td>${r.max==='-'?'-':r.max}</td><td>${r.min==='-'?'-':r.min}</td>
+    <td>${limitType(r)}</td>
+    <td>${r.modifier} ${r.addTime}</td>
+    <td><button class="btn-link" onclick="jumpEdit(${r.id})">编辑</button><button class="btn-link" onclick="showLog(${r.id})">查看</button></td>
+  </tr>`).join('');
+  document.getElementById('rulesPager').textContent = `共 ${rules.length} 条`;
+  document.getElementById('ruleCount').textContent = rules.length;
+}
+
+function renderApproval() {
+  const st = document.getElementById('aStatus').value;
+  const list = approvals.filter(a=>st==='all'||a.status==='pending');
+  document.getElementById('approvalBody').innerHTML = list.map(a=>`<tr>
+    <td><input type="checkbox" class="ac" data-id="${a.id}"/></td>
+    <td>${a.id}</td><td><span class="badge badge-blue">${a.type}</span></td>
+    <td>${a.carrier}</td><td>${a.post}</td><td>${a.dims}</td><td>${a.summary}</td>
+    <td><span class="badge badge-orange">待审核</span></td><td>${a.user} ${a.time}</td>
+    <td><button class="btn-link" onclick="showAppr('${a.id}')">查看详情</button></td>
+  </tr>`).join('');
+  document.getElementById('apprBadge').textContent = list.length;
+}
+
+function renderAll() { renderMonitor(); renderRules(); renderApproval(); }
+
+function resetMonitor() {
+  document.getElementById('mDate').value = today();
+  ['mCarrier','mCountry','mPlatform','mSales','mPost','mBubble','mOcc','mLimitType'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('mStatus').value='enabled';
+  renderMonitor();
+}
+
+function simulateRefresh() {
+  tick++;
+  const r = rules.find(x=>x.status==='enabled' && x.id===1);
+  if (r && r.used < (r.max==='-'?999:+r.max)) { r.used++; r.preferred++; toast('占用已刷新：'+r.name+' +1'); }
+  renderMonitor();
+  updateClock();
+}
+
+function updateClock() {
+  document.getElementById('refreshTime').textContent = new Date().toLocaleTimeString('zh-CN',{hour12:false});
+}
+
+// Wizard
+function openWizard() {
+  wStepN=1; poolPick='channel';
+  document.querySelectorAll('.pool-opt').forEach(x=>x.classList.remove('selected'));
+  document.querySelector('.pool-opt[data-pool=channel]').classList.add('selected');
+  ['wRatio','wMax','wMin','wPoolMax'].forEach(id=>{ const e=document.getElementById(id); if(e){e.value='';e.disabled=false;} });
+  document.getElementById('wAllCarrierCh').checked = false;
+  document.getElementById('wErr').style.display='none';
+  syncPoolWizardUI();
+  updateWiz();
+  openModal('wizardMask');
+}
+
+function pickPool(p, el) {
+  poolPick=p;
+  document.querySelectorAll('.pool-opt').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+  syncPoolWizardUI();
+}
+
+function syncPoolWizardUI() {
+  const isPool = poolPick !== 'channel';
+  document.getElementById('poolScopeNote').style.display = isPool ? 'block' : 'none';
+  document.getElementById('poolLimitNote').style.display = isPool ? 'block' : 'none';
+  document.getElementById('allCarrierWrap').style.display = poolPick === 'carrier' ? 'block' : 'none';
+  document.getElementById('wPoolMaxWrap').style.display = isPool ? 'block' : 'none';
+  const maxWrap = document.getElementById('wMaxWrap');
+  const maxInput = document.getElementById('wMax');
+  if (isPool) {
+    maxWrap.querySelector('label').textContent = '最大订单数（池模式不在此填，填右侧池总限额）';
+    maxInput.disabled = true;
+    maxInput.value = '';
+    maxInput.placeholder = '池模式用右侧「池总限额」';
+    document.getElementById('limitHint').textContent = '池模式：至少填写右侧「池总限额」；占比/最小可选。';
+  } else {
+    maxWrap.querySelector('label').textContent = '最大订单数（仅渠道独立时填写）';
+    maxInput.disabled = false;
+    maxInput.placeholder = '-';
+    document.getElementById('limitHint').textContent = '行级混用：占比、最大、最小可同时配置，至少填一项。';
+  }
+  const hints = {
+    carrier: '货代级池：先选货代，可勾选「全部启用渠道」或手动勾选纳入池的渠道；限额只填一次合计值。',
+    country: '国家级池：勾选同一目的国下要纳入池的渠道，合计不超过池总限额。',
+    platform: '平台级池：勾选同一平台下要纳入池的渠道，合计不超过池总限额。',
+    channel: '渠道独立：每行单独限额，不与其他渠道共享。'
+  };
+  document.getElementById('poolHint').innerHTML = hints[poolPick] || '';
+}
+
+function toggleAllCarrierChannels() {
+  const on = document.getElementById('wAllCarrierCh').checked;
+  const carrier = document.getElementById('fCarrier').value || document.getElementById('wCarrier').value;
+  if (on && !carrier) { toast('请先在筛选区选择货代'); document.getElementById('wAllCarrierCh').checked = false; return; }
+  document.querySelectorAll('#chList input').forEach(i => { i.checked = on; i.disabled = on; });
+  if (on) document.getElementById('fCarrier').value = carrier;
+  updChCnt();
+}
+
+function updateWiz() {
+  document.querySelectorAll('.wizard-steps .step').forEach(s=>{const n=+s.dataset.s;s.classList.toggle('active',n===wStepN);s.classList.toggle('done',n<wStepN);});
+  document.querySelectorAll('.wizard-panel').forEach(p=>p.classList.toggle('active',+p.dataset.p===wStepN));
+  document.getElementById('wPrev').style.display = wStepN>1?'':'none';
+  document.getElementById('wNext').textContent = wStepN===4?'提交审核':'下一步';
+  if (wStepN===2) { syncPoolWizardUI(); filterChannels(); }
+  if (wStepN===3) syncPoolWizardUI();
+  if (wStepN===4) buildPreview();
+}
+
+function wStep(d) {
+  if (d>0 && wStepN===1 && !poolPick) { toast('请选择共享池类型'); return; }
+  if (d>0 && wStepN===2) {
+    const n = document.querySelectorAll('#chList input:checked').length;
+    if (!n) { toast('请勾选至少一个渠道'); return; }
+  }
+  if (d>0 && wStepN===3) {
+    const ratio=document.getElementById('wRatio').value, max=document.getElementById('wMax').value, min=document.getElementById('wMin').value, pm=document.getElementById('wPoolMax').value;
+    if (!ratio && !max && !min) { document.getElementById('wErr').textContent='至少填写占比/最大/最小之一'; document.getElementById('wErr').style.display='block'; return; }
+    if (poolPick!=='channel' && !pm && !max) { document.getElementById('wErr').textContent='共享池须填写池限额或最大订单数'; document.getElementById('wErr').style.display='block'; return; }
+    document.getElementById('wErr').style.display='none';
+  }
+  if (d>0 && wStepN===4) { submitWiz(); return; }
+  wStepN = Math.max(1, Math.min(4, wStepN+d));
+  updateWiz();
+}
+
+function filterChannels() {
+  const fc=v=>document.getElementById(v).value;
+  const list = CHANNELS.filter(c=>{
+    if (fc('fCarrier') && c.carrier!==fc('fCarrier')) return false;
+    if (fc('fCountry') && c.country!==fc('fCountry')) return false;
+    if (fc('fPlatform') && c.platform!==fc('fPlatform') && c.platform!=='全部平台') return false;
+    if (fc('fType') && c.type!==fc('fType')) return false;
+    if (fc('fCargo') && c.cargo!==fc('fCargo')) return false;
+    if (fc('fStatus')==='enabled' && c.status!=='enabled') return false;
+    if (fc('fPriority')==='1' && !c.priority) return false;
+    if (fc('fPriority')==='0' && c.priority) return false;
+    return true;
+  });
+  document.getElementById('chList').innerHTML = list.map(c=>`<label><input type="checkbox" value="${c.code}" onchange="updChCnt()"/> ${c.carrier} · ${c.name}<br/><span class="meta">${c.type}/${c.cargo}/${c.country} ${c.priority?'已配优先级':''}</span></label>`).join('')||'<div style="padding:20px;color:var(--muted);text-align:center">无匹配渠道，请调整筛选</div>';
+  if (document.getElementById('wAllCarrierCh').checked) {
+    document.querySelectorAll('#chList input').forEach(i => { i.checked = true; i.disabled = true; });
+  }
+  updChCnt();
+}
+
+function updChCnt() { document.getElementById('chCount').textContent = document.querySelectorAll('#chList input:checked').length; }
+function selectAllCh() { document.querySelectorAll('#chList input').forEach(i=>i.checked=true); updChCnt(); }
+
+function buildPreview() {
+  const codes = [...document.querySelectorAll('#chList input:checked')].map(i=>i.value);
+  const ratio = document.getElementById('wRatio').value||'-';
+  const poolMax = document.getElementById('wPoolMax').value;
+  const rowMax = poolPick==='channel' ? (document.getElementById('wMax').value||'-') : '-';
+  const min = document.getElementById('wMin').value||'-';
+  const poolId = poolPick==='channel'?'-':'POOL-NEW';
+  const poolLabel = {carrier:'货代级',country:'国家级',platform:'平台级',channel:'渠道独立'}[poolPick];
+  const totalCap = poolPick!=='channel' ? poolMax : rowMax;
+  document.getElementById('prevSum').innerHTML = poolPick==='channel'
+    ? `将生成 <b>${codes.length}</b> 条<b>渠道独立</b>规则，每条各自限额。`
+    : `将生成 <b>${codes.length}</b> 条规则，归入<b>一个</b>${poolLabel}共享池 · <b style="color:var(--danger)">池总限额（合计）=${totalCap||'?'} 票</b>，不是每渠道各 ${totalCap||'?'} 票。`;
+  document.getElementById('prevBody').innerHTML = codes.map((code, idx)=>{
+    const c = CHANNELS.find(x=>x.code===code);
+  const poolCol = poolPick==='channel' ? '-' : (idx===0 ? `<b>${totalCap||'-'}</b>` : '↑同上池');
+    return c?`<tr><td>${c.carrier}</td><td>${c.name}</td><td>${document.getElementById('wPlatform').value||'全部平台'}</td><td>${c.country}</td><td>${document.getElementById('wSales').value||'全部销售组'}</td><td>${document.getElementById('wBubble').value==='1'?'是':document.getElementById('wBubble').value==='0'?'否':'-'}</td><td>${ratio==='-'?'-':ratio+'%'}</td><td>${rowMax}</td><td>${min}</td><td>${poolCol}</td><td>${poolId}</td></tr>`:'';
+  }).join('');
+}
+
+function submitWiz() {
+  closeModal('wizardMask');
+  approvals.unshift({ id:'QL'+Date.now(), type:'新增', carrier:document.getElementById('wCarrier').value||'批量', post:'向导批量', dims:'五维组合', summary:`${poolPick}池 · ${document.querySelectorAll('#chList input:checked').length}渠道`, status:'pending', user:'洛瑶', time:new Date().toLocaleString('zh-CN'), diff:{max:['-',document.getElementById('wMax').value||'-'],ratio:['-',document.getElementById('wRatio').value||'-'],min:['-',document.getElementById('wMin').value||'-']} });
+  toast('已提交审核'); renderApproval();
+}
+
+function jumpEdit(id) {
+  editId = id;
+  const r = rules.find(x=>x.id===id);
+  if (!r) return;
+  document.getElementById('editTitle').textContent = '编辑规则 · '+r.name;
+  document.getElementById('editBody').innerHTML = `
+    <div class="split"><div>
+      <div class="field"><label>首选占比 %</label><input id="eRatio" value="${r.ratio==='-'?'':r.ratio}"/></div>
+      <div class="field"><label>最大订单数</label><input id="eMax" value="${r.max==='-'?'':r.max}"/></div>
+      <div class="field"><label>最小订单数</label><input id="eMin" value="${r.min==='-'?'':r.min}"/></div>
+    </div><div>
+      <div class="field"><label>平台</label><select id="ePlat">${PLATFORMS.map(p=>`<option ${r.platform===p?'selected':''}>${p}</option>`).join('')}<option ${r.platform==='全部平台'?'selected':''}>全部平台</option></select></div>
+      <div class="field"><label>销售组</label><select id="eSales">${SALES.map(s=>`<option ${r.sales===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="field"><label>泡货</label><select id="eBubble"><option value="否" ${r.bubble==='否'?'selected':''}>否</option><option value="是" ${r.bubble==='是'?'selected':''}>是</option></select></div>
+    </div></div>
+    <div class="note">${dimTags(r)} · ${r.poolId?'共享池 '+r.poolId:'渠道独立'}</div>`;
+  document.querySelectorAll('#mainTabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab==='rules'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-rules'));
+  openModal('editMask');
+}
+
+function saveEdit() {
+  closeModal('editMask');
+  approvals.unshift({ id:'QL'+Date.now(), type:'修改', carrier:'-', post:rules.find(r=>r.id===editId)?.name||'', dims:'-', summary:'编辑提交', status:'pending', user:'洛瑶', time:new Date().toLocaleString('zh-CN'), diff:{max:['-','-'],ratio:['-','-'],min:['-','-']} });
+  toast('已提交审核'); renderApproval();
+}
+
+function showPool(pid) {
+  curPool = pid;
+  const p = POOLS[pid]; if (!p) return;
+  const used = poolUsed(pid);
+  const rate = Math.round(used/p.max*1000)/10;
+  document.getElementById('poolTitle').textContent = p.label;
+  document.getElementById('pMax').textContent = p.max;
+  document.getElementById('pUsed').textContent = used;
+  document.getElementById('pRate').textContent = rate+'%';
+  document.getElementById('pBody').innerHTML = rules.filter(r=>r.poolId===pid).map(r=>{
+    const sh = used?Math.round(r.used/used*1000)/10:0;
+    return `<tr><td>${r.name}</td><td>${r.country}</td><td>${r.platform}</td><td>${r.used}</td><td>${sh}%</td></tr>`;
+  }).join('');
+  openModal('poolMask');
+}
+
+function editFromPool() {
+  closeModal('poolMask');
+  const r = rules.find(x=>x.poolId===curPool);
+  if (r) jumpEdit(r.id);
+}
+
+function showAppr(id) {
+  curAppr = id;
+  const a = approvals.find(x=>x.id===id);
+  document.getElementById('apprBody').innerHTML = `<p><b>${a.id}</b> · ${a.type} · ${a.carrier} ${a.post}</p><p>${a.dims}</p>
+    <table style="width:100%;font-size:11px;margin-top:8px"><tr><th>字段</th><th>前</th><th>后</th></tr>
+    <tr><td>最大订单数</td><td class="diff-old">${a.diff.max[0]}</td><td class="diff-new">${a.diff.max[1]}</td></tr>
+    <tr><td>首选占比</td><td class="diff-old">${a.diff.ratio[0]}</td><td class="diff-new">${a.diff.ratio[1]}</td></tr>
+    <tr><td>最小订单数</td><td class="diff-old">${a.diff.min[0]}</td><td class="diff-new">${a.diff.min[1]}</td></tr></table>`;
+  openModal('apprMask');
+}
+
+function apprAct(act) {
+  closeModal('apprMask');
+  toast(act==='approve'?'审核通过，已同步监控':'已驳回');
+  if (curAppr) { const a=approvals.find(x=>x.id===curAppr); if(a)a.status=act==='approve'?'approved':'rejected'; renderApproval(); }
+}
+
+function openBatchAppr() { document.getElementById('batchN').textContent = approvals.filter(a=>a.status==='pending').length; openModal('batchMask'); }
+function batchAct(act) { closeModal('batchMask'); toast(act==='approve'?'批量通过':'批量驳回'); }
+
+function openImport() { openModal('importMask'); }
+function doImport() {
+  if (!document.getElementById('importFile').value) { toast('请选择文件'); return; }
+  closeModal('importMask'); toast('校验通过，已导入 3 条（演示）');
+}
+
+function showLog(id) {
+  const r = rules.find(x=>x.id===id);
+  document.getElementById('logBody').innerHTML = `
+    <div class="log-item"><b>2026-05-20 14:00</b> 洛瑶 修改 最大订单数 → ${r.max}</div>
+    <div class="log-item"><b>${r.auditTime}</b> 系统 审核通过</div>
+    <div class="log-item"><b>${r.addTime}</b> ${r.modifier} 创建规则</div>`;
+  openModal('logMask');
+}
+
+function batchOp(op) { toast(op==='enable'?'已启用选中规则':'已停用选中规则'); }
+function toggleAllRules(el) { document.querySelectorAll('.rc').forEach(c=>c.checked=el.checked); }
+function toggleAllAppr(el) { document.querySelectorAll('.ac').forEach(c=>c.checked=el.checked); }
+
+init();
+</script>
+</body>
+</html>
