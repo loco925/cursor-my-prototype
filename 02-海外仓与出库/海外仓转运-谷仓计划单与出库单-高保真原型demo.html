@@ -184,8 +184,8 @@
               <button type="button" class="btn-primary" id="btnSync">同步详情</button>
             </div>
             <p class="note">
-              对齐 PRD：<b>单号 TO+日期+5位流水</b>（计划单/出库单共用）；<b>审核推送</b>无业务弹窗、支持混勾计划单+出库单；
-              出库单类型/装箱类型在<b>出库单弹窗内</b>选择；<b>查询</b>布局与新增一致，底部含装箱/打托数据。演示调拨单：<code>DB20260520001</code>、<code>DB20260518002</code>（已有计划单箱唛）。
+              对齐 PRD：<b>单号 TO+日期+5位流水</b>；出库单三种组合为 <b>FBA+仓库自主装箱</b>、<b>FBA+已暂存箱发货</b>、<b>其他调拨单+仓库自主装箱</b>（其他调拨单不展示「已暂存箱发货」）；
+              切换类型/装箱二次确认并清空除调拨单号外数据。演示调拨单：<code>DB20260520001</code>、<code>DB20260518002</code>（已同步箱唛，可供 FBA+已暂存箱）。
             </p>
           </div>
 
@@ -235,9 +235,7 @@
           <div class="field"><label>发货仓库<span class="req">*</span></label>
             <select id="plShipWh"><option value="">请选择</option><option value="USEA">USEA-美东</option><option value="USWE">USWE-美西</option></select>
           </div>
-          <div class="field"><label>物理仓<span class="req">*</span></label>
-            <select id="plPhysWh"><option value="">请选择</option><option value="NJ01">NJ01</option><option value="LA02">LA02</option></select>
-          </div>
+          <p class="help" style="grid-column:1/-1;margin:0">物理仓界面不展示；保存/推送时后端按调拨调出仓写入 wp_code。</p>
         </div>
       </div>
       <div class="section">
@@ -258,7 +256,7 @@
 <div class="modal-mask" id="modalOut">
   <div class="modal modal-lg">
     <div class="modal-header">
-      <span id="outTitle">新增出库单</span>
+      <span id="outTitle">新增出库单</span><span id="outComboBadge" class="combo-badge"></span>
       <button type="button" class="modal-close" data-close="modalOut">×</button>
     </div>
     <div class="modal-body">
@@ -365,7 +363,8 @@
     }),
     mkOut('r4', 'TO2026052200001', 'DB20260518002', 'FBA订单', '已暂存箱发货', '已推送', 'ORD20260522001', '待发货', {
       shipmentId: 'FBA789012', synced: true
-    })
+    }),
+    mkOut('r5', 'TO2026052300001', 'DB20260520001', '其他调拨单', '仓库自主装箱', '待推送', '', '', {})
   ];
 
   let filtered = [...rows];
@@ -581,7 +580,6 @@
       $('#plQuery').style.display = '';
       $('#plTransferNo').value = '';
       $('#plShipWh').value = '';
-      $('#plPhysWh').value = '';
       document.querySelector('input[name="plChange"][value="1"]').checked = true;
       document.querySelector('input[name="plStick"][value="0"]').checked = true;
       renderPlProducts([{ sku: '', fnsku: '', qty: '' }]);
@@ -591,7 +589,6 @@
       $('#plTransferNo').readOnly = false;
       $('#plQuery').style.display = '';
       $('#plShipWh').value = r.shipWarehouse;
-      $('#plPhysWh').value = r.physWarehouse;
       document.querySelector(`input[name="plChange"][value="${r.changeLabel}"]`).checked = true;
       document.querySelector(`input[name="plStick"][value="${r.stickLabel}"]`).checked = true;
       renderPlProducts(r.products.map(p => ({ ...p })));
@@ -627,11 +624,11 @@
     if (!no) return showPlanErr('请填写调拨单号并查询');
     const m = MOCK[no];
     if (!m) return showPlanErr('该调拨单状态不允许操作！仅待发货、待审核状态可操作！');
-    if (m.status === 'not_gc') return showPlanErr('该调拨单调出处理中心非谷仓处理中心，不可操作谷仓出库单！');
-    if (planMode === 'add' && existsDoc(no, '计划单', null)) return showPlanErr('该调拨单已存在有效计划单，不可重复新增！');
+    if (m.status === 'not_gc') return showPlanErr('该调拨单调出处理中心非谷仓处理中心，不可新增谷仓计划单！');
+    const excludeId = planMode === 'edit' ? planEditId : null;
+    if (existsDoc(no, '计划单', excludeId)) return showPlanErr('该调拨单已存在谷仓且业务类型=计划单且海外仓状态不为作废，不可重复新增！');
     planQueryOk = true;
     $('#plShipWh').value = m.ship;
-    $('#plPhysWh').value = m.phys;
     renderPlProducts(m.products.map(p => ({ ...p })));
     toast('查询成功');
   });
@@ -654,14 +651,20 @@
       const orderNo = generateOrderNo();
       rows.unshift({
         ...mkPlan('r' + Date.now(), orderNo, $('#plTransferNo').value.trim(), '待推送', '', ''),
-        shipWarehouse: $('#plShipWh').value, physWarehouse: $('#plPhysWh').value,
+        shipWarehouse: $('#plShipWh').value, physWarehouse: (MOCK[$('#plTransferNo').value.trim()] || {}).phys || '',
         changeLabel: ch, stickLabel: st, products,
         logs: [ts + ' 新增计划单保存 ' + orderNo]
       });
       toast('保存成功 ' + orderNo);
     } else {
       const r = rows.find(x => x.id === planEditId);
-      Object.assign(r, { products, changeLabel: ch, stickLabel: st, updater: '当前用户', updateTime: ts });
+      const tno = $('#plTransferNo').value.trim();
+      Object.assign(r, {
+        transferNo: tno,
+        shipWarehouse: $('#plShipWh').value,
+        physWarehouse: (MOCK[tno] || {}).phys || '',
+        products, changeLabel: ch, stickLabel: st, updater: '当前用户', updateTime: ts
+      });
       r.logs.push(ts + ' 编辑计划单保存');
       toast('保存成功');
     }
@@ -672,16 +675,67 @@
 
   function showPlanErr(msg) { $('#planErr').textContent = msg; $('#planErr').style.display = ''; }
 
-  // ===== 出库单 =====
+  // ===== 出库单（三种组合：PRD §6/7/8；本期不含「其他调拨单+已暂存箱」） =====
   const COMBO_LABEL = {
     'fba-self': 'FBA订单 + 仓库自主装箱',
     'fba-carton': 'FBA订单 + 已暂存箱发货',
     'other-self': '其他调拨单 + 仓库自主装箱'
   };
 
+  function comboFromBizPack(biz, pack) {
+    if (biz === '其他调拨单') return 'other-self';
+    return pack === '已暂存箱发货' ? 'fba-carton' : 'fba-self';
+  }
+
+  function restoreOutTypePackRadios(combo) {
+    const biz = combo === 'other-self' ? '其他调拨单' : 'FBA订单';
+    const pack = combo === 'fba-carton' ? '已暂存箱发货' : '仓库自主装箱';
+    const bizEl = document.querySelector(`input[name="outBizType"][value="${biz}"]`);
+    const packEl = document.querySelector(`input[name="outPackType"][value="${pack}"]`);
+    if (bizEl) bizEl.checked = true;
+    if (packEl) packEl.checked = true;
+    syncPackTypeVisibility();
+  }
+
+  function syncPackTypeVisibility() {
+    const isOther = document.querySelector('input[name="outBizType"]:checked')?.value === '其他调拨单';
+    const cartonLbl = $('#outPackCartonLbl');
+    const otherHint = $('#outPackOtherHint');
+    if (cartonLbl) cartonLbl.classList.toggle('panel-hidden', isOther);
+    if (otherHint) otherHint.classList.toggle('panel-hidden', !isOther);
+    if (isOther) {
+      const selfEl = document.querySelector('input[name="outPackType"][value="仓库自主装箱"]');
+      if (selfEl) selfEl.checked = true;
+    }
+  }
+
+  function updateOutTitle() {
+    const base = outMode === 'add' ? '新增出库单' : '编辑出库单';
+    $('#outTitle').textContent = base;
+    $('#outComboBadge').textContent = COMBO_LABEL[outCombo] || '';
+  }
+
+  function clearOutFormExceptTransfer() {
+    $('#outShipWh').value = '';
+    $('#outShipMethod').value = '';
+    if ($('#outShipmentId')) $('#outShipmentId').value = '';
+    if ($('#outReferenceId')) $('#outReferenceId').value = '';
+    if ($('#outSellerName')) $('#outSellerName').value = '';
+    if ($('#outFbaWh')) $('#outFbaWh').value = '';
+    $('#rcvName').value = 'Amazon FBA';
+    $('#rcvCountry').value = 'US';
+    $('#rcvState').value = 'CA';
+    $('#rcvCity').value = 'Los Angeles';
+    $('#rcvZip').value = '90001';
+    $('#rcvAddr').value = '1234 Warehouse Blvd';
+    $('#rcvPhone').value = '1234567890';
+    if ($('#outShipmentFile')) $('#outShipmentFile').value = '';
+  }
+
   function buildOutHeader() {
     const isFba = outCombo.startsWith('fba');
     const isOther = outCombo === 'other-self';
+    const isCarton = outCombo === 'fba-carton';
     let html = `
       <div class="field span2"><label>调拨单号<span class="req">*</span></label>
         <div class="field-inline"><input type="text" id="outTransferNo" />
@@ -693,11 +747,12 @@
         </div></div>
       <div class="field"><label>装箱类型</label>
         <div class="radio-row" id="outRgPackType">
-          <label><input type="radio" name="outPackType" value="仓库自主装箱" ${outCombo!=='fba-carton'?'checked':''} /> 仓库自主装箱</label>
-          <label><input type="radio" name="outPackType" value="已暂存箱发货" ${outCombo==='fba-carton'?'checked':''} ${isOther?'disabled':''} /> 已暂存箱发货</label>
-        </div></div>
+          <label><input type="radio" name="outPackType" value="仓库自主装箱" ${!isCarton?'checked':''} /> 仓库自主装箱</label>
+          <label id="outPackCartonLbl" ${isOther?'class="panel-hidden"':''}><input type="radio" name="outPackType" value="已暂存箱发货" ${isCarton?'checked':''} /> 已暂存箱发货</label>
+        </div>
+        <div class="help panel-hidden" id="outPackOtherHint">其他调拨单仅支持「仓库自主装箱」（本期不含其他调拨单+已暂存箱发货）</div></div>
       <div class="field"><label>发货仓库<span class="req">*</span></label>
-        <select id="outShipWh"><option value="">请选择</option><option value="USEA">USEA</option><option value="USWE">USWE</option></select></div>
+        <select id="outShipWh"><option value="">请选择</option><option value="USEA">USEA-美东</option><option value="USWE">USWE-美西</option></select></div>
       <div class="field"><label>物流渠道<span class="req">*</span></label>
         <select id="outShipMethod"><option value="">请选择</option><option value="GC-PARCEL">GC标准快递</option><option value="GC-TRUCK">GC卡派</option></select></div>`;
     if (isFba) {
@@ -709,27 +764,42 @@
           <select id="outFbaWh"><option value="">请选择</option><option value="ONT8">ONT8</option><option value="FTW1">FTW1</option></select></div>`;
     }
     $('#outHeaderGrid').innerHTML = html;
-    $$('#outRgBizType input, #outRgPackType input').forEach(inp => {
-      inp.addEventListener('change', () => {
-        const biz = document.querySelector('input[name="outBizType"]:checked').value;
-        const pack = document.querySelector('input[name="outPackType"]:checked').value;
-        const next = biz === '其他调拨单' ? 'other-self' : (pack === '已暂存箱发货' ? 'fba-carton' : 'fba-self');
-        if (next !== outCombo) {
-          confirmDialog('切换确认', '确定要切换吗，当前数据会丢失', () => {
-            outCombo = next;
-            applyOutCombo();
-          });
-          // revert selection until confirm - simplified: apply after confirm only
-          setTimeout(() => {
-            document.querySelector(`input[name="outBizType"][value="${outCombo==='other-self'?'其他调拨单':'FBA订单'}"]`).checked = true;
-            document.querySelector(`input[name="outPackType"][value="${outCombo==='fba-carton'?'已暂存箱发货':'仓库自主装箱'}"]`).checked = true;
-          }, 0);
-        }
-      });
+    syncPackTypeVisibility();
+    $('#outQuery').onclick = outQueryTransfer;
+  }
+
+  function onOutTypePackChange(e) {
+    const t = e.target;
+    if (!t.matches('input[name="outBizType"], input[name="outPackType"]')) return;
+    const prevCombo = outCombo;
+    const biz = document.querySelector('input[name="outBizType"]:checked').value;
+    let pack = document.querySelector('input[name="outPackType"]:checked').value;
+    if (biz === '其他调拨单') pack = '仓库自主装箱';
+    const nextCombo = comboFromBizPack(biz, pack);
+    if (nextCombo === prevCombo) {
+      syncPackTypeVisibility();
+      return;
+    }
+    restoreOutTypePackRadios(prevCombo);
+    confirmDialog('切换确认', '确定要切换吗，当前数据会丢失', () => {
+      const transferNo = $('#outTransferNo').value;
+      outCombo = nextCombo;
+      outQueryOk = false;
+      clearOutFormExceptTransfer();
+      buildOutHeader();
+      applyOutCombo(true);
+      $('#outTransferNo').value = transferNo;
+      updateOutTitle();
+      toast('已切换为「' + COMBO_LABEL[outCombo] + '」，请重新查询调拨单并填写表单', 'warn');
     });
   }
 
-  function applyOutCombo() {
+  if (!$('#outHeaderGrid')._boundTypePack) {
+    $('#outHeaderGrid').addEventListener('change', onOutTypePackChange);
+    $('#outHeaderGrid')._boundTypePack = true;
+  }
+
+  function applyOutCombo(skipDefaultRows) {
     const isFba = outCombo.startsWith('fba');
     const isCarton = outCombo === 'fba-carton';
     const isOther = outCombo === 'other-self';
@@ -738,33 +808,71 @@
     $('#secProducts').classList.toggle('panel-hidden', isCarton);
     $('#secCarton').classList.toggle('panel-hidden', !isCarton);
     $('#secShipmentLabel').classList.toggle('panel-hidden', !isCarton);
-    if (isCarton) renderCartonRows([{ cartonNo: '', fbaMark: '', sku: '', qty: '' }]);
-    else renderOutProducts([{ sku: '', fnsku: '', qty: '', labelFile: '' }]);
+    if (!skipDefaultRows) {
+      if (isCarton) renderCartonRows([{ cartonNo: '', fbaMark: '', sku: '', qty: '' }]);
+      else renderOutProducts([{ sku: '', fnsku: '', qty: '', labelFile: '' }]);
+    }
+    updateOutTitle();
+  }
+
+  function fillOutFromRow(r) {
+    $('#outShipWh').value = r.shipWarehouse || '';
+    $('#outShipMethod').value = r.shipMethod || '';
+    if ($('#outShipmentId')) {
+      $('#outShipmentId').value = r.shipmentId || '';
+      $('#outReferenceId').value = r.referenceId || '';
+      $('#outSellerName').value = r.sellerName || '';
+      $('#outFbaWh').value = r.fbaWarehouse || '';
+    }
+    const rcv = r.receiver || {};
+    $('#rcvName').value = rcv.name || '';
+    $('#rcvCountry').value = rcv.country || '';
+    $('#rcvState').value = rcv.state || '';
+    $('#rcvCity').value = rcv.city || '';
+    $('#rcvZip').value = rcv.zip || '';
+    $('#rcvAddr').value = rcv.addr || '';
+    $('#rcvPhone').value = rcv.phone || '';
+    if (r.changeLabel) document.querySelector(`input[name="outChange"][value="${r.changeLabel}"]`).checked = true;
+    if (r.stickLabel != null && document.querySelector(`input[name="outStick"][value="${r.stickLabel}"]`)) {
+      document.querySelector(`input[name="outStick"][value="${r.stickLabel}"]`).checked = true;
+    }
+    if ($('#outBoxMark')) $('#outBoxMark').value = r.boxMarkNum || '1';
+    if ($('#outLabelQty')) $('#outLabelQty').value = r.labelQty || '1';
+    if ($('#outLabelOpt')) $('#outLabelOpt').value = r.labelOpt || '1';
+    if ($('#outRemark')) $('#outRemark').value = r.remark || '';
+    if (r.productQuality && document.querySelector(`input[name="outQuality"][value="${r.productQuality}"]`)) {
+      document.querySelector(`input[name="outQuality"][value="${r.productQuality}"]`).checked = true;
+    }
+    bindWarehouseOps('out', () => renderOutProducts(getOutProducts()));
+    if (outCombo === 'fba-carton' && r.cartons?.length) {
+      const opts = (MOCK[r.transferNo]?.cartonNos || []).map(c => `<option value="${c}">${c}</option>`).join('');
+      renderCartonRows(r.cartons.map(c => ({ ...c })), opts || undefined);
+    } else if (outCombo !== 'fba-carton') {
+      renderOutProducts((r.products || []).map(p => ({ ...p, labelFile: '' })));
+    }
   }
 
   function openOut(mode, combo, id) {
     outMode = mode;
     outEditId = id;
     outCombo = combo;
-    outQueryOk = mode !== 'add';
-    $('#outTitle').textContent = mode === 'add' ? '新增出库单' : '编辑出库单';
+    outQueryOk = false;
     $('#outErr').style.display = 'none';
     buildOutHeader();
-    applyOutCombo();
+    applyOutCombo(false);
     if (mode === 'add') {
       $('#outTransferNo').value = '';
+      clearOutFormExceptTransfer();
     } else {
       const r = rows.find(x => x.id === id);
-      $('#outTransferNo').value = r.transferNo;
       outCombo = r.bizType === '其他调拨单' ? 'other-self' : (r.packType === '已暂存箱发货' ? 'fba-carton' : 'fba-self');
       buildOutHeader();
-      applyOutCombo();
-      $('#outShipWh').value = r.shipWarehouse || '';
-      if (r.shipmentId) $('#outShipmentId').value = r.shipmentId;
-      planQueryOk = true;
+      applyOutCombo(true);
+      $('#outTransferNo').value = r.transferNo;
+      fillOutFromRow(r);
       outQueryOk = true;
     }
-    $('#outQuery').onclick = outQueryTransfer;
+    updateOutTitle();
     openModal('modalOut');
   }
 
@@ -821,21 +929,70 @@
 
   function showOutErr(msg) { $('#outErr').textContent = msg; $('#outErr').style.display = ''; }
 
+  $('#modalOut').addEventListener('click', e => {
+    if (e.target.id === 'outAddRow') {
+      const items = getOutProducts();
+      items.push({ sku: '', fnsku: '', qty: '', labelFile: '' });
+      renderOutProducts(items);
+    }
+    if (e.target.id === 'outAddCarton') {
+      const no = $('#outTransferNo').value.trim();
+      const opts = (MOCK[no]?.cartonNos || []).map(c => `<option value="${c}">${c}</option>`).join('');
+      if (!opts) return showOutErr('暂无海外仓装箱单号，请先完成谷仓计划单推送并同步装箱信息！');
+      const items = [...$$('#outCartonBody tr')].map(tr => ({
+        cartonNo: tr.querySelector('.c-no')?.value || '',
+        fbaMark: tr.querySelector('.c-mark')?.value || '',
+        sku: tr.querySelector('.c-sku')?.value || '',
+        qty: tr.querySelector('.c-qty')?.value || ''
+      }));
+      items.push({ cartonNo: '', fbaMark: '', sku: '', qty: '' });
+      renderCartonRows(items, opts);
+    }
+    if (e.target.classList.contains('out-del')) {
+      const tr = e.target.closest('tr');
+      if ($$('#outProductBody tr').length > 1) tr.remove();
+    }
+    if (e.target.classList.contains('c-del')) {
+      const tr = e.target.closest('tr');
+      if ($$('#outCartonBody tr').length > 1) tr.remove();
+    }
+  });
+
   $('#outSave').addEventListener('click', () => {
     if (!outQueryOk) return showOutErr('请先查询调拨单！');
+    if (!$('#outShipWh').value) return showOutErr(outCombo === 'other-self' ? '请完善出库信息！' : '请完善出库/收货信息！');
+    if (!$('#outShipMethod').value) return showOutErr(outCombo === 'other-self' ? '请完善出库信息！' : '请完善出库/收货信息！');
+    if (outCombo.startsWith('fba')) {
+      if (!$('#outShipmentId')?.value?.trim()) return showOutErr('请完善出库/收货信息！');
+      if (!$('#outReferenceId')?.value?.trim() || !$('#outSellerName')?.value?.trim() || !$('#outFbaWh')?.value) {
+        return showOutErr('请完善出库/收货信息！');
+      }
+    }
     const ch = document.querySelector('input[name="outChange"]:checked').value;
     const st = document.querySelector('input[name="outStick"]:checked')?.value;
     if (st === '1' && $('#outTransFile') && !$('#outTransFile').files.length) return showOutErr('请上传 Transparency 标签文件（PDF）！');
+    if (outCombo === 'other-self' && !document.querySelector('input[name="outQuality"]:checked')) {
+      return showOutErr('请选择商品品质！');
+    }
     if (outCombo === 'fba-carton') {
-      if (!$('#outShipmentFile').files.length) return showOutErr('请上传货件标签！');
+      if (!$('#outShipmentFile').files.length && !outEditId) return showOutErr('请上传货件标签！');
       const cartons = [...$$('#outCartonBody tr')];
-      if (!cartons.length) return showOutErr('请维护装箱明细！');
+      if (!cartons.length || cartons.some(tr => !tr.querySelector('.c-no')?.value || !tr.querySelector('.c-mark')?.value?.trim())) {
+        return showOutErr('请维护装箱明细！');
+      }
       const no = $('#outTransferNo').value.trim();
       if (!(MOCK[no]?.cartonNos?.length)) return showOutErr('暂无海外仓装箱单号，请先完成谷仓计划单推送并同步装箱信息！');
     } else {
       const ps = getOutProducts();
-      if (!ps.length) return showOutErr('请至少维护一行商品明细！');
-      if (ch === '1' && ps.some(p => !p.fnsku)) return showOutErr('换标为是时，请完善换标要求及平台编码！');
+      if (!ps.length || ps.some(p => !p.sku || p.qty <= 0)) return showOutErr('请至少维护一行商品明细！');
+      if (ch === '1' && ps.some(p => !p.fnsku)) {
+        return showOutErr(outCombo === 'other-self'
+          ? '换标为是时，请完善换标要求、平台编码及换标标签！'
+          : '换标为是时，请完善换标要求及平台编码！');
+      }
+      if (ch === '1' && outCombo === 'other-self' && ps.some(p => !p.labelFile)) {
+        return showOutErr('换标为是时，请完善换标要求、平台编码及换标标签！');
+      }
     }
     const ts = nowStr();
     const biz = document.querySelector('input[name="outBizType"]:checked').value;
@@ -948,9 +1105,9 @@
     const sel = getSel();
     if (!sel.length) return toast('请勾选需要取消的数据！', 'err');
     if (sel.some(r => r.pushStatus !== '已推送')) return toast('请仅选择已推送状态的数据！', 'err');
-    sel.forEach(r => { r.owStatus = '废弃'; r.logs.push(nowStr() + ' 取消成功'); });
+    sel.forEach(r => { r.pushStatus = '取消推送'; r.owStatus = '废弃'; r.logs.push(nowStr() + ' 取消成功'); });
     selected.clear(); renderList();
-    toast('取消成功，海外仓状态已更新（演示）');
+    toast('取消成功，推送状态已置为取消推送（演示）');
   });
 
   $('#btnSync').addEventListener('click', () => {
@@ -958,8 +1115,18 @@
     const targets = sel.length ? sel : filtered.filter(r => r.pushStatus === '已推送');
     if (!targets.length || targets.some(r => r.pushStatus !== '已推送')) return toast('请选择已推送的数据进行操作', 'err');
     targets.forEach(r => {
-      if (r.docType === '计划单') r.warehouseInfo = '数量：' + (r.products?.reduce((s,p)=>s+p.qty,0)||0) + '\n总箱数：3';
-      else r.warehouseInfo = '数量：60\n总打板数：2\n总箱数：3';
+      if (r.docType === '计划单') {
+        const qty = r.products?.reduce((s, p) => s + p.qty, 0) || 0;
+        const boxes = ['BM' + (r.owOrderNo || r.orderNo) + '-1', 'BM' + (r.owOrderNo || r.orderNo) + '-2'];
+        r.warehouseInfo = '数量：' + qty + '\n总箱数：' + boxes.length;
+        r.boxList = boxes.map((boxNo, i) => ({
+          boxNo, size: '40*30*25', weight: '10.0',
+          items: (r.products || []).map(p => ({ sku: p.sku, qty: p.qty }))
+        }));
+        if (MOCK[r.transferNo]) MOCK[r.transferNo].cartonNos = boxes;
+      } else {
+        r.warehouseInfo = '数量：60\n总打板数：2\n总箱数：3';
+      }
       r.logs.push(nowStr() + ' 同步详情');
     });
     renderList();
@@ -975,7 +1142,6 @@
       <div class="field span2"><label>调拨单号</label>${ro(r.transferNo)}</div>
       <div class="field"><label>类型</label>${ro('FBA 计划单')}</div>
       <div class="field"><label>发货仓库</label>${ro(r.shipWarehouseName || r.shipWarehouse)}</div>
-      <div class="field"><label>物理仓</label>${ro(r.physWarehouseName || r.physWarehouse)}</div>
       <div class="field"><label>海外仓单号</label>${ro(r.owOrderNo || '—')}</div>
       <div class="field"><label>推送状态</label>${ro(r.pushStatus)}</div>
       <div class="field"><label>海外仓状态</label>${ro(r.owStatus || '—')}</div>
