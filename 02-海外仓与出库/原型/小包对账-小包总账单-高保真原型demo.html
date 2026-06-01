@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WMS系统 - 小包总账单</title>
+  <link rel="stylesheet" href="小包对账-WMS原型-common.css" />
+  <style>
+    .page-tabs { display: flex; border-bottom: 1px solid var(--line); background: #fafafa; padding: 0 8px; }
+    .page-tabs button {
+      border: none; background: transparent; padding: 10px 16px; cursor: pointer;
+      font-size: 12px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .page-tabs button.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--card); font-weight: 600; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .link { color: #409eff; cursor: pointer; text-decoration: none; }
+    .link:hover { text-decoration: underline; }
+    .create-info { line-height: 1.5; }
+    .total-row td { background: #fafafa; font-weight: 600; }
+    .tag-note { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-brand">WMS 仓储系统</div>
+      <input class="sidebar-search" type="text" placeholder="请输入搜索字段" />
+      <nav class="sidebar-nav">
+        <a href="#" class="menu-parent">小包物流</a>
+        <a href="#" class="menu-parent" style="padding-left:18px">小包物流对账</a>
+        <a href="小包对账-OA单据-原型demo.html">OA单据</a>
+        <a href="小包对账-货代对账-原型demo.html">货代对账</a>
+        <a href="小包对账-货代对账分析-原型demo.html">货代对账分析</a>
+        <a href="小包对账-小包总账单-高保真原型demo.html" class="active">小包总账单</a>
+        <a href="小包对账-WMS四页高保真原型demo.html" style="padding-left:18px;color:rgba(255,255,255,.6)">↗ 四页合并预览</a>
+      </nav>
+    </aside>
+    <div class="main">
+      <div class="topbar">
+        <span class="meta">系统更新时间：2026-05-27 10:00:00</span>
+        <span class="meta">测试环境 · 小包总账单原型</span>
+      </div>
+      <div class="page-title">小包总账单</div>
+
+      <div class="page-tabs" id="mainTabs">
+        <button type="button" class="active" data-tab="oa">OA账单</button>
+        <button type="button" data-tab="ff">货代账单</button>
+      </div>
+
+      <div class="content">
+        <div class="watermark">测试环境</div>
+        <div class="content-inner">
+
+          <div id="panel-oa" class="panel active">
+            <div id="oa-list-view">
+              <div class="card">
+                <div class="grid">
+                  <div class="field"><label>货代名称</label><select><option value="">全部</option><option>顺丰-7758</option></select></div>
+                  <div class="field"><label>结算类型</label><select><option value="">全部</option><option>月结</option></select></div>
+                  <div class="field"><label>账期</label><input type="text" value="2026-05-01 - 2026-05-31" /></div>
+                  <div class="field"><label>OA账单编号</label><input type="text" /></div>
+                  <div class="field"><label>订单编号</label><input type="text" placeholder="多个值空格隔开" /></div>
+                  <div class="field"><label>跟踪号</label><input type="text" placeholder="多个值空格隔开" /></div>
+                </div>
+                <div class="toolbar">
+                  <button type="button" class="btn-primary">搜索</button>
+                  <button type="button" class="btn-plain">清空</button>
+                </div>
+                <div class="toolbar">
+                  <button type="button" class="btn-orange">导出总账单</button>
+                  <button type="button" class="btn-orange">导出账单明细</button>
+                </div>
+              </div>
+              <div class="card">
+                <div class="pager"><span>共 1 条</span></div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>OA账单编号</th>
+                        <th>货代</th>
+                        <th>结算类型</th>
+                        <th>账期</th>
+                        <th>票数</th>
+                        <th>金额/万元</th>
+                        <th>重量/KG</th>
+                        <th>差异票数（OA-货代）</th>
+                        <th>差异金额/万元（OA-货代）</th>
+                        <th>差异重量/KG（OA-货代）</th>
+                        <th>创建信息</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><a class="link" href="javascript:void(0)" onclick="showOaDetail()">BI202605010001</a></td>
+                        <td>顺丰-7758</td>
+                        <td>月结</td>
+                        <td>2026-05-01至2026-05-31</td>
+                        <td>300</td>
+                        <td>5</td>
+                        <td>6</td>
+                        <td>5</td>
+                        <td>0.2</td>
+                        <td>0.15</td>
+                        <td class="create-info">张三<br />2026-05-01 08:00:00</td>
+                      </tr>
+                      <tr class="total-row">
+                        <td></td><td></td><td></td><td>合计</td>
+                        <td>300</td><td>5</td><td>6</td>
+                        <td>5</td><td>0.2</td><td>0.15</td>
+                        <td></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p class="tag-note">导出走下载中心，支持批量；金额/万元 = OA账单总金额(CNY) ÷ 10000；差异列按「货代 + 结算类型 + 账期」匹配货代账单后计算（OA − 货代）</p>
+              </div>
+            </div>
+
+            <div id="oa-detail-view" style="display:none">
+              <div class="card">
+                <button type="button" class="btn-plain" onclick="showOaList()">← 返回列表</button>
+                <span style="margin-left:12px;font-weight:600">OA账单明细 — BI202605010001</span>
+              </div>
+              <div class="card">
+                <div class="grid">
+                  <div class="field"><label>订单编号</label><input type="text" placeholder="多个值空格隔开" /></div>
+                  <div class="field"><label>跟踪号</label><input type="text" placeholder="多个值空格隔开" /></div>
+                  <div class="field"><label>发货日期</label><input type="text" value="2026-05-01 - 2026-05-31" placeholder="开始日期 - 结束日期" /></div>
+                  <div class="field"><label>账单匹配状态</label><select><option value="">全部</option><option>已匹配</option><option>未匹配</option></select></div>
+                </div>
+                <div class="toolbar">
+                  <button type="button" class="btn-primary">搜索</button>
+                  <button type="button" class="btn-plain">清空</button>
+                </div>
+              </div>
+              <div class="card">
+                <div class="pager"><span>共 1 条</span><select><option>20条/页</option></select></div>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>是否匹配</th>
+                        <th>订单编号</th>
+                        <th>跟踪号</th>
+                        <th>物流商单号</th>
+                        <th>发货时间</th>
+                        <th>发货状态</th>
+                        <th>物流状态</th>
+                        <th>货代</th>
+                        <th>邮寄方式</th>
+                        <th>邮寄方式代码</th>
+                        <th>国家</th>
+                        <th>邮编</th>
+                        <th>是否退件</th>
+                        <th>称重重量</th>
+                        <th>OA总费用</th>
+                        <th>称重基础运费(CNY)</th>
+                        <th>附加费(CNY)</th>
+                        <th>税金(CNY)</th>
+                        <th>备注</th>
+                        <th>更新时间</th>
+                        <th>更新人</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>已匹配</td>
+                        <td>A260528040069</td>
+                        <td>UK944359030YP</td>
+                        <td>AB06001234567890</td>
+                        <td>2026-05-15</td>
+                        <td>已发货</td>
+                        <td>运输中</td>
+                        <td>顺丰-7758</td>
+                        <td>4PX-联邮通经济挂号-带电</td>
+                        <td>4PX-ECO</td>
+                        <td>美国</td>
+                        <td>90001</td>
+                        <td>否</td>
+                        <td>0.12</td>
+                        <td>101.89</td>
+                        <td>85.20</td>
+                        <td>12.50</td>
+                        <td>4.19</td>
+                        <td></td>
+                        <td>2026-05-20 10:00</td>
+                        <td>系统</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="panel-ff" class="panel">
+            <div class="card">
+              <div class="grid grid-4">
+                <div class="field"><label>货代名称</label><select><option value="">全部</option></select></div>
+                <div class="field"><label>账期</label><input type="text" value="2026-05-01 - 2026-05-31" /></div>
+                <div class="field"><label>状态</label><select><option value="">全部</option></select></div>
+                <div class="field"><label>账单编号</label><input type="text" /></div>
+                <div class="field"><label>订单编号</label><input type="text" placeholder="多个值空格隔开" /></div>
+                <div class="field"><label>跟踪号</label><input type="text" placeholder="多个值空格隔开" /></div>
+              </div>
+              <div class="toolbar">
+                <button type="button" class="btn-primary">搜索</button>
+                <button type="button" class="btn-plain">清空</button>
+              </div>
+              <div class="toolbar">
+                <button type="button" class="btn-orange">+ 账单导入</button>
+                <button type="button" class="btn-orange">导出总账单</button>
+                <button type="button" class="btn-orange">导出账单明细</button>
+                <button type="button" class="btn-danger">删除账单明细</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="pager"><span>共 1 条</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th><input type="checkbox" /></th>
+                      <th>账单编号</th>
+                      <th>货代</th>
+                      <th>结算类型</th>
+                      <th>账期</th>
+                      <th>票数</th>
+                      <th>金额/万元</th>
+                      <th>重量/KG</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input type="checkbox" /></td>
+                      <td>FD202605010001</td>
+                      <td>顺丰-7758</td>
+                      <td>月结</td>
+                      <td>2026-05-01至2026-05-31</td>
+                      <td>295</td>
+                      <td>4.8</td>
+                      <td>5.85</td>
+                    </tr>
+                    <tr class="total-row">
+                      <td></td><td></td><td></td><td></td><td>合计</td>
+                      <td>295</td><td>4.8</td><td>5.85</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="tag-note">列表新增票数、金额/万元、重量/KG；金额/万元 = 货代账单总金额(CNY) ÷ 10000；其余导入/导出/删除等同现网货代总账单</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('mainTabs').addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-tab]');
+      if (!btn) return;
+      var tab = btn.getAttribute('data-tab');
+      document.querySelectorAll('#mainTabs button').forEach(function (b) { b.classList.toggle('active', b === btn); });
+      document.getElementById('panel-oa').classList.toggle('active', tab === 'oa');
+      document.getElementById('panel-ff').classList.toggle('active', tab === 'ff');
+      if (tab === 'oa') showOaList();
+    });
+    function showOaDetail() {
+      document.getElementById('oa-list-view').style.display = 'none';
+      document.getElementById('oa-detail-view').style.display = 'block';
+    }
+    function showOaList() {
+      document.getElementById('oa-list-view').style.display = 'block';
+      document.getElementById('oa-detail-view').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
