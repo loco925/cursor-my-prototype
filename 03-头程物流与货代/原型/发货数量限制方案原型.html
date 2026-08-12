@@ -7,7 +7,7 @@
 <main class="page"><section id="filters" class="filters"></section><section class="panel"><div id="toolbar" class="toolbar"></div><div id="table" class="table-wrap"></div></section></main><div id="toast" class="toast"></div>
 <div id="mask" class="mask"><section id="modal" class="modal"><header class="modal-head"><div id="modalTitle" class="modal-title"></div><button class="close" onclick="closeModal()">×</button></header><div id="modalBody" class="modal-body"></div><footer id="modalFoot" class="modal-foot"></footer></section></div>
 <script>
-const options={carrier:['云途物流','递四方','燕文物流'],method:['YunExpress US Priority','YunExpress CA Priority','4PX US Priority','Yanwen Packet Plus'],platform:['Amazon','eBay','Shopify','Walmart'],country:['美国','加拿大','英国','德国'],group:['北美一组','北美二组','北美三组','北美四组','北美五组'],bubble:['是','否']};const methods={'云途物流':['YunExpress US Priority','YunExpress CA Priority'],'递四方':['4PX US Priority'],'燕文物流':['Yanwen Packet Plus']};let tab='config',selected=[],mode='count',editing=null,expanded={},cfgFilter={carrier:'',method:'',platform:'',country:'',group:'',states:['已启用','待审批','已驳回']},approvalTypes=['新增','编辑','停用','启用'];
+const options={carrier:['云途物流','递四方','燕文物流'],method:['YunExpress US Priority','YunExpress CA Priority','4PX US Priority','Yanwen Packet Plus'],platform:['Amazon','eBay','Shopify','Walmart'],country:['美国','加拿大','英国','德国'],group:['北美一组','北美二组','北美三组','北美四组','北美五组'],bubble:['是','否']};const methods={'云途物流':['YunExpress US Priority','YunExpress CA Priority'],'递四方':['4PX US Priority'],'燕文物流':['Yanwen Packet Plus']};let tab='config',selected=[],mode='count',editing=null,expanded={},cfgFilter={carrier:'',method:'',platform:'',country:'',group:'',states:['已启用','待审批']},approvalTypes=['新增','编辑','停用','启用'];
 let configs=[
 {id:'C001',carrier:'云途物流',method:'YunExpress US Priority',platform:'Amazon',country:'美国',group:'北美一组',bubble:'否',mode:'最大订单数',limit:'200',status:'已启用',creator:'张敏',created:'2026-08-10 08:36',updater:'张敏',updated:'2026-08-10 10:18'},
 {id:'C002',carrier:'递四方',method:'4PX US Priority',platform:'Amazon',country:'美国',group:'不限',bubble:'否',mode:'最大订单数',limit:'180',status:'待审批',creator:'李琳',created:'2026-08-10 09:42',updater:'李琳',updated:'2026-08-10 09:42'},
@@ -36,9 +36,9 @@ function paintStats(){let c=document.getElementById('sc')?.value||'',fullOnly=do
 function pick(el){if(el.checked&&!selected.includes(el.value))selected.push(el.value);if(!el.checked)selected=selected.filter(x=>x!==el.value)}function selectAll(el){selected=[];document.querySelectorAll('#table tbody input[type=checkbox]:not(:disabled)').forEach(x=>{x.checked=el.checked;if(el.checked)selected.push(x.value)})}function selectedConfigs(){return configs.filter(x=>selected.includes(x.id))}function selectedApprovals(){return approvals.filter(x=>selected.includes(x.no))}
 function openModal(title,body,foot='',wide=false){modal.className='modal'+(wide?' wide':'');modalTitle.textContent=title;modalBody.innerHTML=body;modalFoot.innerHTML=foot;mask.classList.add('show')}function closeModal(){mask.classList.remove('show');editing=null}mask.onclick=e=>{if(e.target===mask)closeModal()}
 function multi(id,label,values=[]){return '<details class="multi" id="m'+id+'"><summary>'+((values||[]).join('、')||'不限')+'</summary><div class="multi-menu"><input type="text" placeholder="搜索'+label+'" oninput="searchMulti(\''+id+'\',this.value)"><div class="multi-options">'+options[id].map(x=>'<label><input type="checkbox" value="'+x+'" '+(values.includes(x)?'checked':'')+' onchange="updateMulti(\''+id+'\')">'+x+'</label>').join('')+'</div></div></details>'}function updateMulti(id){let d=document.getElementById('m'+id),v=[...d.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);d.querySelector('summary').textContent=v.join('、')||'不限'}function searchMulti(id,q){document.querySelectorAll('#m'+id+' .multi-options label').forEach(x=>x.style.display=x.textContent.includes(q)?'':'none')}function multiValue(id){return [...document.querySelectorAll('#m'+id+' input:checked')].map(x=>x.value).join('、')||'不限'}
-function openForm(x){editing=x||null;mode=x&&x.mode==='首选订单占比'?'ratio':'count';let val=x?x.limit.replace('%',''):'';openModal(x?'编辑发货数量限制':'新增发货数量限制','<div class="tip">请至少选择一项限制维度。未选择的维度视为不限；当订单命中多个限制配置时，限定维度更多的配置优先。</div><div class="form"><div class="form-row"><label>货代</label><select id="carrier" class="control" onchange="changeCarrier()">'+option(options.carrier,x?.carrier,'不限')+'</select></div><div class="form-row"><label>邮寄方式</label><select id="method" class="control">'+option(x?.carrier?methods[x.carrier]:options.method,x?.method,'不限')+'</select></div><div class="form-row"><label>平台</label>'+multi('platform','平台',x?.platform==='不限'?[]:(x?.platform||'').split('、'))+'</div><div class="form-row"><label>收件国</label>'+multi('country','收件国',x?.country==='不限'?[]:(x?.country||'').split('、'))+'</div><div class="form-row"><label>销售组</label>'+multi('group','销售组',x?.group==='不限'?[]:(x?.group||'').split('、'))+'</div><div class="form-row"><label>是否泡货</label><select id="bubble" class="control">'+option(options.bubble,x?.bubble,'不限')+'</select></div><div class="form-row"><label>限制方式 <span class="required">*</span></label><div class="radio-line"><label><input type="radio" name="mode" '+(mode==='count'?'checked':'')+' onchange="setMode(\'count\')"> 最大订单数</label><label><input type="radio" name="mode" '+(mode==='ratio'?'checked':'')+' onchange="setMode(\'ratio\')"> 首选订单占比(%)</label></div></div><div class="form-row"><label id="limitLabel">'+(mode==='count'?'最大订单数':'首选订单占比(%)')+' <span class="required">*</span></label><input id="limit" class="control" value="'+val+'" placeholder="请输入'+(mode==='count'?'最大订单数':'首选订单占比')+'"></div></div>','<button class="cancel" onclick="closeModal()">取消</button><button class="confirm" onclick="submitForm()">提交审批</button>')}function changeCarrier(){let c=carrier.value,old=method.value;method.innerHTML=option(c?methods[c]:options.method,'','不限');if(old)toast('货代已变更，原邮寄方式已清空，请重新选择')}function setMode(m){mode=m;limitLabel.innerHTML=(m==='count'?'最大订单数':'首选订单占比(%)')+' <span class="required">*</span>';limit.placeholder='请输入'+(m==='count'?'最大订单数':'首选订单占比')}
+function openForm(x){editing=x||null;mode=x&&x.mode==='首选订单占比'?'ratio':'count';let val=x?x.limit.replace('%',''):'';openModal(x?'编辑发货数量限制':'新增发货数量限制','<div class="tip">请至少选择一项限制维度。未选择的维度视为不限；当订单命中多个限制配置时，限定维度更多的配置优先。</div><div class="form"><div class="form-row"><label>货代</label><select id="carrier" class="control" onchange="changeCarrier()">'+option(options.carrier,x?.carrier,'不限')+'</select></div><div class="form-row"><label>邮寄方式</label><select id="method" class="control">'+option(x?.carrier?methods[x.carrier]:options.method,x?.method,'不限')+'</select></div><div class="form-row"><label>平台</label>'+multi('platform','平台',x?.platform==='不限'?[]:(x?.platform||'').split('、'))+'</div><div class="form-row"><label>收件国</label>'+multi('country','收件国',x?.country==='不限'?[]:(x?.country||'').split('、'))+'</div><div class="form-row"><label>销售组</label>'+multi('group','销售组',x?.group==='不限'?[]:(x?.group||'').split('、'))+'</div><div class="form-row"><label>是否泡货</label><select id="bubble" class="control">'+option(options.bubble,x?.bubble,'不限')+'</select></div><div class="form-row"><label>限制方式 <span class="required">*</span></label><div class="radio-line"><label><input type="radio" name="mode" '+(mode==='count'?'checked':'')+' onchange="setMode(\'count\')"> 最大订单数</label><label><input type="radio" name="mode" '+(mode==='ratio'?'checked':'')+' onchange="setMode(\'ratio\')"> 首选订单占比(%)</label></div></div><div class="form-row"><label id="limitLabel">'+(mode==='count'?'最大订单数':'首选订单占比(%)')+' <span class="required">*</span></label><input id="limit" class="control" value="'+val+'" placeholder="请输入'+(mode==='count'?'最大订单数':'首选订单占比')+'"></div></div>','<button class="cancel" onclick="closeModal()">取消</button><button class="confirm" onclick="submitForm()">提交审批</button>')}function changeCarrier(){let c=carrier.value;method.innerHTML=option(c?methods[c]:options.method,'','不限')}function setMode(m){mode=m;limitLabel.innerHTML=(m==='count'?'最大订单数':'首选订单占比(%)')+' <span class="required">*</span>';limit.placeholder='请输入'+(m==='count'?'最大订单数':'首选订单占比')}
 function submitForm(){let data={carrier:carrier.value||'不限',method:method.value||'不限',platform:multiValue('platform'),country:multiValue('country'),group:multiValue('group'),bubble:bubble.value||'不限',mode:mode==='count'?'最大订单数':'首选订单占比',limit:limit.value.trim()+(mode==='ratio'?'%':'')};if(Object.values(data).slice(0,6).every(x=>x==='不限'))return toast('请至少选择一项限制维度');if(!limit.value.trim())return toast('请填写限制值');let before=editing?{carrier:editing.carrier,method:editing.method,platform:editing.platform,country:editing.country,group:editing.group,bubble:editing.bubble,mode:editing.mode,limit:editing.limit}:null,now='2026-08-10 11:45';approvals.unshift({no:'SPA-'+String(approvals.length+1).padStart(3,'0'),type:editing?'编辑':'新增',...data,creator:'管理员',created:now,reviewer:'-',reviewed:'-',note:'-',status:'待审批',before});if(editing){editing.status='待审批';editing.updater='管理员';editing.updated=now}else{configs.unshift({id:'C'+String(configs.length+1).padStart(3,'0'),...data,status:'待审批',creator:'管理员',created:now,updater:'管理员',updated:now})}closeModal();selected=[];setTab('config');toast('已提交审批，当前状态：待审批')}
-function editConfig(){if(selected.length!==1)return toast('请勾选一条配置进行编辑');let x=selectedConfigs()[0];if(x.status==='待审批')return toast('待审批配置不支持编辑');openForm(x)}function requestStatus(type){let rows=selectedConfigs();if(!rows.length)return toast('请勾选配置');if(rows.some(x=>type==='启用'?x.status!=='已停用':x.status!=='已启用'))return toast(type==='启用'?'仅已停用配置可申请启用':'仅已启用配置可申请停用');openModal('系统询问','<div style="padding:8px 0">你确定要'+type+'所选配置吗？确认后将生成待审批记录。</div>','<button class="cancel" onclick="closeModal()">取消</button><button class="confirm" onclick="submitStatus(\''+type+'\')">确定</button>')}function submitStatus(type){selectedConfigs().forEach(x=>{approvals.unshift({no:'SPA-'+String(approvals.length+1).padStart(3,'0'),type,carrier:x.carrier,method:x.method,platform:x.platform,country:x.country,group:x.group,bubble:x.bubble,mode:x.mode,limit:x.limit,creator:'管理员',created:'2026-08-10 11:50',reviewer:'-',reviewed:'-',note:'-',status:'待审批',before:{...x}});x.status='待审批'});closeModal();setTab('approval');toast(type+'申请已提交审批')}
+function editConfig(){if(selected.length!==1)return toast('请勾选一条配置进行编辑');let x=selectedConfigs()[0];if(x.status==='待审批')return toast('待审批配置不支持编辑');openForm(x)}function requestStatus(type){let rows=selectedConfigs();if(!rows.length)return toast('请至少选择一条配置');let required=type==='启用'?'已停用':'已启用';if(rows.some(x=>x.status!==required))return toast(type+'仅支持配置状态为“'+required+'”的数据');if(rows.some(x=>approvals.some(a=>a.configId===x.id&&a.status==='待审核')))return toast('所选配置存在待审核申请，请先处理后再操作');openModal(type+'确认','<div style="padding:8px 0">确定对已选择的 <b>'+rows.length+'</b> 条配置发起'+type+'申请吗？确认后每条配置分别生成一张待审核审批单，审批通过前配置保持当前状态。</div>','<button class="cancel" onclick="closeModal()">取消</button><button class="confirm" onclick="submitStatus(\''+type+'\')">确认</button>')}
 function compareCell(x,k){if(!x.before)return '<span class="plain">'+show(x[k]).replace('不限',k==='platform'?'所有平台':k==='group'?'所有销售组':'不限')+'</span>';let a=show(x.before[k]).replace('不限',k==='platform'?'所有平台':k==='group'?'所有销售组':'不限'),b=show(x[k]).replace('不限',k==='platform'?'所有平台':k==='group'?'所有销售组':'不限');return a===b?'<span class="plain">'+b+'</span>':'<span class="old">'+a+'</span><span class="new">'+b+'</span>'}function reviewSelected(){let rows=selectedApprovals();if(!rows.length)return toast('请勾选待审批数据');let keys=[['carrier','货代'],['method','邮寄方式'],['platform','平台'],['country','收件国'],['group','销售组'],['bubble','是否泡货'],['mode','限制方式'],['limit','限制单量 / 占比']];openModal('发货数量限制审核（'+rows.length+'条）','<div class="legend"><span><i class="old-dot"></i>灰色删除线：变更前</span><span><i class="new-dot"></i>绿色：变更后</span><span>新增记录不标识颜色</span></div><div class="table-wrap"><table><thead><tr><th>审批单号</th><th>审批类型</th>'+keys.map(k=>'<th>'+k[1]+'</th>').join('')+'<th>配置状态</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+x.no+'</td><td>'+x.type+'</td>'+keys.map(k=>'<td>'+compareCell(x,k[0])+'</td>').join('')+'<td>'+(!x.before?'<span class="plain">待审批</span>':compareCell({before:{s:'已启用'},s:x.type==='停用'?'已停用':x.type==='启用'?'已启用':'待审批'},'s'))+'</td></tr>').join('')+'</tbody></table></div><div class="remark"><label>审核备注 <span style="color:#d14343">审核驳回时必填</span></label><textarea id="remark" placeholder="请输入审核备注；驳回时必须填写原因"></textarea></div>','<button class="cancel" onclick="review(false)">审核驳回</button><button class="confirm" onclick="review(true)">审核通过</button>',true)}function review(pass){let note=remark.value.trim();if(!pass&&!note)return toast('审核驳回必须填写备注');selectedApprovals().forEach(x=>{x.status=pass?'已通过':'已驳回';x.reviewer='管理员';x.reviewed='2026-08-10 11:56';x.note=note||'-'});closeModal();renderApproval();toast(pass?'已审核通过':'已审核驳回')}
 function detail(no){let x=approvals.find(x=>x.no===no),keys=[['carrier','货代'],['method','邮寄方式'],['platform','平台'],['country','收件国'],['group','销售组'],['bubble','是否泡货'],['mode','限制方式'],['limit','限制单量 / 占比']];let top='<div class="detail-grid"><div><b>审批单号</b>'+x.no+'</div><div><b>审批类型</b>'+x.type+'</div><div><b>审批状态</b>'+statusTag(x.status)+'</div><div><b>创建人 / 创建时间</b>'+x.creator+' / '+x.created+'</div><div><b>审核人 / 审核时间</b>'+x.reviewer+' / '+x.reviewed+'</div><div><b>审核备注</b>'+x.note+'</div></div>';let body=x.before?top+'<h4>变更前 / 变更后</h4><table><thead><tr><th>限制条件</th><th>变更前</th><th>变更后</th></tr></thead><tbody>'+keys.map(k=>'<tr><td>'+k[1]+'</td><td>'+show(x.before[k[0]])+'</td><td>'+show(x[k[0]])+'</td></tr>').join('')+'</tbody></table>':top+'<h4>提交内容</h4><div class="detail-grid">'+keys.map(k=>'<div><b>'+k[1]+'</b>'+show(x[k[0]])+'</div>').join('')+'</div>';openModal('审批详情',body,'<button class="confirm" onclick="closeModal()">关闭</button>',true)}
 function orders(i){let s=stats[i],all=[['SO202608100001','Amazon','北美一组','是'],['SO202608100045',s.platform,s.group,'是'],['SO202608100126',s.platform,s.group,'否']];openModal('占用订单明细','<div class="filter-row" style="grid-template-columns:1fr 150px 150px auto;margin-bottom:12px"><div class="field"><label>订单编号</label><input id="ono" class="control" oninput="filterOrders('+i+')"></div><div class="field"><label>平台</label><select id="opl" class="control" onchange="filterOrders('+i+')"><option value="">全部</option><option>'+s.platform+'</option></select></div><div class="field"><label>销售组</label><select id="ogr" class="control" onchange="filterOrders('+i+')"><option value="">全部</option><option>'+s.group+'</option></select></div><button class="btn blue" onclick="filterOrders('+i+')">搜索</button></div><div class="table-wrap"><table><thead><tr><th>订单编号</th><th>平台</th><th>销售组</th><th>当前是否占用</th></tr></thead><tbody id="orders">'+all.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td><td>'+x[2]+'</td><td>'+statusTag(x[3]==='是'?'已占用':'已释放')+'</td></tr>').join('')+'</tbody></table></div>','<button class="confirm" onclick="closeModal()">关闭</button>',true);modalBody.dataset.orders=JSON.stringify(all)}function filterOrders(){let all=JSON.parse(modalBody.dataset.orders),n=ono.value,p=opl.value,g=ogr.value;orders.innerHTML=all.filter(x=>(!n||x[0].includes(n))&&(!p||x[1]===p)&&(!g||x[2]===g)).map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td><td>'+x[2]+'</td><td>'+statusTag(x[3]==='是'?'已占用':'已释放')+'</td></tr>').join('')}
@@ -70,4 +70,449 @@ function toggleReviewType(s){reviewTypes=reviewTypes.includes(s)?reviewTypes.fil
 reviewSelected=function(){if(!selectedApprovals().length)return toast('请勾选待审批数据');reviewTypes=['新增','编辑','停用','启用'];openModal('发货数量限制审核','','<button class="cancel" onclick="review(false)">审核驳回</button><button class="confirm" onclick="review(true)">审核通过</button>',true);paintReviewBody()}
 review=function(pass){let note=document.getElementById('remark').value.trim(),scope=selectedApprovals().filter(x=>reviewTypes.includes(x.type));if(!scope.length)return toast('请至少选择一种审批类型');if(!pass&&!note)return toast('审核驳回必须填写备注');scope.forEach(x=>{x.status=pass?'已通过':'已驳回';x.reviewer='管理员';x.reviewed='2026-08-10 11:56';x.note=note||'-'});closeModal();selected=[];renderApproval();toast(pass?'已审核通过 '+scope.length+' 条':'已审核驳回 '+scope.length+' 条')}
 render();
+</script>
+<style>
+.search-actions{display:flex;gap:6px;align-items:center}.btn.clear{border:1px solid #c8d3df;background:#fff;color:#536174}.diff-before{background:#fff0f0;color:#b42318;font-weight:600}.diff-after{background:#e8f7ed;color:#137a42;font-weight:600}.diff-mark{display:inline-block;margin-left:5px;padding:1px 5px;border-radius:2px;background:#fff0f0;color:#c53b3b;font-size:10px}.withdrawn{background:#eef1f5;color:#687586}
+</style>
+<script>
+const methodNameMap={
+  'YunExpress US Priority':'云途美国专线特惠（普货）',
+  'YunExpress CA Priority':'云途加拿大专线挂号',
+  '4PX US Priority':'递四方联邮通美国专线',
+  'Yanwen Packet Plus':'燕文专线追踪小包'
+};
+options.method=options.method.map(x=>methodNameMap[x]||x);
+Object.keys(methods).forEach(k=>methods[k]=methods[k].map(x=>methodNameMap[x]||x));
+[...configs,...approvals,...stats].forEach(x=>x.method=methodNameMap[x.method]||x.method);
+approvals.forEach(x=>{if(x.before)x.before.method=methodNameMap[x.before.method]||x.before.method});
+
+const initialApprovalLinks={'SPA-001':'C002','SPA-002':'C004','SPA-003':'C001','SPA-004':'C005','SPA-005':'C003'};
+approvals.forEach(x=>{
+  x.configId=x.configId||initialApprovalLinks[x.no]||'';
+  x.beforeStatus=x.beforeStatus||(x.type==='启用'?'已停用':x.type==='新增'?'':'已启用');
+});
+let pendingApprovalEditing=null;
+const approvalFields=['carrier','method','platform','country','group','bubble','mode','limit'];
+
+function formatNow(){let d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())}
+function nextConfigId(){let n=Math.max(0,...configs.map(x=>Number((x.id||'').replace(/\D/g,''))||0))+1;return 'C'+String(n).padStart(3,'0')}
+function configForApproval(a){return configs.find(x=>x.id===a.configId)}
+function copyApprovalValues(target,a){approvalFields.forEach(k=>target[k]=a[k])}
+function findPendingApproval(configId){return approvals.find(x=>x.configId===configId&&x.status==='待审批')}
+
+updateMulti=function(id){let d=document.getElementById('m'+id),v=[...d.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);d.querySelector('summary').textContent=v.join('、')||'不限';d.open=false}
+updateFilterMulti=function(id,instant){let d=document.getElementById(id),v=[...d.querySelectorAll('input[type=checkbox]:checked')].map(x=>x.value);d.querySelector('summary').textContent=v.join('、')||'全部';d.open=false;if(instant&&window[instant])window[instant]()}
+
+const originalOpenForm=openForm;
+openForm=function(x){pendingApprovalEditing=null;originalOpenForm(x)}
+editConfig=function(){
+  if(selected.length!==1)return toast('请勾选一条配置进行编辑');
+  let c=selectedConfigs()[0];
+  if(c.status==='待审批'){
+    let a=findPendingApproval(c.id);
+    if(!a)return toast('未找到该配置对应的待审批记录');
+    pendingApprovalEditing=a;
+    originalOpenForm({...c,...Object.fromEntries(approvalFields.map(k=>[k,a[k]]))});
+    editing=c;
+    modalTitle.textContent='修改待审批发货数量限制';
+    return;
+  }
+  pendingApprovalEditing=null;
+  originalOpenForm(c);
+}
+
+submitForm=function(){
+  let data={carrier:carrier.value||'不限',method:method.value||'不限',platform:multiValue('platform'),country:multiValue('country'),group:multiValue('group'),bubble:bubble.value||'不限',mode:mode==='count'?'最大订单数':'首选订单占比',limit:limit.value.trim()+(mode==='ratio'?'%':'')};
+  if(Object.values(data).slice(0,6).every(x=>x==='不限'))return toast('请至少选择一项限制维度');
+  if(!limit.value.trim())return toast('请填写限制值');
+  let now=formatNow();
+  if(pendingApprovalEditing){
+    Object.assign(pendingApprovalEditing,data);
+    pendingApprovalEditing.note='-';
+    if(pendingApprovalEditing.type==='新增')copyApprovalValues(editing,pendingApprovalEditing);
+    editing.status='待审批';editing.updater='管理员';editing.updated=now;
+    closeModal();pendingApprovalEditing=null;selected=[];setTab('config');toast('待审批内容已修改，审批单保持不变');return;
+  }
+  let before=editing?Object.fromEntries(approvalFields.map(k=>[k,editing[k]])):null;
+  let c=editing;
+  if(!c){c={id:nextConfigId(),...data,status:'待审批',creator:'管理员',created:now,updater:'管理员',updated:now};configs.unshift(c)}
+  let a={no:'SPA-'+String(Math.max(0,...approvals.map(x=>Number((x.no||'').replace(/\D/g,''))||0))+1).padStart(3,'0'),configId:c.id,type:editing?'编辑':'新增',...data,creator:'管理员',created:now,reviewer:'-',reviewed:'-',note:'-',status:'待审批',before,beforeStatus:editing?editing.status:''};
+  approvals.unshift(a);
+  if(editing){editing.status='待审批';editing.updater='管理员';editing.updated=now}
+  closeModal();selected=[];setTab('config');toast('已提交审批，当前状态：待审批');
+}
+
+submitStatus=function(type){
+  let now=formatNow();
+  selectedConfigs().forEach(x=>{
+    approvals.unshift({no:'SPA-'+String(Math.max(0,...approvals.map(a=>Number((a.no||'').replace(/\D/g,''))||0))+1).padStart(3,'0'),configId:x.id,type,carrier:x.carrier,method:x.method,platform:x.platform,country:x.country,group:x.group,bubble:x.bubble,mode:x.mode,limit:x.limit,creator:'管理员',created:now,reviewer:'-',reviewed:'-',note:'-',status:'待审批',before:{...x},beforeStatus:x.status});
+  });
+  closeModal();selected=[];renderConfig();toast(type+'申请已提交审批，审批通过前配置状态不变');
+}
+
+function applyApprovalResult(a,pass){
+  let c=configForApproval(a),now=formatNow();
+  if(!c)return;
+  if(pass){
+    if(a.type==='新增'||a.type==='编辑')copyApprovalValues(c,a);
+    c.status=a.type==='停用'?'已停用':'已启用';
+  }else{
+    c.status=a.type==='新增'?'已驳回':(a.beforeStatus||'已启用');
+  }
+  c.updater='管理员';c.updated=now;
+}
+review=function(pass){
+  let note=document.getElementById('remark').value.trim(),scope=selectedApprovals().filter(x=>reviewTypes.includes(x.type));
+  if(!scope.length)return toast('请至少选择一种审批类型');
+  if(!pass&&!note)return toast('审核驳回必须填写备注');
+  scope.forEach(x=>{x.status=pass?'已通过':'已驳回';x.reviewer='管理员';x.reviewed=formatNow();x.note=note||'-';applyApprovalResult(x,pass)});
+  closeModal();selected=[];renderApproval();toast(pass?'已审核通过 '+scope.length+' 条，配置已同步':'已审核驳回 '+scope.length+' 条，配置已恢复');
+}
+
+function deletePending(){
+  let rows=selectedConfigs();
+  if(!rows.length)return toast('请勾选待审批配置');
+  if(rows.some(x=>x.status!=='待审批'))return toast('仅待审批配置允许删除');
+  openModal('删除待审批配置','<div style="padding:8px 0">删除将撤回对应审批申请。新增配置将从配置列表移除；编辑、启用、停用申请将恢复提交前状态。审批记录保留为“已撤回”。</div>','<button class="cancel" onclick="closeModal()">取消</button><button class="confirm" onclick="confirmDeletePending()">确定删除</button>');
+}
+function confirmDeletePending(){
+  let rows=selectedConfigs(),ids=new Set(rows.map(x=>x.id)),now=formatNow();
+  rows.forEach(c=>{let a=findPendingApproval(c.id);if(!a)return;a.status='已撤回';a.note='申请人撤回';a.reviewed=now;if(a.type==='新增'){configs=configs.filter(x=>x.id!==c.id)}else{c.status=a.beforeStatus||'已启用';c.updater='管理员';c.updated=now}});
+  closeModal();selected=[];renderConfig();toast('待审批申请已撤回');
+}
+
+function resetConfigFilters(){cfgFilter={carrier:'',method:'',platform:'',country:'',group:'',states:['已启用','待审批']};configMultiFilter={method:[],platform:[],country:[],group:[]};renderConfig();toast('筛选条件已清空')}
+function resetApprovalFilters(){approvalFilter={type:'',status:'',carrier:'',method:[],platform:[],country:[],group:[]};renderApproval();toast('筛选条件已清空')}
+function resetStatsFilters(){statsFilter={carrier:'',method:[],platform:[],country:[],group:[],full:''};expanded={};renderStats();toast('筛选条件已清空')}
+
+function isConfigActiveForStat(s){return configs.some(c=>c.status==='已启用'&&c.carrier===s.carrier&&c.method===s.method&&matchesMany(s.platform,(c.platform||'').split('、').filter(x=>x&&x!=='不限'))&&matchesMany(s.country,(c.country||'').split('、').filter(x=>x&&x!=='不限'))&&matchesMany(s.group,(c.group||'').split('、').filter(x=>x&&x!=='不限')))}
+statsRows=function(){return stats.filter(isConfigActiveForStat).filter(x=>(!statsFilter.carrier||x.carrier===statsFilter.carrier)&&matchesMany(x.method,statsFilter.method)&&matchesMany(x.platform,statsFilter.platform)&&matchesMany(x.country,statsFilter.country)&&matchesMany(x.group,statsFilter.group)&&(!statsFilter.full||x.used>=x.cap))}
+
+paintConfigTable=function(){let rows=configRows();document.querySelector('#toolbar .hint').textContent='共 '+rows.length+' 条配置';document.getElementById('table').innerHTML='<table><thead><tr><th class="checkcell"><input type="checkbox" onchange="selectAll(this)"></th><th>货代</th><th>邮寄方式名称</th><th>平台</th><th>收件国</th><th>销售组</th><th>是否泡货</th><th>限制方式</th><th>限制单量 / 占比</th><th>配置状态</th><th>创建人</th><th>创建时间</th><th>更新人</th><th>更新时间</th></tr></thead><tbody>'+rows.map(x=>'<tr><td><input type="checkbox" value="'+x.id+'" onchange="pick(this)"></td><td>'+x.carrier+'</td><td>'+x.method+'</td><td>'+show(x.platform).replace('不限','所有平台')+'</td><td>'+show(x.country)+'</td><td>'+show(x.group).replace('不限','所有销售组')+'</td><td>'+x.bubble+'</td><td>'+x.mode+'</td><td>'+x.limit+'</td><td>'+statusTag(x.status)+'</td><td>'+x.creator+'</td><td>'+x.created+'</td><td>'+x.updater+'</td><td>'+x.updated+'</td></tr>').join('')+'</tbody></table>'}
+renderConfig=function(){let f=document.getElementById('filters');f.innerHTML='<div class="filter-row"><div class="field"><label>货代</label><select id="fc" class="control">'+option(options.carrier,cfgFilter.carrier)+'</select></div><div class="field"><label>邮寄方式名称</label>'+filterMulti('cfm','method','邮寄方式名称',configMultiFilter.method)+'</div><div class="field"><label>平台</label>'+filterMulti('cfp','platform','平台',configMultiFilter.platform)+'</div><div class="field"><label>收件国</label>'+filterMulti('cfn','country','收件国',configMultiFilter.country)+'</div><div class="field"><label>销售组</label>'+filterMulti('cfg','group','销售组',configMultiFilter.group)+'</div><div class="field"><label>配置状态</label><details class="multi"><summary>'+cfgFilter.states.join('、')+'</summary><div class="multi-menu"><div class="multi-options">'+['已启用','待审批','已驳回','已停用'].map(s=>'<label><input type="checkbox" value="'+s+'" '+(cfgFilter.states.includes(s)?'checked':'')+' onchange="toggleState(\''+s+'\')">'+s+'</label>').join('')+'</div></div></details></div><div class="search-actions"><button class="btn blue" onclick="searchConfigMulti()">搜索</button><button class="btn clear" onclick="resetConfigFilters()">清空</button></div></div>';document.getElementById('toolbar').innerHTML='<button class="btn green" onclick="openForm()">新增</button><button class="btn orange" onclick="editConfig()">编辑</button><button class="btn red" onclick="deletePending()">删除</button><button class="btn orange" onclick="toast(\'导入模板已生成\')">导入</button><button class="btn orange" onclick="toast(\'已按筛选条件导出\')">导出</button><button class="btn green" onclick="requestStatus(\'启用\')">启用</button><button class="btn red" onclick="requestStatus(\'停用\')">停用</button><span class="hint"></span>';paintConfigTable()}
+
+paintApprovalTable=function(){let rows=approvalRows();document.querySelector('#toolbar .hint').textContent='共 '+rows.length+' 条；非待审批数据自动忽略';document.getElementById('table').innerHTML='<table><thead><tr><th class="checkcell"><input type="checkbox" onchange="selectAll(this)"></th><th>审批单号</th><th>审批类型</th><th>货代</th><th>邮寄方式名称</th><th>平台</th><th>收件国</th><th>销售组</th><th>限制方式</th><th>限制单量 / 占比</th><th>创建人</th><th>创建时间</th><th>审核人</th><th>审核时间</th><th>审核备注</th><th>审批状态</th><th>操作</th></tr></thead><tbody>'+rows.map(x=>{let lock=x.status!=='待审批';return '<tr class="'+(lock?'muted-row':'')+'"><td><input type="checkbox" value="'+x.no+'" '+(lock?'disabled':'')+' onchange="pick(this)"></td><td>'+x.no+'</td><td>'+x.type+'</td><td>'+x.carrier+'</td><td>'+x.method+'</td><td>'+show(x.platform).replace('不限','所有平台')+'</td><td>'+show(x.country)+'</td><td>'+show(x.group).replace('不限','所有销售组')+'</td><td>'+x.mode+'</td><td>'+x.limit+'</td><td>'+x.creator+'</td><td>'+x.created+'</td><td>'+x.reviewer+'</td><td>'+x.reviewed+'</td><td>'+x.note+'</td><td>'+statusTag(x.status)+'</td><td><span class="link" onclick="detail(\''+x.no+'\')">查看对比</span></td></tr>'}).join('')+'</tbody></table>'}
+renderApproval=function(){let f=document.getElementById('filters');f.innerHTML='<div class="filter-row"><div class="field"><label>审批类型</label><select id="atype" class="control">'+option(['新增','编辑','停用','启用'],approvalFilter.type)+'</select></div><div class="field"><label>审批状态</label><select id="astatus" class="control">'+option(['待审批','已通过','已驳回','已撤回'],approvalFilter.status)+'</select></div><div class="field"><label>货代</label><select id="acarrier" class="control">'+option(options.carrier,approvalFilter.carrier)+'</select></div><div class="field"><label>邮寄方式名称</label>'+filterMulti('amethod','method','邮寄方式名称',approvalFilter.method)+'</div><div class="field"><label>平台</label>'+filterMulti('aplatform','platform','平台',approvalFilter.platform)+'</div><div class="field"><label>收件国</label>'+filterMulti('acountry','country','收件国',approvalFilter.country)+'</div><div class="field"><label>销售组</label>'+filterMulti('agroup','group','销售组',approvalFilter.group)+'</div><div class="search-actions"><button class="btn blue" onclick="searchApproval()">搜索</button><button class="btn clear" onclick="resetApprovalFilters()">清空</button></div></div>';document.getElementById('toolbar').innerHTML='<button class="btn blue" onclick="reviewSelected()">审核</button><span class="hint"></span>';paintApprovalTable()}
+
+renderStats=function(){let f=document.getElementById('filters');f.innerHTML='<div class="filter-row"><div class="field"><label>统计日期</label><select id="range" class="control" onchange="expanded={};paintStats()"><option value="7">2026-08-04 - 2026-08-10</option><option value="1">2026-08-10 - 2026-08-10</option></select></div><div class="field"><label>货代</label><select id="scarrier" class="control">'+option(options.carrier,statsFilter.carrier)+'</select></div><div class="field"><label>邮寄方式名称</label>'+filterMulti('smethod','method','邮寄方式名称',statsFilter.method)+'</div><div class="field"><label>平台</label>'+filterMulti('splatform','platform','平台',statsFilter.platform)+'</div><div class="field"><label>收件国</label>'+filterMulti('scountry','country','收件国',statsFilter.country)+'</div><div class="field"><label>销售组</label>'+filterMulti('sgroup','group','销售组',statsFilter.group)+'</div><div class="field"><label>是否触顶</label><select id="sfull" class="control"><option value="">全部</option><option value="yes" '+(statsFilter.full?'selected':'')+'>仅看已触顶</option></select></div><div class="search-actions"><button class="btn blue" onclick="searchStats()">搜索</button><button class="btn clear" onclick="resetStatsFilters()">清空</button></div></div>';document.getElementById('toolbar').innerHTML='<span class="hint"></span>';paintStats()}
+
+detail=function(no){let x=approvals.find(x=>x.no===no),keys=[['carrier','货代'],['method','邮寄方式名称'],['platform','平台'],['country','收件国'],['group','销售组'],['bubble','是否泡货'],['mode','限制方式'],['limit','限制单量 / 占比']];let top='<div class="detail-grid"><div><b>审批单号</b>'+x.no+'</div><div><b>审批类型</b>'+x.type+'</div><div><b>审批状态</b>'+statusTag(x.status)+'</div><div><b>创建人 / 创建时间</b>'+x.creator+' / '+x.created+'</div><div><b>审核人 / 审核时间</b>'+x.reviewer+' / '+x.reviewed+'</div><div><b>审核备注</b>'+x.note+'</div></div>';let body=x.before?top+'<h4>变更前 / 变更后</h4><table><thead><tr><th>限制条件</th><th>变更前</th><th>变更后</th></tr></thead><tbody>'+keys.map(k=>{let a=show(x.before[k[0]]),b=show(x[k[0]]),changed=a!==b;return '<tr><td>'+k[1]+(changed?'<span class="diff-mark">有变动</span>':'')+'</td><td class="'+(changed?'diff-before':'')+'">'+a+'</td><td class="'+(changed?'diff-after':'')+'">'+b+'</td></tr>'}).join('')+'</tbody></table>':top+'<h4>提交内容</h4><div class="detail-grid">'+keys.map(k=>'<div><b>'+k[1]+'</b>'+show(x[k[0]])+'</div>').join('')+'</div>';openModal('审批详情',body,'<button class="confirm" onclick="closeModal()">关闭</button>',true)}
+
+render();
+</script>
+<script>
+const paintApprovalTableBase=paintApprovalTable;
+paintApprovalTable=function(){
+  paintApprovalTableBase();
+  let rows=approvalRows(),trs=[...document.querySelectorAll('#table tbody tr')];
+  rows.forEach((x,i)=>{if(x.status==='已驳回')trs[i]?.classList.remove('muted-row')});
+  document.querySelectorAll('#table tbody .link').forEach(x=>{if(x.textContent==='查看对比')x.textContent='查看'});
+}
+
+const submitFormWithSync=submitForm;
+submitForm=function(){
+  let raw=document.getElementById('limit')?.value.trim()||'',value=Number(raw);
+  if(mode==='ratio'&&raw&&!Number.isNaN(value)&&value>100)return toast('首选订单占比不能超过100%');
+  return submitFormWithSync();
+}
+
+const applyApprovalResultBase=applyApprovalResult;
+applyApprovalResult=function(a,pass){
+  applyApprovalResultBase(a,pass);
+  let c=configForApproval(a);
+  if(pass&&c&&a.type==='编辑'&&a.beforeStatus==='已停用')c.status='已停用';
+}
+
+if(tab==='approval')renderApproval();
+</script>
+<script>
+const approvalStatusNames={'待审批':'待审核','已通过':'审核通过','已驳回':'审核驳回','已撤回':'已删除'};
+approvals.forEach(x=>x.status=approvalStatusNames[x.status]||x.status);
+approvalFilter.status=approvalStatusNames[approvalFilter.status]||approvalFilter.status;
+
+statusTag=function(s){
+  let c=(s==='已启用'||s==='审核通过'||s==='已占用')?'enabled':(s==='待审批'||s==='待审核')?'pending':(s==='已驳回'||s==='审核驳回'||s==='已触顶')?'rejected':'disabled';
+  return '<span class="tag '+c+'">'+s+'</span>';
+}
+findPendingApproval=function(configId){return approvals.find(x=>x.configId===configId&&x.status==='待审核')}
+
+const renderConfigStatusBase=renderConfig;
+renderConfig=function(){
+  renderConfigStatusBase();
+  [...document.querySelectorAll('#toolbar button')].find(x=>x.textContent==='删除')?.remove();
+}
+
+paintApprovalTable=function(){
+  let rows=approvalRows();
+  document.querySelector('#toolbar .hint').textContent='共 '+rows.length+' 条；待审核可审核，待审核/审核驳回可删除';
+  document.getElementById('table').innerHTML='<table><thead><tr><th class="checkcell"><input type="checkbox" onchange="selectAll(this)"></th><th>审批单号</th><th>变更类型</th><th>货代</th><th>邮寄方式名称</th><th>平台</th><th>收件国</th><th>销售组</th><th>限制方式</th><th>限制单量 / 占比</th><th>审批状态</th><th>创建人</th><th>创建时间</th><th>审核人</th><th>审核时间</th><th>操作</th></tr></thead><tbody>'+rows.map(x=>{let selectable=x.status==='待审核'||x.status==='审核驳回',muted=x.status==='审核通过'||x.status==='已删除';return '<tr class="'+(muted?'muted-row':'')+'"><td><input type="checkbox" value="'+x.no+'" '+(selectable?'':'disabled')+' onchange="pick(this)"></td><td>'+x.no+'</td><td>'+x.type+'</td><td>'+x.carrier+'</td><td>'+x.method+'</td><td>'+show(x.platform).replace('不限','所有平台')+'</td><td>'+show(x.country)+'</td><td>'+show(x.group).replace('不限','所有销售组')+'</td><td>'+x.mode+'</td><td>'+x.limit+'</td><td>'+statusTag(x.status)+'</td><td>'+x.creator+'</td><td>'+x.created+'</td><td>'+x.reviewer+'</td><td>'+x.reviewed+'</td><td><span class="link" onclick="detail(\''+x.no+'\')">查看</span></td></tr>'}).join('')+'</tbody></table>';
+}
+renderApproval=function(){
+  let f=document.getElementById('filters');
+  f.innerHTML='<div class="filter-row"><div class="field"><label>变更类型</label><select id="atype" class="control">'+option(['新增','编辑','停用','启用'],approvalFilter.type)+'</select></div><div class="field"><label>审批状态</label><select id="astatus" class="control">'+option(['待审核','审核通过','审核驳回','已删除'],approvalFilter.status)+'</select></div><div class="field"><label>货代</label><select id="acarrier" class="control">'+option(options.carrier,approvalFilter.carrier)+'</select></div><div class="field"><label>邮寄方式名称</label>'+filterMulti('amethod','method','邮寄方式名称',approvalFilter.method)+'</div><div class="field"><label>平台</label>'+filterMulti('aplatform','platform','平台',approvalFilter.platform)+'</div><div class="field"><label>收件国</label>'+filterMulti('acountry','country','收件国',approvalFilter.country)+'</div><div class="field"><label>销售组</label>'+filterMulti('agroup','group','销售组',approvalFilter.group)+'</div><div class="search-actions"><button class="btn blue" onclick="searchApproval()">搜索</button><button class="btn clear" onclick="resetApprovalFilters()">清空</button></div></div>';
+  document.getElementById('toolbar').innerHTML='<button class="btn blue" onclick="reviewSelected()">审核</button><button class="btn red" onclick="deleteApproval()">删除</button><span class="hint"></span>';
+  paintApprovalTable();
+}
+
+reviewSelected=function(){
+  let pending=selectedApprovals().filter(x=>x.status==='待审核');
+  if(!pending.length)return toast('请勾选待审核数据');
+  selected=pending.map(x=>x.no);reviewTypes=['新增','编辑','停用','启用'];
+  openModal('发货数量限制审核','','<button class="cancel" onclick="review(false)">审批不通过</button><button class="confirm" onclick="review(true)">审批通过</button>',true);paintReviewBody();
+}
+review=function(pass){
+  let note=document.getElementById('remark').value.trim(),scope=selectedApprovals().filter(x=>x.status==='待审核'&&reviewTypes.includes(x.type));
+  if(!scope.length)return toast('请至少选择一种变更类型');
+  if(!pass&&!note)return toast('审批不通过必须填写备注');
+  scope.forEach(x=>{x.status=pass?'审核通过':'审核驳回';x.reviewer='管理员';x.reviewed=formatNow();x.note=note||'-';applyApprovalResult(x,pass)});
+  closeModal();selected=[];renderApproval();toast(pass?'已审核通过 '+scope.length+' 条，配置已同步':'已审核驳回 '+scope.length+' 条，配置已恢复');
+}
+
+function deleteApproval(){
+  let rows=selectedApprovals();
+  if(!rows.length)return toast('请勾选待审核或审核驳回数据');
+  if(rows.some(x=>!['待审核','审核驳回'].includes(x.status)))return toast('仅待审核、审核驳回数据允许删除');
+  openModal('删除审批数据','<div style="padding:8px 0">确定删除所选审批数据吗？删除后审批状态更新为“已删除”，审批记录继续保留。</div>','<button class="cancel" onclick="closeModal()">取消</button><button class="confirm" onclick="confirmDeleteApproval()">确定删除</button>');
+}
+function confirmDeleteApproval(){
+  let rows=selectedApprovals(),now=formatNow();
+  rows.forEach(a=>{
+    let c=configForApproval(a);
+    if(c&&a.status==='待审核'){
+      if(a.type==='新增')configs=configs.filter(x=>x.id!==c.id);
+      else{c.status=a.beforeStatus||'已启用';c.updater='管理员';c.updated=now}
+    }else if(c&&a.status==='审核驳回'&&a.type==='新增'&&c.status==='已驳回'){
+      configs=configs.filter(x=>x.id!==c.id);
+    }
+    a.status='已删除';a.note=a.note==='-'?'申请人删除':a.note.replace(/[；;。]+$/,'')+'；申请人删除';
+  });
+  closeModal();selected=[];renderApproval();toast('审批数据已删除');
+}
+
+const submitFormApprovalStatusBase=submitForm;
+submitForm=function(){let beforeCount=approvals.length,result=submitFormApprovalStatusBase();if(approvals.length>beforeCount&&approvals[0].status==='待审批')approvals[0].status='待审核';return result}
+const submitStatusApprovalStatusBase=submitStatus;
+submitStatus=function(type){let beforeCount=approvals.length,result=submitStatusApprovalStatusBase(type);if(approvals.length>beforeCount){approvals.slice(0,approvals.length-beforeCount).forEach(x=>{if(x.status==='待审批')x.status='待审核'});if(tab==='approval')renderApproval()}return result}
+
+render();
+</script>
+<script>
+const submitFormRuleCheckBase=submitForm;
+
+function formRuleData(){
+  return {carrier:carrier.value||'不限',method:method.value||'不限',platform:multiValue('platform'),country:multiValue('country'),group:multiValue('group'),bubble:bubble.value||'不限',mode:mode==='count'?'最大订单数':'首选订单占比',limit:(limit.value.trim()||'-')+(mode==='ratio'?'%':'')};
+}
+function ruleValues(v){return (v&&v!=='不限'?String(v).split('、'):[]).filter(Boolean).sort()}
+function sameRule(a,b){return ['carrier','method','platform','country','group','bubble','mode'].every(k=>ruleValues(a[k]).join('|')===ruleValues(b[k]).join('|'))}
+function dimensionOverlap(a,b,k){let av=ruleValues(a[k]),bv=ruleValues(b[k]);return !av.length||!bv.length||av.some(x=>bv.includes(x))}
+function overlapFields(a,b){return ['carrier','method','platform','country','group','bubble'].filter(k=>dimensionOverlap(a,b,k))}
+function rulesOverlap(a,b){return ['carrier','method','platform','country','group','bubble'].every(k=>dimensionOverlap(a,b,k))}
+function ruleSummary(r,includeStatus=true){
+  let names={carrier:'货代',method:'邮寄方式',platform:'平台',country:'收件国',group:'销售组',bubble:'是否泡货',mode:'限制方式',limit:'限制单量 / 占比',status:'配置状态'};
+  if(!includeStatus)delete names.status;
+  return Object.keys(names).map(k=>'<div><b>'+names[k]+'</b><span>'+show(r[k])+'</span></div>').join('');
+}
+function closeRuleWarning(){document.getElementById('ruleWarningMask')?.remove()}
+function ruleWarning(title,body,footer){
+  closeRuleWarning();
+  let mask=document.createElement('div');mask.id='ruleWarningMask';mask.style.cssText='position:fixed;inset:0;background:rgba(28,40,55,.48);z-index:9999;display:flex;align-items:center;justify-content:center';
+  mask.innerHTML='<div style="width:860px;background:#fff;border-radius:4px;box-shadow:0 12px 32px rgba(0,0,0,.28)"><div style="height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid #dfe5ec;font-size:16px;font-weight:600"><span>'+title+'</span><button onclick="closeRuleWarning()" style="border:0;background:none;font-size:22px;color:#7c8998;cursor:pointer">×</button></div><div style="padding:20px">'+body+'</div><div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid #dfe5ec">'+footer+'</div></div>';
+  document.body.appendChild(mask);
+}
+window.showDuplicateWarning=function(current,existing){
+  current=current||{carrier:'云途物流',method:'云途美国专线特惠（普货）',platform:'Amazon',country:'美国、加拿大',group:'北美一组',bubble:'否',mode:'最大订单数',limit:'180'};
+  existing=existing||{...current,limit:'200',status:'已启用'};
+  ruleWarning('重复配置提醒','<div style="display:flex;gap:10px;align-items:flex-start;background:#fff4e5;border:1px solid #ffd59a;padding:12px 14px;color:#7a4b00;margin-bottom:16px"><b style="font-size:18px">!</b><div><strong>存在相同限制范围及限制方式，请编辑原配置！</strong><div style="margin-top:4px">同一限制范围及限制方式只允许存在一条配置。</div></div></div><table style="width:100%;min-width:0;table-layout:fixed;border-collapse:collapse"><thead><tr><th>已有配置</th><th>本次配置</th></tr></thead><tbody><tr><td><div class="rule-compare" style="font-size:12px;line-height:1.8">'+ruleSummary(existing)+'</div></td><td><div class="rule-compare" style="font-size:12px;line-height:1.8">'+ruleSummary(current,false)+'</div></td></tr></tbody></table>','<button class="cancel" onclick="closeRuleWarning()">取消</button><button class="confirm" onclick="closeRuleWarning()">确认</button>');
+}
+window.showOverlapWarning=function(current,existing,confirmAction){
+  current=current||{carrier:'云途物流',method:'不限',platform:'Amazon',country:'美国',group:'北美一组',bubble:'否',mode:'最大订单数'};
+  existing=existing||configs[0];
+  let names={carrier:'货代',method:'邮寄方式',platform:'平台',country:'收件国',group:'销售组',bubble:'是否泡货'},fields=overlapFields(current,existing).map(k=>names[k]).join('、');
+  window.confirmOverlapRule=typeof confirmAction==='function'?confirmAction:function(){closeRuleWarning()};
+  ruleWarning('配置范围重叠提醒','<div style="background:#edf6ff;border:1px solid #b9dcff;padding:12px 14px;color:#245b8f;margin-bottom:16px"><strong>本次配置与已有配置存在范围重叠</strong><div style="margin-top:4px">订单同时命中时，系统将执行限定维度更多、范围更具体的配置。</div></div><table style="width:100%;min-width:0;table-layout:fixed;border-collapse:collapse"><thead><tr><th style="width:110px">对比项</th><th>已有配置</th><th>本次配置</th></tr></thead><tbody><tr><td>限制条件</td><td><div class="rule-compare" style="font-size:12px;line-height:1.8">'+ruleSummary(existing)+'</div></td><td><div class="rule-compare" style="font-size:12px;line-height:1.8">'+ruleSummary(current,false)+'</div></td></tr><tr><td>重叠维度</td><td colspan="2" style="color:#d46b08;font-weight:600">'+fields+'</td></tr></tbody></table>','<button class="cancel" onclick="closeRuleWarning()">取消</button><button class="confirm" onclick="confirmOverlapRule()">确认</button>');
+}
+submitForm=function(){
+  let current=formRuleData(),candidate=configs.filter(x=>x!==editing&&x.status!=='已停用');
+  let duplicate=candidate.find(x=>sameRule(current,x));
+  if(duplicate)return showDuplicateWarning(current,duplicate);
+  let overlap=candidate.find(x=>rulesOverlap(current,x));
+  if(overlap)return showOverlapWarning(current,overlap,()=>{closeRuleWarning();submitFormRuleCheckBase()});
+  return submitFormRuleCheckBase();
+}
+
+const renderConfigAddLabels=renderConfig;
+renderConfig=function(){
+  renderConfigAddLabels();
+  let headers=[...document.querySelectorAll('#table thead th')];
+  headers.forEach(x=>{if(x.textContent==='创建人')x.textContent='添加人';if(x.textContent==='创建时间')x.textContent='添加时间'});
+}
+if(tab==='config')renderConfig();
+setTimeout(()=>{
+  let demo=new URLSearchParams(location.search).get('demo');
+  if(demo==='duplicate'){openForm();showDuplicateWarning()}
+  if(demo==='overlap'){openForm();showOverlapWarning()}
+},0);
+
+function renameApprovalTypeCopy(root){
+  let walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),node;
+  while(node=walker.nextNode()){
+    node.nodeValue=node.nodeValue
+      .replaceAll('审批类型','变更类型')
+      .replaceAll('审批单号','审批编号')
+      .replaceAll('审核驳回时必填','审批不通过时必填')
+      .replaceAll('驳回时必须填写原因','审批不通过时必须填写原因');
+  }
+}
+const paintReviewBodyChangeTypeBase=paintReviewBody;
+paintReviewBody=function(){
+  paintReviewBodyChangeTypeBase();
+  renameApprovalTypeCopy(document.getElementById('modal'));
+}
+const detailChangeTypeBase=detail;
+detail=function(no){
+  detailChangeTypeBase(no);
+  renameApprovalTypeCopy(document.getElementById('modal'));
+}
+
+// Editing creates a pending replacement record while the source record remains active.
+if(!configs.some(x=>x.id==='C007')){
+  configs.push({id:'C007',carrier:'递四方',method:'递四方联邮通美国专线',platform:'Amazon',country:'美国',group:'不限',bubble:'否',mode:'最大订单数',limit:'220',status:'已启用',creator:'李琳',created:'2026-08-08 15:20',updater:'李琳',updated:'2026-08-08 15:20'});
+}
+let initialEditApproval=approvals.find(x=>x.no==='SPA-001');
+let initialEditCandidate=configs.find(x=>x.id==='C002');
+if(initialEditApproval&&initialEditCandidate){
+  initialEditApproval.configId=initialEditCandidate.id;
+  initialEditApproval.sourceConfigId='C007';
+  initialEditCandidate.sourceConfigId='C007';
+}
+findPendingApproval=function(configId){
+  return approvals.find(x=>x.status==='待审核'&&(x.configId===configId||x.sourceConfigId===configId));
+}
+
+function versionFormData(){
+  return {carrier:carrier.value||'不限',method:method.value||'不限',platform:multiValue('platform'),country:multiValue('country'),group:multiValue('group'),bubble:bubble.value||'不限',mode:mode==='count'?'最大订单数':'首选订单占比',limit:limit.value.trim()+(mode==='ratio'?'%':'')};
+}
+function saveVersionForm(){
+  let data=versionFormData(),raw=limit.value.trim(),now=formatNow();
+  if(Object.values(data).slice(0,6).every(x=>x==='不限'))return toast('请至少选择一项限制维度');
+  if(!raw)return toast('请填写限制值');
+  if(mode==='ratio'&&Number(raw)>100)return toast('首选订单占比不能超过100%');
+  if(pendingApprovalEditing){
+    Object.assign(pendingApprovalEditing,data);
+    Object.assign(editing,data,{updater:'管理员',updated:now});
+    closeModal();pendingApprovalEditing=null;selected=[];setTab('config');return;
+  }
+  let source=editing,config={id:nextConfigId(),...data,status:'待审批',creator:'管理员',created:now,updater:'管理员',updated:now};
+  if(source)config.sourceConfigId=source.id;
+  configs.unshift(config);
+  approvals.unshift({no:'SPA-'+String(Math.max(0,...approvals.map(x=>Number((x.no||'').replace(/\D/g,''))||0))+1).padStart(3,'0'),configId:config.id,sourceConfigId:source?.id||'',type:source?'编辑':'新增',...data,creator:'管理员',created:now,reviewer:'-',reviewed:'-',note:'-',status:'待审核',before:source?Object.fromEntries(approvalFields.map(k=>[k,source[k]])):null,beforeStatus:source?.status||''});
+  closeModal();selected=[];setTab('config');
+}
+submitForm=function(){
+  let current=formRuleData(),candidate=configs.filter(x=>x!==editing&&x.id!==editing?.sourceConfigId&&x.status!=='已停用');
+  let duplicate=candidate.find(x=>sameRule(current,x));
+  if(duplicate)return showDuplicateWarning(current,duplicate);
+  let overlap=candidate.find(x=>rulesOverlap(current,x));
+  if(overlap)return showOverlapWarning(current,overlap,()=>{closeRuleWarning();saveVersionForm()});
+  return saveVersionForm();
+}
+
+applyApprovalResult=function(a,pass){
+  let candidate=configForApproval(a),source=configs.find(x=>x.id===a.sourceConfigId),now=formatNow();
+  if(a.type==='编辑'){
+    if(pass){if(source){source.status='已停用';source.updater='管理员';source.updated=now}if(candidate){candidate.status='已启用';candidate.updater='管理员';candidate.updated=now}}
+    else if(candidate){candidate.status='已驳回';candidate.updater='管理员';candidate.updated=now}
+    return;
+  }
+  if(!candidate)return;
+  if(a.type==='新增')candidate.status=pass?'已启用':'已驳回';
+  if(a.type==='停用')candidate.status=pass?'已停用':(a.beforeStatus||'已启用');
+  if(a.type==='启用')candidate.status=pass?'已启用':(a.beforeStatus||'已停用');
+  candidate.updater='管理员';candidate.updated=now;
+}
+confirmDeleteApproval=function(){
+  let rows=selectedApprovals();
+  rows.forEach(a=>{
+    let candidate=configForApproval(a);
+    if(candidate&&(a.type==='新增'||a.type==='编辑'))configs=configs.filter(x=>x.id!==candidate.id);
+    a.status='已删除';a.note=a.note==='-'?'申请人删除':a.note.replace(/[；;。]+$/,'')+'；申请人删除';
+  });
+  closeModal();selected=[];renderApproval();
+}
+
+stats=[
+  {date:'2026-08-10',carrier:'云途物流',method:'云途美国专线特惠（普货）',platform:'Amazon',country:'美国',group:'北美一组',bubble:'否',mode:'最大订单数',cap:200,used:200,preferred:176},
+  {date:'2026-08-10',carrier:'云途物流',method:'云途加拿大专线挂号',platform:'Shopify',country:'加拿大',group:'北美二组',bubble:'否',mode:'最大订单数',cap:120,used:102,preferred:90},
+  {date:'2026-08-10',carrier:'燕文物流',method:'燕文专线追踪小包',platform:'eBay',country:'英国',group:'北美三组',bubble:'是',mode:'首选订单占比',cap:25,used:84,preferred:21,percent:true,full:false}
+];
+function statIsFull(x){return x.percent?!!x.full:x.used>=x.cap}
+statsRows=function(){return stats.filter(x=>(!statsFilter.carrier||x.carrier===statsFilter.carrier)&&matchesMany(x.method,statsFilter.method)&&matchesMany(x.platform,statsFilter.platform)&&matchesMany(x.country,statsFilter.country)&&matchesMany(x.group,statsFilter.group)&&(!statsFilter.full||statIsFull(x)))};
+statLine=function(x,i,h=false){
+  let ratio=x.percent?null:Math.round(x.used/x.cap*100),full=statIsFull(x),remain=x.percent?'-':Math.max(0,x.cap-x.used),limit=x.cap+(x.percent?'%':'');
+  return '<tr class="'+(h?'history':'')+'"><td>'+(h?'':'<span class="link" onclick="expanded['+i+']=!expanded['+i+'];paintStats()">'+(expanded[i]?'▾':'▸')+'</span> ')+x.date+'</td><td>'+x.carrier+'</td><td>'+x.method+'</td><td>'+x.platform+'</td><td>'+x.country+'</td><td>'+x.group+'</td><td>'+x.bubble+'</td><td>'+x.mode+'</td><td>'+limit+'</td><td>'+x.used+'</td><td>'+x.preferred+'</td><td>'+remain+'</td><td style="'+(ratio!==null&&ratio>=100?'color:#d14343;font-weight:700':'')+'">'+(ratio===null?'-':ratio+'%')+'</td><td>'+(full?'是':'否')+'</td><td><span class="link" onclick="orders('+i+')">订单明细</span></td></tr>';
+}
+paintStats=function(){
+  let range=document.getElementById('range')?.value||'7',rows=statsRows();
+  document.querySelector('#toolbar .hint').textContent='共 '+rows.length+' 条最新统计；点击日期箭头展开历史明细';
+  document.getElementById('table').innerHTML='<table><thead><tr><th>统计日期</th><th>货代</th><th>邮寄方式名称</th><th>平台</th><th>收件国</th><th>销售组</th><th>是否泡货</th><th>限制方式</th><th>限制单量 / 占比</th><th>占用订单数</th><th>首选订单数</th><th>剩余额度</th><th>占比</th><th>是否触顶</th><th>操作</th></tr></thead><tbody>'+rows.map(x=>{let i=stats.indexOf(x),history=range==='1'?'':[1,2].map(d=>statLine({...x,date:'2026-08-0'+(10-d),used:Math.max(0,x.used-d*7),preferred:Math.max(0,x.preferred-d*5)},i,true)).join('');return statLine(x,i)+(expanded[i]?history:'')}).join('')+'</tbody></table>';
+}
+if(tab==='config')renderConfig();
+if(tab==='stats')renderStats();
+
+const paintApprovalExistingLabelsBase=paintApprovalTable;
+paintApprovalTable=function(){
+  paintApprovalExistingLabelsBase();
+  renameApprovalTypeCopy(document.getElementById('table'));
+}
+const renderConfigExistingLabelsBase=renderConfig;
+renderConfig=function(){
+  renderConfigExistingLabelsBase();
+  [...document.querySelectorAll('#table thead th')].forEach(x=>{
+    if(x.textContent==='创建人')x.textContent='添加人';
+    if(x.textContent==='创建时间')x.textContent='添加时间';
+    if(x.textContent==='更新人')x.textContent='修改人';
+    if(x.textContent==='更新时间')x.textContent='修改时间';
+  });
+}
+if(tab==='config')renderConfig();
+if(tab==='approval')renderApproval();
+
+function renameOrderTime(root){
+  root.querySelectorAll('label,th').forEach(x=>{if(x.textContent==='统计日期')x.textContent='订单生成时间'});
+}
+const paintStatsOrderTimeBase=paintStats;
+paintStats=function(){paintStatsOrderTimeBase();renameOrderTime(document.getElementById('table'))}
+const renderStatsOrderTimeBase=renderStats;
+renderStats=function(){renderStatsOrderTimeBase();renameOrderTime(document.getElementById('filters'));renameOrderTime(document.getElementById('table'))}
+
+orders=function(i){
+  let s=stats[i],all=[
+    ['SO202608100001',s.platform,s.carrier,s.method,s.country,s.group,s.bubble],
+    ['SO202608100045',s.platform,s.carrier,s.method,s.country,s.group,s.bubble],
+    ['SO202608100126',s.platform,s.carrier,s.method,s.country,s.group,s.bubble]
+  ];
+  openModal('占用订单明细','<div style="display:flex;align-items:end;gap:9px;margin-bottom:12px"><div class="field" style="width:320px"><label>订单编号</label><input id="ono" class="control" placeholder="请输入订单编号"></div><button class="btn blue" onclick="filterOrders()">搜索</button><button class="btn clear" onclick="clearOrderFilters()">清空</button><button class="btn orange" onclick="exportOrders()">导出</button></div><div class="table-wrap"><table><thead><tr><th>订单编号</th><th>平台</th><th>货代</th><th>邮寄方式名称</th><th>收件国</th><th>销售组</th><th>是否泡货</th></tr></thead><tbody id="orders">'+orderRows(all)+'</tbody></table></div>','<button class="confirm" onclick="closeModal()">关闭</button>',true);
+  modalBody.dataset.orders=JSON.stringify(all);
+}
+function orderRows(rows){return rows.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td><td>'+x[2]+'</td><td>'+x[3]+'</td><td>'+x[4]+'</td><td>'+x[5]+'</td><td>'+x[6]+'</td></tr>').join('')}
+filterOrders=function(){
+  let all=JSON.parse(modalBody.dataset.orders),n=document.getElementById('ono').value.trim();
+  document.getElementById('orders').innerHTML=orderRows(all.filter(x=>!n||x[0].includes(n)));
+}
+function clearOrderFilters(){document.getElementById('ono').value='';filterOrders()}
+function exportOrders(){
+  let all=JSON.parse(modalBody.dataset.orders),n=document.getElementById('ono').value.trim(),rows=all.filter(x=>!n||x[0].includes(n));
+  let csv='订单编号,平台,货代,邮寄方式名称,收件国,销售组,是否泡货\n'+rows.map(x=>x.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\n');
+  let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='占用订单明细.csv';a.click();URL.revokeObjectURL(a.href);toast('已导出 '+rows.length+' 条订单明细');
+}
+setTimeout(()=>{
+  let demo=new URLSearchParams(location.search).get('demo');
+  if(demo==='form')openForm();
+  if(demo==='approval'){setTab('approval')}
+  if(demo==='review'){setTab('approval');selected=approvals.filter(x=>x.status==='待审核').slice(0,3).map(x=>x.no);reviewSelected()}
+  if(demo==='stats'){setTab('stats')}
+  if(demo==='orders'){setTab('stats');orders(0)}
+  if(demo==='status'){cfgFilter.states=['已启用','待审批','已驳回','已停用'];setTab('config');selected=['C006'];requestStatus('启用')}
+},20);
+if(tab==='stats')renderStats();
 </script></body></html>
