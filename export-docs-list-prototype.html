@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>出口资料列表 - 本次需求交互原型</title>
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:"Microsoft YaHei",Arial,sans-serif;color:#4b5863;background:#f4f7f9;font-size:13px}button,input{font:inherit}
+    .topbar{height:43px;background:#238dcc;color:#fff;display:flex;align-items:center;padding:0 16px;gap:22px;box-shadow:0 1px 3px #6b8291}
+    .logo{font-size:31px;font-weight:800;font-style:italic;letter-spacing:-3px}.sys{font-size:16px;display:flex;align-items:center;gap:8px}.circle-arrow{width:21px;height:21px;border:2px solid #fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+    .topnav{display:flex;height:100%;align-items:center;gap:29px}.topnav span{white-space:nowrap;font-size:14px}.top-icons{margin-left:auto;display:flex;gap:18px;font-size:19px;align-items:center}
+    .tabs{height:36px;background:#fff;border-bottom:1px solid #cad5dc;display:flex;align-items:center;gap:8px;padding:4px 9px;overflow:hidden}
+    .tab{border:1px solid #cbd5dc;border-radius:16px;padding:4px 12px;background:#fff;color:#55636d;white-space:nowrap}.tab.active{border-color:#56a9d7;color:#1888c3;background:#eff9ff}
+    .page{min-width:1480px;padding:0 7px}
+    .crumb{height:36px;background:#fff;border-bottom:1px solid #dce4e8;display:flex;align-items:center;padding:0 10px;font-size:14px;color:#4c5962}.crumb b{color:#0c849c}.right-tools{margin-left:auto;color:#087f95;display:flex;gap:22px}
+    .searchbox{background:#fff;border-bottom:1px solid #dce5e9;padding:7px 7px 5px}.line{display:flex;align-items:center;gap:6px;margin-bottom:6px;position:relative}.stat{height:30px;border:1px solid #c6d6df;border-radius:3px;display:flex;align-items:center;padding:0 10px;gap:16px}.stat b{color:#0487a4}.radio-dot{width:13px;height:13px;border:3px solid #0795a8;border-radius:50%}.control{height:30px;border:1px solid #cbd7de;background:#fff;border-radius:3px;display:flex;align-items:center;padding:0 12px;min-width:155px;color:#697780}.control.wide{min-width:270px}.control.small{min-width:118px}.control .arrow{margin-left:auto;color:#8ba0aa}.search-actions{margin-left:auto;display:flex;gap:10px}.btn{border:1px solid #0d96a7;background:#008d9e;color:#fff;border-radius:4px;padding:6px 18px;cursor:pointer}.btn.secondary{background:#edf9fb;color:#00889a}.btn.orange{background:#f28900;border-color:#f28900}.btn.outline{background:#fff;color:#078b9e}.btn.sm{padding:5px 14px}
+    .toolbar{height:43px;background:#fff;border-bottom:1px solid #dce5e9;padding:7px 2px;display:flex;gap:10px;position:relative}.dropbtn{background:#f48a00;color:#fff;border:0;border-radius:4px;padding:7px 15px;font-weight:600;cursor:pointer;min-width:112px}.dropbtn .caret{margin-left:10px}
+    .menu{position:absolute;z-index:50;background:#fff;border:1px solid #d3dde3;border-radius:3px;box-shadow:0 4px 12px rgba(0,0,0,.18);display:none;min-width:180px;padding:6px 0}.menu.open{display:block}.menu div{padding:10px 18px;cursor:pointer;white-space:nowrap}.menu div:hover{background:#eff8fb;color:#00899d}.upload-menu{top:39px;left:1px}.download-menu{top:39px;left:239px}
+    .filefilter-wrap{position:relative}.file-menu{top:34px;left:0;width:280px}.file-menu div{font-size:14px;padding:10px 20px}.filter-active{border-color:#008fa5;box-shadow:0 0 0 1px #008fa5 inset}
+    .tabletop{height:40px;background:#fff;display:flex;align-items:center;justify-content:flex-end;padding:0 12px;color:#697780;gap:15px}.pager b{color:#0088a0;margin:0 8px}.pagesize{border:1px solid #d3dce2;border-radius:3px;padding:6px 18px}
+    .gridwrap{background:#fff;overflow:auto;height:calc(100vh - 234px);border-top:1px solid #d5e0e5}.grid{border-collapse:collapse;min-width:2120px;width:100%;table-layout:fixed}.grid th,.grid td{border:1px solid #c6d5de;padding:8px 7px;vertical-align:middle}.grid th{height:34px;background:#e8eef2;font-weight:600;text-align:left;color:#46545e}.grid th.buy{background:#fff3bf}.grid th.logi{background:#a8d58e}.grid th.red{background:#c91f3b;color:#fff}.grid td{height:78px;background:#d9f3f8}.grid td.center{text-align:center}.grid a{color:#078ca5;text-decoration:none;cursor:pointer}.grid a:hover{text-decoration:underline}.check{width:15px;height:15px;background:#0693a7;color:#fff;border-radius:2px;display:inline-flex;align-items:center;justify-content:center}.meta{line-height:21px}.upload-count{color:#078ca5;cursor:pointer}.newtag{display:inline-block;background:#ff6d4a;color:#fff;border-radius:10px;font-size:10px;padding:1px 5px;margin-left:3px;vertical-align:top}
+    .overlay{position:fixed;z-index:100;inset:0;background:rgba(0,0,0,.56);display:none;align-items:center;justify-content:center}.overlay.show{display:flex}.modal{background:#fff;border-radius:5px;box-shadow:0 8px 30px rgba(0,0,0,.26);width:900px;max-height:76vh;display:flex;flex-direction:column}.modal.small{width:620px}.modal-head{height:56px;padding:16px 20px;border-bottom:1px solid #e0e6ea;font-size:20px;color:#303c44;display:flex;align-items:center}.modal-head.yellow{border-left:5px solid #f1c40f}.x{margin-left:auto;color:#8b969d;font-size:22px;cursor:pointer}.modal-body{padding:16px 20px;overflow:auto;min-height:155px}.modal-foot{border-top:1px solid #e1e7ea;padding:14px 20px;display:flex;justify-content:flex-end;gap:12px}.note{line-height:24px;color:#5c6971;margin-bottom:10px}.type-row{display:flex;align-items:center;gap:22px;margin:5px 0 12px}.type-row b{font-weight:600;color:#3a474f}.type-row label{cursor:pointer}.choose{display:inline-block;background:#008d9e;color:#fff;border-radius:4px;padding:7px 16px;cursor:pointer;font-weight:600}.choose input{display:none}.picked{margin-top:10px;min-height:34px;color:#6f7b82}.file-table{border-collapse:collapse;width:100%;table-layout:fixed}.file-table th,.file-table td{border:1px solid #c8d5de;padding:9px 10px;text-align:left}.file-table th{background:#e6edf2}.file-table a{color:#078ca5;cursor:pointer}.delete{color:#08a0a3;cursor:pointer}.empty{text-align:center!important;color:#8b979e;padding:30px!important}.toast{position:fixed;z-index:200;top:62px;left:50%;transform:translateX(-50%);background:#2f3e46;color:#fff;border-radius:4px;padding:10px 20px;display:none}.toast.show{display:block}.hint{font-size:12px;color:#86939a;margin-top:7px}.current-type{color:#0090a2;font-weight:700}.fake-link{color:#078ca5;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">imc</div><div class="sys">小艾系统 <span class="circle-arrow">➜</span></div>
+    <div class="topnav"><span>▤　快捷方式</span><span>系统管理</span><span>产品系统</span><span>采购系统</span><span>仓储系统</span><span>订单系统</span><span>销售系统</span><span>数据看板</span></div>
+    <div class="top-icons"><span>⌕</span><span>▥</span><span>♧</span><span>◎</span><span>洛瑶</span></div>
+  </div>
+  <div class="tabs">
+    <div class="tab">☆ 订单列表</div><div class="tab">☆ 仓库功能</div><div class="tab">☆ 小包物流发货异常列表</div><div class="tab">☆ 订单物流跟踪列表</div><div class="tab active">☆ 出口资料　×</div><div class="tab">☆ 海柜监控列表</div><div class="tab">☆ 拼柜计划单</div><div class="tab">☆ 运单列表</div><div class="tab">☆ 调拨单</div><div class="tab">☆ 普通产品</div>
+  </div>
+  <div class="page">
+    <div class="crumb">出库管理　&gt;　大件发货　&gt;　<b>出口资料</b>　↻　▣ <div class="right-tools"><span>▣ 保存搜索条件</span><span>▤ 读取搜索条件</span><span>⌗</span><span>ⓘ</span><span>◉ 筛选</span><span>⚙ 按钮</span></div></div>
+    <div class="searchbox">
+      <div class="line">
+        <div class="stat"><span class="radio-dot"></span><b>全部(1)</b><span>○ 含税(0)</span><span>○ 不含税(1)</span><span>○ 混合(0)</span></div>
+        <div class="control">处理中心 <span class="arrow">⌄</span></div><div class="control">仓库 <span class="arrow">⌄</span></div><div class="control small">柜号</div><div class="control small">提单号</div><div class="control small">产品编号</div>
+        <div class="search-actions"><button class="btn">搜索</button><button class="btn secondary">重置</button></div>
+      </div>
+      <div class="line">
+        <div class="control small">是否存在　◉ 否</div>
+        <div class="filefilter-wrap"><div id="fileTypeControl" class="control filefilter" onclick="toggleMenu('fileMenu',event)"><span id="fileTypeText">文件类型</span><span class="arrow">⌄</span></div>
+          <div id="fileMenu" class="menu file-menu">
+            <div onclick="selectFileType('报关单')">报关单</div><div onclick="selectFileType('委托')">委托</div><div onclick="selectFileType('放行')">放行</div><div onclick="selectFileType('申报')">申报</div><div onclick="selectFileType('提单')">提单</div><div onclick="selectFileType('SO')">SO</div><div onclick="selectFileType('税金单')">税金单</div><div onclick="selectFileType('其他')"><b>其他</b><span class="newtag">新增</span></div>
+          </div>
+        </div>
+        <div class="control small">创建时间 <span class="arrow">⌄</span></div><div class="control wide">▣　2026-05-26　-　2026-08-24</div><div class="control small">参考单号 <span class="arrow">⌄</span></div><div class="control wide">PG2606269344</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="dropbtn" onclick="toggleMenu('uploadMenu',event)">上传附件资料 <span class="caret">⌄</span></button>
+      <div id="uploadMenu" class="menu upload-menu"><div onclick="openBatchUpload()">上传-物流资料</div><div>上传-税金单</div></div>
+      <button class="dropbtn">导出 <span class="caret">⌄</span></button>
+      <button class="dropbtn" onclick="toggleMenu('downloadMenu',event)">下载 <span class="caret">⌄</span></button>
+      <div id="downloadMenu" class="menu download-menu"><div onclick="downloadHint('下载-全部')">下载-全部</div><div onclick="downloadHint('下载-采购全部（包含装柜清单）')"><b>下载-采购全部</b>（包含装柜清单）</div><div onclick="downloadHint('下载-物流全部（包含其他）')">下载-物流全部（包含其他）</div></div>
+    </div>
+    <div class="tabletop"><span>已选 1 条　共 1 条</span><span class="pagesize">20条/页　⌄</span><span class="pager">‹　<b>1</b>　›　前往　<input style="width:48px;height:28px;border:1px solid #cad6dd;border-radius:3px;text-align:center" value="1">　页　隐藏0列　⚙</span></div>
+    <div class="gridwrap">
+      <table class="grid">
+        <colgroup><col style="width:42px"><col style="width:160px"><col style="width:72px"><col style="width:120px"><col style="width:98px"><col style="width:98px"><col style="width:98px"><col style="width:108px"><col style="width:92px"><col style="width:115px"><col style="width:102px"><col style="width:92px"><col style="width:88px"><col style="width:82px"><col style="width:82px"><col style="width:90px"><col style="width:120px"><col style="width:120px"><col style="width:90px"></colgroup>
+        <thead><tr><th><span class="check">✓</span></th><th>目的地</th><th>是否含税</th><th class="buy">供应商信息</th><th class="buy">商检单</th><th class="buy">商检资料</th><th class="buy">报关资料</th><th class="buy">装柜清单 <span class="newtag">新增</span></th><th class="logi">报关单</th><th class="logi">报关委托协议</th><th class="logi">放行通知书</th><th class="logi">申报单</th><th class="logi">提单</th><th class="logi">其他 <span class="newtag">新增</span></th><th class="red">SO</th><th class="red">税金单</th><th>创建信息</th><th>更新信息</th><th>操作</th></tr></thead>
+        <tbody><tr>
+          <td class="center"><span class="check">✓</span></td><td class="meta">西邮处理中心<br>西邮美中4号仓(WPCHI4-6C)</td><td class="center">否</td><td class="meta">赵金阳|深圳市爱德车<br>赵金阳|漳州三丰金属</td><td></td><td></td><td></td>
+          <td class="center"><span id="count-pack" class="upload-count" onclick="openAttachment('装柜清单')">已上传(2)</span></td>
+          <td></td><td class="center"><span id="count-agreement" class="upload-count" onclick="openAttachment('报关委托协议')">已上传(2)</span></td><td></td><td class="center"><span id="count-declare" class="upload-count" onclick="openAttachment('申报单')">已上传(2)</span></td><td class="center"><span id="count-bl" class="upload-count" onclick="openAttachment('提单')">已上传(1)</span></td><td class="center"><span id="count-other" class="upload-count" onclick="openAttachment('其他')">已上传(1)</span></td><td></td><td></td>
+          <td class="meta">袁松<br>2026-06-29 11:02:16</td><td class="meta">袁松<br>2026-06-29 11:02:16</td><td><a>查看</a>　<a>日志</a></td>
+        </tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="batchOverlay" class="overlay"><div class="modal small">
+    <div class="modal-head">上传物流资料 <span class="x" onclick="closeModal('batchOverlay')">×</span></div>
+    <div class="modal-body">
+      <div class="type-row"><b>文件类型：</b><label><input type="radio" name="batchType" value="folder" checked onchange="updateBatchType()"> 文件夹</label><label><input type="radio" name="batchType" value="file" onchange="updateBatchType()"> 文件</label><label><input type="radio" name="batchType" value="zip" onchange="updateBatchType()"> ZIP压缩包</label></div>
+      <div class="note">注：请选择文件类型，单次仅支持选择一种类型，可多选同类型的文件、文件夹或ZIP压缩包。系统根据所选对象名称识别参考单号，每个名称仅允许包含一个参考单号（如PG2605269001）。资料类型优先按现有文件名规则识别，未识别时由AI识别，仍无法归类的上传至“其他”。</div>
+      <label class="choose"><span id="batchChooseText">选择文件夹</span><input id="batchFiles" type="file" multiple onchange="showPicked(this,'batchPicked')"></label>
+      <div id="batchPicked" class="picked">请选择需要上传的文件夹</div>
+    </div><div class="modal-foot"><button class="btn outline" onclick="closeModal('batchOverlay')">关闭</button><button class="btn" onclick="fakeBatchUpload()">上传</button></div>
+  </div></div>
+
+  <div id="detailOverlay" class="overlay"><div class="modal">
+    <div id="detailTitle" class="modal-head"><span id="detailTitleText">附件详情</span><span class="x" onclick="closeModal('detailOverlay')">×</span></div>
+    <div class="modal-body"><table class="file-table"><thead><tr><th style="width:50%">文件</th><th style="width:20%">操作时间</th><th style="width:17%">操作人</th><th style="width:13%">操作</th></tr></thead><tbody id="detailRows"></tbody></table></div>
+    <div class="modal-foot"><button class="btn" onclick="openDirectUpload()">上传</button><button class="btn outline" onclick="closeModal('detailOverlay')">关闭</button></div>
+  </div></div>
+
+  <div id="directOverlay" class="overlay"><div class="modal small">
+    <div class="modal-head">上传<span class="x" onclick="closeModal('directOverlay')">×</span></div>
+    <div class="modal-body"><div class="note">当前资料类型：<span id="directType" class="current-type"></span></div><div class="note">注：可选择多个文件，文件将直接上传至当前资料类型；不支持文件夹或ZIP压缩包，不识别参考单号，不根据文件名判断资料类型，不调用AI识别。</div>
+      <label class="choose">选取文件<input id="directFiles" type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png" onchange="showPicked(this,'directPicked')"></label><div id="directPicked" class="picked">请选择需要上传的文件</div></div>
+    <div class="modal-foot"><button class="btn outline" onclick="closeModal('directOverlay')">关闭</button><button class="btn" onclick="commitDirectUpload()">上传</button></div>
+  </div></div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const attachments={
+      '装柜清单':[
+        {name:'FFAU6125902-赵金阳-2026-08-24.png',time:'2026-08-24 09:46:14',user:'赵金阳'},
+        {name:'PG2606269344-装柜清单.xlsx',time:'2026-08-24 10:18:36',user:'黄思敏'}],
+      '报关委托协议':[
+        {name:'PG2606269344-COSU9508250510A-关单.pdf',time:'2026-08-24 11:30:36',user:'黄思敏'},
+        {name:'PG2606269344-COSU9508250510Z-关单.pdf',time:'2026-08-24 11:30:36',user:'黄思敏'}],
+      '申报单':[{name:'申报单-01.pdf',time:'2026-08-24 11:30:36',user:'黄思敏'},{name:'申报单-02.xlsx',time:'2026-08-24 11:31:02',user:'黄思敏'}],
+      '提单':[{name:'COSU9508250510A.pdf',time:'2026-08-24 11:28:20',user:'黄思敏'}],
+      '其他':[{name:'PG2606269344-无法归类资料.pdf',time:'2026-08-24 11:35:16',user:'AI归类'}]
+    };
+    let currentType='';
+    function closeMenus(){document.querySelectorAll('.menu').forEach(m=>m.classList.remove('open'))}
+    function toggleMenu(id,e){const el=document.getElementById(id),open=el.classList.contains('open');closeMenus();if(!open)el.classList.add('open');e.stopPropagation()}
+    document.addEventListener('click',closeMenus);
+    function selectFileType(v){document.getElementById('fileTypeText').textContent=v;document.getElementById('fileTypeControl').classList.add('filter-active');closeMenus();toast('已选择文件类型：'+v)}
+    function downloadHint(v){closeMenus();toast(v+'：原型已包含本次新增附件范围')}
+    function openBatchUpload(){closeMenus();document.getElementById('batchOverlay').classList.add('show');updateBatchType()}
+    function closeModal(id){document.getElementById(id).classList.remove('show')}
+    function updateBatchType(){const v=document.querySelector('input[name="batchType"]:checked').value,input=document.getElementById('batchFiles'),txt=document.getElementById('batchChooseText'),picked=document.getElementById('batchPicked');input.value='';input.removeAttribute('webkitdirectory');input.removeAttribute('accept');if(v==='folder'){input.setAttribute('webkitdirectory','');txt.textContent='选择文件夹';picked.textContent='请选择需要上传的文件夹'}else if(v==='file'){input.setAttribute('accept','.pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png');txt.textContent='选择文件';picked.textContent='请选择需要上传的文件'}else{input.setAttribute('accept','.zip');txt.textContent='选择ZIP压缩包';picked.textContent='请选择需要上传的ZIP压缩包'}}
+    function showPicked(input,id){const names=[...input.files].map(f=>f.name);document.getElementById(id).textContent=names.length?'已选择 '+names.length+' 项：'+names.slice(0,4).join('、')+(names.length>4?'…':''):'未选择内容'}
+    function fakeBatchUpload(){const fs=document.getElementById('batchFiles').files;if(!fs.length){toast('请选择需要上传的内容');return}closeModal('batchOverlay');toast('原型演示：批量上传完成，未命名类型将由AI识别')}
+    function openAttachment(type){currentType=type;document.getElementById('detailTitleText').textContent=type;document.getElementById('detailTitle').classList.toggle('yellow',type==='装柜清单');renderRows();document.getElementById('detailOverlay').classList.add('show')}
+    function renderRows(){const body=document.getElementById('detailRows'),rows=attachments[currentType]||[];body.innerHTML=rows.length?rows.map((r,i)=>`<tr><td><a onclick="openFile('${r.name.replace(/'/g,"\\'")}')">${r.name}</a></td><td>${r.time}</td><td>${r.user}</td><td><span class="delete" onclick="deleteFile(${i})">删除</span></td></tr>`).join(''):'<tr><td colspan="4" class="empty">暂无已上传文件</td></tr>';updateCount(currentType)}
+    function updateCount(type){const map={'装柜清单':'pack','报关委托协议':'agreement','申报单':'declare','提单':'bl','其他':'other'},el=document.getElementById('count-'+map[type]);if(el)el.textContent=(attachments[type]?.length||0)?'已上传('+(attachments[type]?.length||0)+')':'未上传'}
+    function openFile(name){toast('打开文件：'+name)}
+    function deleteFile(i){if(!confirm('确定删除该文件吗？'))return;attachments[currentType].splice(i,1);renderRows();toast(currentType==='装柜清单'?'删除成功，装柜清单会同步维护仓储侧附件集合':'删除成功')}
+    function openDirectUpload(){document.getElementById('directType').textContent=currentType;document.getElementById('directFiles').value='';document.getElementById('directPicked').textContent='请选择需要上传的文件';document.getElementById('directOverlay').classList.add('show')}
+    function commitDirectUpload(){const fs=[...document.getElementById('directFiles').files];if(!fs.length){toast('请选择需要上传的文件');return}const now=new Date().toLocaleString('zh-CN',{hour12:false}).replaceAll('/','-');attachments[currentType]??=[];fs.forEach(f=>attachments[currentType].push({name:f.name,time:now,user:'黄思敏'}));closeModal('directOverlay');renderRows();toast('已直接上传至“'+currentType+'”，未执行参考单号、文件名类型或AI识别')}
+    let toastTimer;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600)}
+  </script>
+</body>
+</html>
