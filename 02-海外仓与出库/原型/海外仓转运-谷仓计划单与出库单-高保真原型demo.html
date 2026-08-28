@@ -81,7 +81,13 @@
     .modal-mask.show { display: flex; }
     .modal { background: #fff; border-radius: 6px; width: min(960px, 96vw); max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,.18); }
     .modal-lg { width: min(1100px, 98vw); }
+    .modal-xl { width: min(1200px, 98vw); }
     .modal-sm { width: min(420px, 92vw); }
+    .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-chip { padding: 4px 10px; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; font-size: 11px; background: #fff; }
+    .filter-chip.active { border-color: var(--primary); color: var(--primary); background: #ecf5ff; }
+    .section-title-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .section-title-row .section-title { margin-bottom: 0; }
     .modal-header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; font-size: 15px; font-weight: 600; }
     .modal-close { border: none; background: none; font-size: 18px; cursor: pointer; color: var(--muted); }
     .modal-body { padding: 12px 16px; overflow-y: auto; flex: 1; }
@@ -182,10 +188,17 @@
               <button type="button" class="btn-primary" id="btnAuditPush">审核推送</button>
               <button type="button" class="btn-danger" id="btnCancel">取消</button>
               <button type="button" class="btn-primary" id="btnSync">同步详情</button>
+              <div class="dropdown" id="exportWhDropdown">
+                <button type="button" class="btn-plain" id="btnExportWhToggle">导出仓库信息 ▾</button>
+                <div class="dropdown-menu" id="exportWhMenu">
+                  <button type="button" data-export="box">导出装箱明细</button>
+                  <button type="button" data-export="pallet">导出打托明细</button>
+                </div>
+              </div>
             </div>
             <p class="note">
-              对齐 PRD：<b>单号 TO+日期+5位流水</b>；出库单三种组合为 <b>FBA+仓库自主装箱</b>、<b>FBA+已暂存箱发货</b>、<b>其他调拨单+仓库自主装箱</b>（其他调拨单不展示「已暂存箱发货」）；
-              切换类型/装箱二次确认并清空除调拨单号外数据。演示调拨单：<code>DB20260520001</code>、<code>DB20260518002</code>（已同步箱唛，可供 FBA+已暂存箱）。
+              对齐 Wiki 7.1：<b>参考号</b> 独立维护（默认同调拨单号，可改如 <code>DB20260520001-1</code>）；计划单重复校验按参考号；
+              出库单先选类型再填调拨单；<b>Seller Name / 电话</b> 非必填。演示调拨单：<code>DB20260520001</code>、<code>DB20260518002</code>。
             </p>
           </div>
 
@@ -199,7 +212,7 @@
                 <thead>
                   <tr>
                     <th><input type="checkbox" id="chkAll" /></th>
-                    <th>单号</th><th>调拨单号</th><th>调出仓库</th><th>调入仓库</th>
+                    <th>单号</th><th>调拨单号</th><th>参考号</th><th>调出仓库</th><th>调入仓库</th>
                     <th>单据类型</th><th>类型</th><th>装箱类型</th><th>shipmentId</th>
                     <th>推送状态</th><th>海外仓单号</th><th>海外仓状态</th>
                     <th>仓库信息</th><th>转运详情</th><th>创建人/时间</th><th>日志</th>
@@ -231,6 +244,7 @@
               <button type="button" class="btn-primary" id="plQuery">查询</button>
             </div>
           </div>
+          <div class="field"><label>参考号<span class="req">*</span></label><input type="text" id="plReferenceNo" placeholder="查询后默认与调拨单号一致，可修改" /></div>
           <div class="field"><label>类型</label><input readonly value="FBA 计划单" /></div>
           <div class="field"><label>发货仓库<span class="req">*</span></label>
             <select id="plShipWh"><option value="">请选择</option><option value="USEA">USEA-美东</option><option value="USWE">USWE-美西</option></select>
@@ -243,9 +257,20 @@
         <div class="form-grid" id="plWarehouseOps"></div>
       </div>
       <div class="section">
-        <div class="section-title">商品明细</div>
-        <div class="sub-table-wrap"><table><thead><tr><th>#</th><th>产品编码</th><th id="plColFnsku">平台编码</th><th>数量</th><th>操作</th></tr></thead><tbody id="plProductBody"></tbody></table></div>
+        <div class="section-title-row">
+          <div class="section-title">商品明细</div>
+          <span style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="btn-plain" id="plStockQuery">谷仓库存查询</button>
+            <button type="button" class="btn-plain" id="plImport">导入</button>
+            <button type="button" class="link-btn" id="plImportTpl">下载模板</button>
+          </span>
+        </div>
+        <div class="sub-table-wrap"><table><thead><tr>
+          <th>#</th><th>产品编码</th><th id="plColFnsku">平台编码</th>
+          <th id="plColInnerQty" class="panel-hidden">内件货物总数量</th><th>数量</th><th>操作</th>
+        </tr></thead><tbody id="plProductBody"></tbody></table></div>
         <button type="button" class="btn-plain" id="plAddRow" style="margin-top:8px">+ 添加行</button>
+        <input type="file" id="plImportFile" accept=".csv,.xlsx,.xls" class="panel-hidden" />
       </div>
     </div>
     <div class="modal-footer"><button type="button" data-close="modalPlan">取消</button><button type="button" class="btn-primary" id="plSave">保存</button></div>
@@ -274,7 +299,7 @@
           <div class="field"><label>城市<span class="req">*</span></label><input id="rcvCity" value="Los Angeles" /></div>
           <div class="field"><label>邮编<span class="req">*</span></label><input id="rcvZip" value="90001" /></div>
           <div class="field span2"><label>地址1<span class="req">*</span></label><input id="rcvAddr" value="1234 Warehouse Blvd" /></div>
-          <div class="field"><label>电话<span class="req">*</span></label><input id="rcvPhone" value="1234567890" /></div>
+          <div class="field"><label>电话</label><input id="rcvPhone" value="1234567890" placeholder="非必填" /></div>
         </div>
       </div>
       <div class="section">
@@ -329,18 +354,62 @@
   </div>
 </div>
 
+<!-- 谷仓库存查询 -->
+<div class="modal-mask" id="modalStock">
+  <div class="modal modal-xl">
+    <div class="modal-header"><span>谷仓库存查询</span><button type="button" class="modal-close" data-close="modalStock">×</button></div>
+    <div class="modal-body">
+      <div class="form-grid" style="margin-bottom:10px">
+        <div class="field">
+          <label>查询字段</label>
+          <div class="filter-chips" id="stockModeChips">
+            <span class="filter-chip active" data-mode="gc">谷仓产品编号</span>
+            <span class="filter-chip" data-mode="prod">产品编号</span>
+          </div>
+        </div>
+        <div class="field span2">
+          <label>编号<span class="req">*</span></label>
+          <input type="text" id="stockKeywords" placeholder="单个或多个精准值，空格隔开；支持前缀模糊如 I231266" />
+          <div class="help">PRODUCT_SKU / REFERENCE_NO 均按 LIKE 前缀匹配，可查出 I231266-1、I231266-2</div>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-top:0">
+        <button type="button" class="btn-primary" id="stockSearch">搜索</button>
+        <button type="button" class="btn-plain" id="stockReset">重置</button>
+        <button type="button" class="btn-plain" id="stockExport">导出</button>
+      </div>
+      <div class="sub-table-wrap" style="margin-top:10px">
+        <table><thead><tr>
+          <th>产品编号</th><th>谷仓产品编号</th><th>良品可售数量</th><th>不良品可售数量</th><th>仓库</th>
+        </tr></thead><tbody id="stockBody"><tr><td colspan="5" style="text-align:center;color:#909399;padding:24px">请输入编号后搜索</td></tr></tbody></table>
+      </div>
+    </div>
+    <div class="modal-footer"><button type="button" data-close="modalStock">关闭</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 (function () {
+  const GC_STOCK = [
+    { productSku: 'I231266-1', refNo: 'I231266-1', gcSku: 'GC-SKU-10001', goodQty: 520, badQty: 18, wh: 'USEA' },
+    { productSku: 'I231266-2', refNo: 'I231266-2', gcSku: 'GC-SKU-10002', goodQty: 310, badQty: 6, wh: 'USEA' },
+    { productSku: 'I231266-3', refNo: 'I231266-3', gcSku: 'GC-SKU-20001', goodQty: 180, badQty: 2, wh: 'USWE' },
+    { productSku: 'P88001', refNo: 'P88001-A', gcSku: 'GC-SKU-10001', goodQty: 90, badQty: 0, wh: 'USEA' },
+    { productSku: 'P88002', refNo: 'P88002', gcSku: 'GC-SKU-20001', goodQty: 45, badQty: 3, wh: 'USWE' }
+  ];
+  let stockQueryMode = 'gc';
+  let stockQueryResult = [];
+
   const MOCK = {
     'DB20260520001': {
       ship: 'USEA', phys: 'NJ01', outWh: '谷仓/NJ01', inWh: 'FBA/US',
       salesGroup: '北美一组', requester: '张三', status: 'ok',
       shipmentId: 'FBA123456', referenceId: 'REF-001', sellerName: 'SellerA',
       products: [
-        { sku: 'GC-SKU-10001', fnsku: 'X001ABC', qty: 120 },
-        { sku: 'GC-SKU-10002', fnsku: 'X002DEF', qty: 80 }
+        { sku: 'GC-SKU-10001', fnsku: 'X001ABC', qty: 120, innerQty: 1 },
+        { sku: 'GC-SKU-10002', fnsku: 'X002DEF', qty: 80, innerQty: 1 }
       ],
       cartonNos: ['BM202605180001-1', 'BM202605180001-2']
     },
@@ -357,6 +426,7 @@
 
   let rows = [
     mkPlan('r1', 'TO2026052000001', 'DB20260520001', '待推送', '', ''),
+    mkPlan('r1b', 'TO2026052000002', 'DB20260520001', '已推送', 'PL202605200002', '待配货', true, 'DB20260520001-1'),
     mkPlan('r2', 'TO2026051800001', 'DB20260518002', '已推送', 'PL202605180001', '待配货', true),
     mkOut('r3', 'TO2026052100001', 'DB20260518002', 'FBA订单', '仓库自主装箱', '待推送', '', '', {
       shipmentId: 'FBA789012'
@@ -377,10 +447,12 @@
   const $ = s => document.querySelector(s);
   const $$ = s => document.querySelectorAll(s);
 
-  function mkPlan(id, orderNo, transferNo, push, owNo, owSt, withBox) {
+  function mkPlan(id, orderNo, transferNo, push, owNo, owSt, withBox, referenceNo) {
     const m = MOCK[transferNo] || {};
     return {
-      id, orderNo, transferNo, docType: '计划单',
+      id, orderNo, transferNo,
+      referenceNo: referenceNo || transferNo,
+      docType: '计划单',
       bizType: 'FBA 计划单', packType: '', shipmentId: '',
       pushStatus: push, owOrderNo: owNo, owStatus: owSt,
       outWarehouse: m.outWh || '谷仓/NJ01', inWarehouse: m.inWh || 'FBA/US',
@@ -389,7 +461,7 @@
       shipWarehouse: m.ship || 'USEA', shipWarehouseName: (m.ship === 'USWE' ? 'USWE-美西' : 'USEA-美东'),
       physWarehouse: m.phys || 'NJ01', physWarehouseName: (m.phys === 'LA02' ? 'LA02-洛杉矶2号仓' : 'NJ01-新泽西1号仓'),
       changeLabel: '1', labelQty: '1', labelOpt: '1', stickLabel: '0', transparencyFile: '',
-      products: (m.products || [{ sku: 'GC-SKU-10001', fnsku: 'X001', qty: 10 }]).map(p => ({ ...p })),
+      products: (m.products || [{ sku: 'GC-SKU-10001', fnsku: 'X001', qty: 10, innerQty: 1 }]).map(p => ({ innerQty: 1, ...p })),
       boxList: withBox ? [
         { boxNo: 'BM202605180001-1', items: [{ sku: 'GC-SKU-20001', qty: 30 }] },
         { boxNo: 'BM202605180001-2', items: [{ sku: 'GC-SKU-20001', qty: 30 }] }
@@ -403,17 +475,25 @@
     const m = MOCK[transferNo] || {};
     extra = extra || {};
     return {
-      id, orderNo, transferNo, docType: '出库单',
+      id, orderNo, transferNo,
+      referenceNo: extra.referenceNo || transferNo,
+      docType: '出库单',
       bizType, packType, shipmentId: extra.shipmentId || m.shipmentId || '',
       pushStatus: push, owOrderNo: owNo, owStatus: owSt,
       outWarehouse: m.outWh || '谷仓', inWarehouse: m.inWh || 'FBA',
       salesGroup: m.salesGroup || '北美二组', requester: m.requester || '李四',
       warehouseInfo: extra.synced ? '数量：60\n总打板数：2\n总箱数：3' : '',
-      shipWarehouse: m.ship || 'USEA', shipMethod: 'GC-PARCEL',
-      referenceId: m.referenceId || 'REF-DEMO', sellerName: m.sellerName || 'Seller Demo',
-      fbaWarehouse: 'ONT8', changeLabel: '1', labelQty: '1', labelOpt: '1', stickLabel: '0',
-      transparencyFile: '', boxMarkNum: '1', productQuality: '1', remark: '演示备注',
-      receiver: { name: 'Amazon FBA', country: 'US', state: 'CA', city: 'Los Angeles', zip: '90001', addr: '1234 Warehouse Blvd', phone: '1234567890' },
+      referenceId: extra.referenceId || m.referenceId || 'REF-DEMO',
+      sellerName: extra.sellerName ?? m.sellerName ?? '',
+      fbaWarehouse: extra.fbaWarehouse || 'ONT8',
+      shipMethod: extra.shipMethod || 'GC-PARCEL',
+      shipWarehouse: extra.shipWarehouse || m.ship || 'USEA',
+      receiver: extra.receiver || { name: 'Amazon FBA', country: 'US', state: 'CA', city: 'Los Angeles', zip: '90001', addr: '1234 Warehouse Blvd', phone: '1234567890' },
+      changeLabel: extra.changeLabel || '1', labelQty: extra.labelQty || '1', labelOpt: extra.labelOpt || '1',
+      stickLabel: extra.stickLabel || '0',
+      remark: extra.remark || '演示备注',
+      productQuality: extra.productQuality || '1',
+      boxMarkNum: extra.boxMarkNum || '1',
       products: (m.products || [{ sku: 'GC-SKU-20001', fnsku: 'X003GHI', qty: 60 }]).map(p => ({ ...p })),
       cartons: packType === '已暂存箱发货' ? [{ cartonNo: 'BM202605180001-1', fbaMark: 'FBA-MARK-01', sku: 'GC-SKU-20001', qty: 30 }] : [],
       shipmentLabelFile: packType === '已暂存箱发货' ? 'shipment_label.pdf' : '',
@@ -466,13 +546,14 @@
   function renderList() {
     const tbody = $('#listBody');
     if (!filtered.length) {
-      tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:40px;color:#909399">暂无数据</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:40px;color:#909399">暂无数据</td></tr>';
     } else {
       tbody.innerHTML = filtered.map(r => `
         <tr data-id="${r.id}" class="${selected.has(r.id)?'selected':''}">
           <td><input type="checkbox" class="row-chk" data-id="${r.id}" ${selected.has(r.id)?'checked':''} /></td>
           <td class="mono">${r.orderNo}</td>
           <td>${r.transferNo}</td>
+          <td>${r.referenceNo || r.transferNo}</td>
           <td>${r.outWarehouse}</td>
           <td>${r.inWarehouse}</td>
           <td><span class="tag tag-info">${r.docType}</span></td>
@@ -549,6 +630,7 @@
       const yes = document.querySelector(`input[name="${prefix}Change"]:checked`).value === '1';
       $(`#${prefix}WrapLabelQty`).classList.toggle('panel-hidden', !yes);
       $(`#${prefix}WrapLabelOpt`).classList.toggle('panel-hidden', !yes);
+      if (prefix === 'pl') showPlInnerQtyCol();
       if (onProductRefresh) onProductRefresh();
     };
     const toggleStick = () => {
@@ -561,8 +643,20 @@
     };
     $$(`#${prefix}RgChange input`).forEach(i => i.addEventListener('change', toggleChange));
     $$(`#${prefix}RgStick input`).forEach(i => i.addEventListener('change', toggleStick));
+    const optEl = $(`#${prefix}LabelOpt`);
+    if (optEl && prefix === 'pl') optEl.addEventListener('change', toggleChange);
     toggleChange();
     toggleStick();
+  }
+
+  function showPlInnerQtyCol() {
+    const ch = document.querySelector('input[name="plChange"]:checked')?.value === '1';
+    const opt = $(`#plLabelOpt`)?.value === '2';
+    const show = ch && opt;
+    const col = $('#plColInnerQty');
+    if (col) col.classList.toggle('panel-hidden', !show);
+    $$('#plProductBody .col-inner').forEach(td => { td.style.display = show ? '' : 'none'; });
+    return show;
   }
 
   // ===== 计划单 =====
@@ -579,19 +673,23 @@
       $('#plTransferNo').readOnly = false;
       $('#plQuery').style.display = '';
       $('#plTransferNo').value = '';
+      $('#plReferenceNo').value = '';
       $('#plShipWh').value = '';
       document.querySelector('input[name="plChange"][value="1"]').checked = true;
       document.querySelector('input[name="plStick"][value="0"]').checked = true;
-      renderPlProducts([{ sku: '', fnsku: '', qty: '' }]);
+      if ($('#plLabelOpt')) $('#plLabelOpt').value = '1';
+      renderPlProducts([{ sku: '', fnsku: '', qty: '', innerQty: 1 }]);
     } else {
       const r = rows.find(x => x.id === id);
       $('#plTransferNo').value = r.transferNo;
+      $('#plReferenceNo').value = r.referenceNo || r.transferNo;
       $('#plTransferNo').readOnly = false;
       $('#plQuery').style.display = '';
       $('#plShipWh').value = r.shipWarehouse;
       document.querySelector(`input[name="plChange"][value="${r.changeLabel}"]`).checked = true;
       document.querySelector(`input[name="plStick"][value="${r.stickLabel}"]`).checked = true;
-      renderPlProducts(r.products.map(p => ({ ...p })));
+      if ($('#plLabelOpt')) $('#plLabelOpt').value = r.labelOpt || '1';
+      renderPlProducts(r.products.map(p => ({ ...p, innerQty: p.innerQty ?? 1 })));
       planQueryOk = true;
     }
     bindWarehouseOps('pl', () => renderPlProducts(getPlProducts()));
@@ -599,22 +697,27 @@
   }
 
   function getPlProducts() {
+    const showInner = showPlInnerQtyCol();
     return [...$$('#plProductBody tr')].map(tr => ({
       sku: tr.querySelector('.p-sku').value,
       fnsku: tr.querySelector('.p-fnsku')?.value || '',
+      innerQty: showInner ? (parseInt(tr.querySelector('.p-inner')?.value, 10) || 1) : undefined,
       qty: parseInt(tr.querySelector('.p-qty').value, 10) || 0
     }));
   }
 
   function renderPlProducts(items) {
     const showFnsku = document.querySelector('input[name="plChange"]:checked').value === '1';
+    const showInner = showPlInnerQtyCol();
     $('#plColFnsku').style.display = showFnsku ? '' : 'none';
     $('#plProductBody').innerHTML = items.map((p, i) => `
       <tr><td>${i+1}</td>
         <td><select class="p-sku"><option value="">请选择</option>
           <option value="GC-SKU-10001" ${p.sku==='GC-SKU-10001'?'selected':''}>GC-SKU-10001</option>
+          <option value="GC-SKU-10002" ${p.sku==='GC-SKU-10002'?'selected':''}>GC-SKU-10002</option>
           <option value="GC-SKU-20001" ${p.sku==='GC-SKU-20001'?'selected':''}>GC-SKU-20001</option></select></td>
         <td class="col-fnsku" style="display:${showFnsku?'':'none'}"><input class="p-fnsku" value="${p.fnsku||''}" /></td>
+        <td class="col-inner" style="display:${showInner?'':'none'}"><input class="p-inner" type="number" min="1" step="1" value="${p.innerQty ?? 1}" style="width:70px" /></td>
         <td><input class="p-qty" type="number" value="${p.qty||''}" min="1" style="width:70px" /></td>
         <td><button type="button" class="btn-plain pl-del">-</button></td></tr>`).join('');
   }
@@ -625,13 +728,22 @@
     const m = MOCK[no];
     if (!m) return showPlanErr('该调拨单状态不允许操作！仅待发货、待审核状态可操作！');
     if (m.status === 'not_gc') return showPlanErr('该调拨单调出处理中心非谷仓处理中心，不可新增谷仓计划单！');
+    const refNo = $('#plReferenceNo').value.trim() || no;
+    $('#plReferenceNo').value = no;
     const excludeId = planMode === 'edit' ? planEditId : null;
-    if (existsDoc(no, '计划单', excludeId)) return showPlanErr('该调拨单已存在谷仓且业务类型=计划单且海外仓状态不为作废，不可重复新增！');
+    if (existsPlanByRef($('#plReferenceNo').value.trim(), excludeId)) {
+      return showPlanErr('该参考号已存在谷仓计划单且海外仓状态不为作废，不可重复新增！');
+    }
     planQueryOk = true;
     $('#plShipWh').value = m.ship;
-    renderPlProducts(m.products.map(p => ({ ...p })));
-    toast('查询成功');
+    renderPlProducts(m.products.map(p => ({ ...p, innerQty: p.innerQty ?? 1 })));
+    toast('查询成功，参考号已更新为调拨单号');
   });
+
+  function existsPlanByRef(referenceNo, excludeId) {
+    return rows.some(r => (r.referenceNo || r.transferNo) === referenceNo && r.docType === '计划单'
+      && r.owStatus !== '废弃' && r.id !== excludeId);
+  }
 
   function existsDoc(transferNo, docType, excludeId) {
     return rows.some(r => r.transferNo === transferNo && r.docType === docType
@@ -640,30 +752,43 @@
 
   $('#plSave').addEventListener('click', () => {
     if (!planQueryOk) return showPlanErr('请先查询调拨单！');
+    const refNo = $('#plReferenceNo').value.trim();
+    if (!refNo) return showPlanErr('请填写参考号！');
+    const excludeId = planMode === 'edit' ? planEditId : null;
+    if (existsPlanByRef(refNo, excludeId)) return showPlanErr('该参考号已存在谷仓计划单且海外仓状态不为作废，不可重复新增！');
     const products = getPlProducts();
     const ch = document.querySelector('input[name="plChange"]:checked').value;
     const st = document.querySelector('input[name="plStick"]:checked').value;
+    const labelOpt = $('#plLabelOpt')?.value || '1';
     if (ch === '1' && products.some(p => !p.fnsku)) return showPlanErr('换标为是时，请完善换标要求及平台编码！');
+    if (ch === '1' && labelOpt === '2' && products.some(p => !p.innerQty || p.innerQty < 1)) {
+      return showPlanErr('换标要求为拆箱贴标时，请填写内件货物总数量（≥1 的整数）！');
+    }
     if (st === '1' && !$('#plTransFile').files.length) return showPlanErr('请上传 Transparency 标签文件（PDF）！');
     if (!products.length || products.some(p => !p.sku || p.qty <= 0)) return showPlanErr('请至少维护一行商品明细！');
     const ts = nowStr();
+    const tno = $('#plTransferNo').value.trim();
     if (planMode === 'add') {
       const orderNo = generateOrderNo();
       rows.unshift({
-        ...mkPlan('r' + Date.now(), orderNo, $('#plTransferNo').value.trim(), '待推送', '', ''),
-        shipWarehouse: $('#plShipWh').value, physWarehouse: (MOCK[$('#plTransferNo').value.trim()] || {}).phys || '',
-        changeLabel: ch, stickLabel: st, products,
-        logs: [ts + ' 新增计划单保存 ' + orderNo]
+        ...mkPlan('r' + Date.now(), orderNo, tno, '待推送', '', ''),
+        referenceNo: refNo,
+        shipWarehouse: $('#plShipWh').value, physWarehouse: (MOCK[tno] || {}).phys || '',
+        changeLabel: ch, stickLabel: st, labelOpt,
+        products: products.map(p => ({ ...p, innerQty: labelOpt === '2' && ch === '1' ? p.innerQty : undefined })),
+        logs: [ts + ' 新增计划单保存 ' + orderNo + ' 参考号=' + refNo]
       });
       toast('保存成功 ' + orderNo);
     } else {
       const r = rows.find(x => x.id === planEditId);
-      const tno = $('#plTransferNo').value.trim();
       Object.assign(r, {
         transferNo: tno,
+        referenceNo: refNo,
         shipWarehouse: $('#plShipWh').value,
         physWarehouse: (MOCK[tno] || {}).phys || '',
-        products, changeLabel: ch, stickLabel: st, updater: '当前用户', updateTime: ts
+        products: products.map(p => ({ ...p, innerQty: labelOpt === '2' && ch === '1' ? p.innerQty : undefined })),
+        changeLabel: ch, stickLabel: st, labelOpt,
+        updater: '当前用户', updateTime: ts
       });
       r.logs.push(ts + ' 编辑计划单保存');
       toast('保存成功');
@@ -718,6 +843,7 @@
   function clearOutFormExceptTransfer() {
     $('#outShipWh').value = '';
     $('#outShipMethod').value = '';
+    if ($('#outReferenceNo')) $('#outReferenceNo').value = '';
     if ($('#outShipmentId')) $('#outShipmentId').value = '';
     if ($('#outReferenceId')) $('#outReferenceId').value = '';
     if ($('#outSellerName')) $('#outSellerName').value = '';
@@ -737,9 +863,6 @@
     const isOther = outCombo === 'other-self';
     const isCarton = outCombo === 'fba-carton';
     let html = `
-      <div class="field span2"><label>调拨单号<span class="req">*</span></label>
-        <div class="field-inline"><input type="text" id="outTransferNo" />
-        <button type="button" class="btn-primary" id="outQuery">查询</button></div></div>
       <div class="field"><label>出库单类型</label>
         <div class="radio-row" id="outRgBizType">
           <label><input type="radio" name="outBizType" value="FBA订单" ${isFba?'checked':''} /> FBA订单</label>
@@ -750,7 +873,12 @@
           <label><input type="radio" name="outPackType" value="仓库自主装箱" ${!isCarton?'checked':''} /> 仓库自主装箱</label>
           <label id="outPackCartonLbl" ${isOther?'class="panel-hidden"':''}><input type="radio" name="outPackType" value="已暂存箱发货" ${isCarton?'checked':''} /> 已暂存箱发货</label>
         </div>
-        <div class="help panel-hidden" id="outPackOtherHint">其他调拨单仅支持「仓库自主装箱」（本期不含其他调拨单+已暂存箱发货）</div></div>
+        <div class="help panel-hidden" id="outPackOtherHint">其他调拨单仅支持「仓库自主装箱」</div></div>
+      <div class="field span2"><label>调拨单号<span class="req">*</span></label>
+        <div class="field-inline"><input type="text" id="outTransferNo" />
+        <button type="button" class="btn-primary" id="outQuery">查询</button></div></div>
+      <div class="field"><label>参考号<span class="req">*</span></label>
+        <input type="text" id="outReferenceNo" placeholder="查询后默认与调拨单号一致，可修改" /></div>
       <div class="field"><label>发货仓库<span class="req">*</span></label>
         <select id="outShipWh"><option value="">请选择</option><option value="USEA">USEA-美东</option><option value="USWE">USWE-美西</option></select></div>
       <div class="field"><label>物流渠道<span class="req">*</span></label>
@@ -759,7 +887,7 @@
       html += `
         <div class="field fba-only"><label>Shipment ID<span class="req">*</span></label><input id="outShipmentId" /></div>
         <div class="field fba-only"><label>Reference ID<span class="req">*</span></label><input id="outReferenceId" /></div>
-        <div class="field fba-only"><label>Seller Name<span class="req">*</span></label><input id="outSellerName" /></div>
+        <div class="field fba-only"><label>Seller Name</label><input id="outSellerName" placeholder="非必填" /></div>
         <div class="field fba-only"><label>平台分仓<span class="req">*</span></label>
           <select id="outFbaWh"><option value="">请选择</option><option value="ONT8">ONT8</option><option value="FTW1">FTW1</option></select></div>`;
     }
@@ -816,6 +944,7 @@
   }
 
   function fillOutFromRow(r) {
+    if ($('#outReferenceNo')) $('#outReferenceNo').value = r.referenceNo || r.transferNo;
     $('#outShipWh').value = r.shipWarehouse || '';
     $('#outShipMethod').value = r.shipMethod || '';
     if ($('#outShipmentId')) {
@@ -862,6 +991,7 @@
     applyOutCombo(false);
     if (mode === 'add') {
       $('#outTransferNo').value = '';
+      if ($('#outReferenceNo')) $('#outReferenceNo').value = '';
       clearOutFormExceptTransfer();
     } else {
       const r = rows.find(x => x.id === id);
@@ -869,6 +999,7 @@
       buildOutHeader();
       applyOutCombo(true);
       $('#outTransferNo').value = r.transferNo;
+      if ($('#outReferenceNo')) $('#outReferenceNo').value = r.referenceNo || r.transferNo;
       fillOutFromRow(r);
       outQueryOk = true;
     }
@@ -885,6 +1016,7 @@
     if (outMode === 'edit' && existsDoc(no, '出库单', outEditId)) return showOutErr('该调拨单已绑定其他有效单据，不可重复绑定！');
     outQueryOk = true;
     $('#outShipWh').value = m.ship;
+    if ($('#outReferenceNo')) $('#outReferenceNo').value = no;
     if ($('#outShipmentId')) { $('#outShipmentId').value = m.shipmentId || ''; $('#outReferenceId').value = m.referenceId || ''; $('#outSellerName').value = m.sellerName || ''; }
     if (outCombo !== 'fba-carton') renderOutProducts(m.products.map(p => ({ ...p, labelFile: '' })));
     else {
@@ -960,11 +1092,13 @@
 
   $('#outSave').addEventListener('click', () => {
     if (!outQueryOk) return showOutErr('请先查询调拨单！');
+    const refNo = $('#outReferenceNo')?.value?.trim();
+    if (!refNo) return showOutErr('请填写参考号！');
     if (!$('#outShipWh').value) return showOutErr(outCombo === 'other-self' ? '请完善出库信息！' : '请完善出库/收货信息！');
     if (!$('#outShipMethod').value) return showOutErr(outCombo === 'other-self' ? '请完善出库信息！' : '请完善出库/收货信息！');
     if (outCombo.startsWith('fba')) {
       if (!$('#outShipmentId')?.value?.trim()) return showOutErr('请完善出库/收货信息！');
-      if (!$('#outReferenceId')?.value?.trim() || !$('#outSellerName')?.value?.trim() || !$('#outFbaWh')?.value) {
+      if (!$('#outReferenceId')?.value?.trim() || !$('#outFbaWh')?.value) {
         return showOutErr('请完善出库/收货信息！');
       }
     }
@@ -997,14 +1131,36 @@
     const ts = nowStr();
     const biz = document.querySelector('input[name="outBizType"]:checked').value;
     const pack = document.querySelector('input[name="outPackType"]:checked').value;
+    const tno = $('#outTransferNo').value.trim();
+    const payload = {
+      shipmentId: $('#outShipmentId')?.value || '',
+      referenceNo: refNo,
+      sellerName: $('#outSellerName')?.value || '',
+      referenceId: $('#outReferenceId')?.value || '',
+      fbaWarehouse: $('#outFbaWh')?.value || '',
+      shipWarehouse: $('#outShipWh').value,
+      shipMethod: $('#outShipMethod').value,
+      receiver: {
+        name: $('#rcvName').value, country: $('#rcvCountry').value, state: $('#rcvState').value,
+        city: $('#rcvCity').value, zip: $('#rcvZip').value, addr: $('#rcvAddr').value, phone: $('#rcvPhone').value
+      },
+      changeLabel: ch, stickLabel: st,
+      boxMarkNum: $('#outBoxMark')?.value, labelQty: $('#outLabelQty')?.value, labelOpt: $('#outLabelOpt')?.value,
+      remark: $('#outRemark')?.value || '',
+      productQuality: document.querySelector('input[name="outQuality"]:checked')?.value
+    };
     if (outMode === 'add') {
       const orderNo = generateOrderNo();
-      rows.unshift(mkOut('r'+Date.now(), orderNo, $('#outTransferNo').value.trim(), biz, pack, '待推送', '', '', {
-        shipmentId: $('#outShipmentId')?.value || ''
-      }));
+      const row = mkOut('r'+Date.now(), orderNo, tno, biz, pack, '待推送', '', '', payload);
+      if (outCombo !== 'fba-carton') row.products = getOutProducts();
+      rows.unshift(row);
+      row.logs.push(ts + ' 新增出库单保存 参考号=' + refNo);
       toast('保存成功 ' + orderNo);
     } else {
-      rows.find(x => x.id === outEditId).logs.push(ts + ' 编辑出库单保存');
+      const r = rows.find(x => x.id === outEditId);
+      Object.assign(r, payload, { transferNo: tno, referenceNo: refNo, bizType: biz, packType: pack });
+      if (outCombo !== 'fba-carton') r.products = getOutProducts();
+      r.logs.push(ts + ' 编辑出库单保存');
       toast('保存成功');
     }
     filtered = [...rows];
@@ -1126,6 +1282,12 @@
         if (MOCK[r.transferNo]) MOCK[r.transferNo].cartonNos = boxes;
       } else {
         r.warehouseInfo = '数量：60\n总打板数：2\n总箱数：3';
+        if (!r.palletList?.length) {
+          r.palletList = [
+            { palletNo: 'P001', boxes: 'BM-1,BM-2', boxCount: 2, size: '120*100*150', weight: '450' },
+            { palletNo: 'P002', boxes: 'BM-3', boxCount: 1, size: '120*100*150', weight: '220' }
+          ];
+        }
       }
       r.logs.push(nowStr() + ' 同步详情');
     });
@@ -1139,7 +1301,8 @@
     let html = `<div class="view-readonly">`;
     html += `<div class="section"><div class="section-title">出库信息</div><div class="form-grid">
       <div class="field"><label>单号</label>${ro(r.orderNo)}</div>
-      <div class="field span2"><label>调拨单号</label>${ro(r.transferNo)}</div>
+      <div class="field"><label>调拨单号</label>${ro(r.transferNo)}</div>
+      <div class="field"><label>参考号</label>${ro(r.referenceNo || r.transferNo)}</div>
       <div class="field"><label>类型</label>${ro('FBA 计划单')}</div>
       <div class="field"><label>发货仓库</label>${ro(r.shipWarehouseName || r.shipWarehouse)}</div>
       <div class="field"><label>海外仓单号</label>${ro(r.owOrderNo || '—')}</div>
@@ -1157,10 +1320,11 @@
     if (st) html += `<div class="field span2"><label>Transparency 标签文件</label>${ro(r.transparencyFile || '—')}</div>`;
     html += `</div></div>`;
 
+    const showInner = ch && r.labelOpt === '2';
     html += `<div class="section"><div class="section-title">商品明细</div>
-      <div class="sub-table-wrap"><table><thead><tr><th>#</th><th>产品编码</th>${ch?'<th>平台编码</th>':''}<th>数量</th></tr></thead><tbody>`;
+      <div class="sub-table-wrap"><table><thead><tr><th>#</th><th>产品编码</th>${ch?'<th>平台编码</th>':''}${showInner?'<th>内件货物总数量</th>':''}<th>数量</th></tr></thead><tbody>`;
     (r.products || []).forEach((p, i) => {
-      html += `<tr><td>${i+1}</td><td>${p.sku}</td>${ch?`<td>${p.fnsku||'—'}</td>`:''}<td>${p.qty}</td></tr>`;
+      html += `<tr><td>${i+1}</td><td>${p.sku}</td>${ch?`<td>${p.fnsku||'—'}</td>`:''}${showInner?`<td>${p.innerQty ?? 1}</td>`:''}<td>${p.qty}</td></tr>`;
     });
     html += `</tbody></table></div></div>`;
 
@@ -1193,7 +1357,8 @@
 
     html += `<div class="section"><div class="section-title">出库信息</div><div class="form-grid">
       <div class="field"><label>单号</label>${ro(r.orderNo)}</div>
-      <div class="field span2"><label>调拨单号</label>${ro(r.transferNo)}</div>
+      <div class="field"><label>调拨单号</label>${ro(r.transferNo)}</div>
+      <div class="field"><label>参考号</label>${ro(r.referenceNo || r.transferNo)}</div>
       <div class="field"><label>出库单类型</label>${ro(r.bizType)}</div>
       <div class="field"><label>装箱类型</label>${ro(r.packType)}</div>
       <div class="field"><label>发货仓库</label>${ro(r.shipWarehouse)}</div>
@@ -1277,6 +1442,123 @@
     $('#viewBody').innerHTML = r.docType === '计划单' ? buildPlanViewHtml(r) : buildOutViewHtml(r);
     openModal('modalView');
   }
+
+  // ===== 计划单：谷仓库存查询 / 导入 =====
+  function renderStockTable(list) {
+    stockQueryResult = list;
+    const tbody = $('#stockBody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#909399;padding:24px">未查询到匹配库存</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(s => `
+      <tr><td>${s.productSku}</td><td>${s.gcSku}</td><td>${s.goodQty}</td><td>${s.badQty}</td><td>${s.wh}</td></tr>`).join('');
+  }
+
+  function searchGcStock() {
+    const raw = $('#stockKeywords').value.trim();
+    if (!raw) return toast('请输入编号', 'err');
+    const keys = raw.split(/\s+/).filter(Boolean);
+    const list = GC_STOCK.filter(s => keys.some(k => {
+      const lk = k.toLowerCase();
+      if (stockQueryMode === 'gc') return s.gcSku.toLowerCase().startsWith(lk) || s.refNo.toLowerCase().startsWith(lk);
+      return s.productSku.toLowerCase().startsWith(lk) || s.refNo.toLowerCase().startsWith(lk);
+    }));
+    renderStockTable(list);
+    toast('查询完成，共 ' + list.length + ' 条（LIKE 前缀匹配）');
+  }
+
+  $('#plStockQuery').addEventListener('click', () => {
+    $('#stockKeywords').value = '';
+    renderStockTable([]);
+    $('#stockBody').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#909399;padding:24px">请输入编号后搜索</td></tr>';
+    openModal('modalStock');
+  });
+  $('#stockSearch').addEventListener('click', searchGcStock);
+  $('#stockReset').addEventListener('click', () => {
+    $('#stockKeywords').value = '';
+    renderStockTable([]);
+    $('#stockBody').innerHTML = '<tr><td colspan="5" style="text-align:center;color:#909399;padding:24px">请输入编号后搜索</td></tr>';
+  });
+  $('#stockExport').addEventListener('click', () => {
+    if (!stockQueryResult.length) return toast('请先搜索并确认有结果后再导出', 'err');
+    toast('已导出库存查询结果 ' + stockQueryResult.length + ' 条（演示，字段与列表一致）');
+  });
+  $('#stockModeChips').addEventListener('click', e => {
+    const chip = e.target.closest('.filter-chip');
+    if (!chip) return;
+    $$('#stockModeChips .filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    stockQueryMode = chip.dataset.mode;
+  });
+
+  const PL_IMPORT_DEMO = '产品编号,平台编码,内件货物总数量,数量\nGC-SKU-10001,X001ABC,2,50\nGC-SKU-10002,X002DEF,1,30';
+  $('#plImportTpl').addEventListener('click', () => {
+    const blob = new Blob(['\ufeff' + PL_IMPORT_DEMO], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '谷仓计划单-产品明细导入模板.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('模板已下载');
+  });
+  $('#plImport').addEventListener('click', () => $('#plImportFile').click());
+  $('#plImportFile').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = (reader.result || '').toString().replace(/^\ufeff/, '');
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) return toast('导入文件无有效数据', 'err');
+      const items = lines.slice(1).map(line => {
+        const [sku, fnsku, innerQty, qty] = line.split(',').map(x => x.trim());
+        return { sku, fnsku: fnsku || '', innerQty: parseInt(innerQty, 10) || 1, qty: parseInt(qty, 10) || 0 };
+      }).filter(p => p.sku);
+      if (!items.length) return toast('未解析到有效行', 'err');
+      renderPlProducts(items);
+      toast('导入成功 ' + items.length + ' 行，可在列表中继续编辑');
+    };
+    reader.readAsText(f);
+    e.target.value = '';
+  });
+
+  $('#modalPlan').addEventListener('click', e => {
+    if (e.target.id === 'plAddRow') {
+      const items = getPlProducts();
+      items.push({ sku: '', fnsku: '', qty: '', innerQty: 1 });
+      renderPlProducts(items);
+    }
+    if (e.target.classList.contains('pl-del')) {
+      const tr = e.target.closest('tr');
+      if ($$('#plProductBody tr').length > 1) tr.remove();
+    }
+  });
+
+  // ===== 导出仓库信息 =====
+  $('#btnExportWhToggle').addEventListener('click', e => {
+    e.stopPropagation();
+    $('#exportWhMenu').classList.toggle('show');
+  });
+  $('#exportWhMenu').addEventListener('click', e => {
+    e.stopPropagation();
+    const type = e.target.dataset.export;
+    if (!type) return;
+    $('#exportWhMenu').classList.remove('show');
+    const sel = getSel();
+    if (!sel.length) return toast('请勾选需要导出的数据！', 'err');
+    if (sel.some(r => r.pushStatus !== '已推送')) return toast('仅已推送状态的数据可导出！', 'err');
+    if (type === 'box') {
+      const bad = sel.filter(r => r.docType === '计划单' ? !r.boxList?.length : !r.cartons?.length && !r.warehouseInfo?.includes('总箱数'));
+      if (bad.length) return toast('所选数据暂无装箱明细：' + bad.map(r => r.orderNo).join('、'), 'err');
+      toast('已生成装箱明细导出（演示）：' + sel.map(r => r.orderNo).join('、'));
+    } else {
+      const bad = sel.filter(r => !r.palletList?.length && !r.warehouseInfo?.includes('总打板数'));
+      if (bad.length) return toast('所选数据暂无打托明细，请先同步详情：' + bad.map(r => r.orderNo).join('、'), 'err');
+      toast('已生成打托明细导出（演示）：' + sel.map(r => r.orderNo).join('、'));
+    }
+  });
+  document.addEventListener('click', () => $('#exportWhMenu').classList.remove('show'));
 
   document.addEventListener('click', e => {
     if (e.target.dataset.close) closeModal(e.target.dataset.close);
