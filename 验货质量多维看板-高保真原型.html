@@ -23,4 +23,511 @@ data=function(){var d=dataBeforePassGroup();if(view==='pass'){d.note='柱体分�
 function renderPassGroups(d){document.getElementById('chartTitle').childNodes[0].nodeValue=d.title+' ';document.getElementById('chartNote').textContent=d.note;document.getElementById('legend').innerHTML=d.legend.map((x,i)=>`<span class="${i>1?'line':''}" style="--c:${x[0]}">${x[1]}</span>`).join('');var max=Math.max(...d.bars),out='<g stroke="#edf0f4" stroke-width="1">';[20,62,104,146,188].forEach(y=>out+=`<line x1="55" y1="${y}" x2="955" y2="${y}"/>`);out+='</g><line x1="55" y1="188" x2="955" y2="188" stroke="#dce3ec"/><g fill="#697588" font-size="10">';d.labels.forEach((l,i)=>{var x=95+i*(820/(d.labels.length-1)),totalH=d.bars[i]/max*150,passH=d.passBars[i]/max*150;out+=`<text x="${x}" y="211" text-anchor="middle">${l}</text><rect x="${x-21}" y="${188-totalH}" width="18" height="${totalH}" rx="2" fill="${c.blue}"/><rect x="${x+3}" y="${188-passH}" width="18" height="${passH}" rx="2" fill="${c.green}"/><text x="${x-12}" y="${184-totalH}" text-anchor="middle">${d.bars[i]}</text><text x="${x+12}" y="${184-passH}" text-anchor="middle">${d.passBars[i]}</text>`});out+='</g>';var pts=d.lines[0][1].map((v,i)=>`${95+i*(820/(d.labels.length-1))},${188-v/110*150}`);out+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${c.purple}" stroke-width="2.5"/>`;d.lines[0][1].forEach((v,i)=>{var p=pts[i].split(',');out+=`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#fff" stroke="${c.purple}" stroke-width="2"/><text x="${p[0]}" y="${+p[1]-8}" text-anchor="middle" fill="${c.purple}" font-size="9">${v.toFixed(1)}%</text>`});var y=188-d.target/110*150;out+=`<line x1="55" x2="955" y1="${y}" y2="${y}" stroke="${c.orange}" stroke-width="1.5" stroke-dasharray="5 4"/>`;svg.innerHTML=out;document.getElementById('tableTitle').textContent='供应商质量排名';renderRows()}
 render=function(){if(view==='pass')return renderPassGroups(data());return renderBeforePassGroup()};
 render();
+</script><script>
+/* Interactive prototype behaviors from the 2026-09-03 feedback workbook. */
+var dataBeforeInteractive=data;
+data=function(){var d=dataBeforeInteractive();if(view==='pass'){var sets={month:{labels:['1月','2月','3月','4月','5月','6月','7月','8月'],total:[393,178,175,149,108,133,162,205],pass:[389,176,169,148,103,129,159,202]},quarter:{labels:['Q1','Q2','Q3','Q4'],total:[746,390,500,366],pass:[734,380,486,354]},year:{labels:['2024','2025','2026'],total:[1992,3173,1003],pass:[1954,3133,985]}}[period];d.labels=sets.labels;d.bars=sets.total;d.passBars=sets.pass;d.lines=[[c.purple,sets.pass.map((v,i)=>+(v/sets.total[i]*100).toFixed(2))]]}if(view==='supplier'){var values={month:[26.6,18.62,12.23,7.98,6.38,7.45,3.72,3.19,2.66,2.13],quarter:[24.7,19.8,12.8,8.1,7.3,7.1,4.1,3.5,2.8,2.4],year:[25.8,18.9,13.1,8.4,6.9,7.0,3.9,3.3,2.7,2.2]}[period];if(supplierMetric==='batch')d.bars=values}return d};
+var existingPeriodHandler=document.querySelector('[data-period]').onclick;
+document.querySelectorAll('[data-period]').forEach(btn=>btn.onclick=()=>{period=btn.dataset.period;document.querySelectorAll('[data-period]').forEach(x=>x.classList.toggle('on',x===btn));document.getElementById('configTitle').textContent='统计周期：'+btn.textContent;document.getElementById('chartHint').textContent='当前按'+btn.textContent+'汇总；图表与排名同步更新';render()});
+var cardCss=document.createElement('style');cardCss.textContent='.person-toggle{display:flex;gap:4px}.person-toggle button{height:25px;border:1px solid #d7e0ec;background:#fff;color:#687588;padding:0 8px;cursor:pointer}.person-toggle button.on{background:#edf5ff;color:#1677ff;border-color:#9fc8ff}.detail-mask{position:fixed;inset:0;background:#17243b66;display:none;align-items:center;justify-content:center;z-index:10}.detail-modal{width:900px;max-height:74vh;overflow:auto;background:#fff;border-radius:4px;box-shadow:0 18px 48px #17243b55}.detail-modal header{height:50px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7ebf2;font-weight:700}.detail-modal table{min-width:0}.detail-modal .close{border:0;background:#fff;color:#697588;font-size:20px;cursor:pointer}.download-all{margin-right:10px;color:#1677ff;cursor:pointer;font-size:12px}';document.head.appendChild(cardCss);
+var personCard=document.querySelector('.lower .card:nth-child(2)'),personTitle=personCard.querySelector('.panel-title'),personLink=personCard.querySelector('.link'),personList=personCard.querySelector('.list'),personMode='inspector';var people={inspector:[['李建彪',242,'97.9%'],['王丽英',206,'96.6%'],['何喜兰',160,'99.4%'],['王顺英',134,'97.8%']],buyer:[['采购员A',198,'98.5%'],['采购员B',174,'97.1%'],['采购员C',153,'96.7%'],['采购员D',122,'99.2%']]};function renderPeople(){var label=personMode==='inspector'?'品质员':'采购员';personTitle.textContent=label+'验货工作量与合格率';personList.innerHTML=people[personMode].map((x,i)=>`<div class="list-row"><span>${x[0]}</span><div class="bar-bg"><i style="--c:#68a8eb;--w:${78-i*11}%"></i></div><div class="dual"><b>${x[1]} 批</b><span class="rate">${x[2]}</span></div></div>`).join('')};personLink.innerHTML='<span class="person-toggle"><button class="on" data-person="inspector">品质员</button><button data-person="buyer">采购员</button></span>';personLink.onclick=e=>{var b=e.target.closest('button');if(!b)return;personMode=b.dataset.person;personLink.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderPeople();notify('已切换为'+(personMode==='buyer'?'采购员':'品质员')+'验货合格率')};renderPeople();
+var mask=document.createElement('div');mask.className='detail-mask';mask.innerHTML='<div class="detail-modal"><header><span>全部供应商质量明细</span><button class="close">×</button></header><div class="table-wrap"><table><thead><tr><th>排名</th><th>供应商名称</th><th>验货批次</th><th>合格批次</th><th>不通过批次</th><th>批次合格率</th><th>质量标签</th></tr></thead><tbody></tbody></table></div></div>';document.body.appendChild(mask);function allRows(){return supplierRows.concat([['佛山美居家居有限公司',9,9,0,'100.00%','','A 优秀'],['宁波新锐制造有限公司',8,7,1,'87.50%','','D 整改']])}function showAll(){mask.querySelector('tbody').innerHTML=allRows().map((r,i)=>`<tr><td>${i+1}</td><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[6]}</td></tr>`).join('');mask.style.display='flex'}mask.querySelector('.close').onclick=()=>mask.style.display='none';mask.onclick=e=>{if(e.target===mask)mask.style.display='none'};var tableCard=document.querySelector('main > section.card:last-child'),tableLink=tableCard.querySelector('.panel-head .link');tableLink.textContent='查看完整明细';tableLink.onclick=showAll;var download=document.createElement('span');download.className='download-all';download.textContent='下载全部';tableCard.querySelector('.panel-head').insertBefore(download,tableLink);download.onclick=()=>{var head='排名,供应商名称,验货批次,合格批次,不通过批次,批次合格率,质量标签\n',csv=head+allRows().map((r,i)=>[i+1,r[0],r[1],r[2],r[3],r[4],r[6]].join(',')).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='供应商质量排名.csv';a.click();URL.revokeObjectURL(a.href)};
+render();
+</script><script>
+supplierRows[4][6]='C 关注';
+people.buyer=[['文俊洁',19,'84.21%'],['赵柳慧',117,'100.00%'],['采购员C',86,'96.51%'],['采购员D',72,'98.61%']];
+renderPeople();
+</script><script>
+/* Clear dual-axis rendering for batch counts and pass-rate movement. */
+var styleRefine=document.createElement('style');styleRefine.textContent='.lower .card:first-child .list{max-height:170px;overflow-y:auto;padding-right:9px}.lower .card:first-child .list::-webkit-scrollbar{width:6px}.lower .card:first-child .list::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}.axis-label{font-size:10px;fill:#7c8797}.axis-title{font-size:11px;fill:#657184}';document.head.appendChild(styleRefine);
+var passAxisRenderBefore=render,rowsBeforeTextUpdate=renderRows;
+renderRows=function(){rowsBeforeTextUpdate();document.querySelectorAll('td.action').forEach(x=>x.textContent='查看明细')};
+function renderPassAxes(d){document.getElementById('chartTitle').childNodes[0].nodeValue='验货合格率趋势 ';document.getElementById('chartNote').textContent='左轴为批次数，右轴为批次合格率；柱体分别展示总验货批次与合格批次';document.getElementById('chartHint').textContent='左轴：批次数　右轴：批次合格率（90% - 100%）';document.getElementById('legend').innerHTML='<span style="--c:#5b9bd5">总验货批次</span><span style="--c:#00a65a">合格批次</span><span class="line" style="--c:#7860d9">批次合格率</span>';var max=Math.ceil(Math.max(...d.bars)/100)*100,out='<g stroke="#edf0f4" stroke-width="1">';[0,1,2,3,4].forEach(i=>{var y=188-i*37.5,v=i*max/4;out+=`<line x1="55" y1="${y}" x2="925" y2="${y}"/><text x="46" y="${y+4}" class="axis-label" text-anchor="end">${v}</text>`});out+='</g><text x="15" y="19" class="axis-title">批次数</text><text x="963" y="19" class="axis-title" text-anchor="end">批次合格率</text><line x1="55" y1="188" x2="925" y2="188" stroke="#dce3ec"/><g fill="#697588" font-size="10">';d.labels.forEach((l,i)=>{var x=96+i*(780/(d.labels.length-1)),totalH=d.bars[i]/max*150,passH=d.passBars[i]/max*150;out+=`<text x="${x}" y="211" text-anchor="middle">${l}</text><rect x="${x-20}" y="${188-totalH}" width="17" height="${totalH}" rx="2" fill="#5b9bd5"/><rect x="${x+3}" y="${188-passH}" width="17" height="${passH}" rx="2" fill="#00a65a"/><text x="${x-12}" y="${184-totalH}" text-anchor="middle" fill="#5b9bd5">${d.bars[i]}</text><text x="${x+12}" y="${184-passH}" text-anchor="middle" fill="#00a65a">${d.passBars[i]}</text>`});out+='</g><g fill="#7c8797" font-size="10">';[90,92,94,96,98,100].forEach(v=>{var y=188-(v-90)/10*150;out+=`<text x="932" y="${y+4}">${v}%</text>`});out+='</g>';var rates=d.passBars.map((v,i)=>v/d.bars[i]*100),pts=rates.map((v,i)=>`${96+i*(780/(rates.length-1))},${188-(v-90)/10*150}`);out+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#7860d9" stroke-width="2.7"/>`;rates.forEach((v,i)=>{var p=pts[i].split(',');out+=`<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="#fff" stroke="#7860d9" stroke-width="2"/><text x="${p[0]}" y="${+p[1]-8}" text-anchor="middle" fill="#7860d9" font-size="9">${v.toFixed(1)}%</text>`});svg.innerHTML=out;document.getElementById('tableTitle').textContent='供应商质量排名';renderRows()}
+render=function(){if(view==='pass')return renderPassAxes(data());return passAxisRenderBefore()};
+var exceptionCard=document.querySelector('.lower .card:first-child'),exceptionTitle=exceptionCard.querySelector('.panel-title'),exceptionList=exceptionCard.querySelector('.list'),exceptionLink=exceptionCard.querySelector('.link');exceptionTitle.textContent='异常验货记录（18 条）';var exceptionRows=[['广州奥科',3,'异常'],['深圳佳林通',3,'异常'],['江门达克斯',3,'关注'],['广州东鑫',2,'异常'],['珠海川能',1,'关注'],['广州恩途',1,'关注'],['浙江立诚',1,'关注'],['其他供应商',4,'异常']];exceptionList.innerHTML=exceptionRows.map((r,i)=>`<div class="list-row"><span>${r[0]}</span><div class="bar-bg"><i style="--c:${r[2]==='异常'?'#e57676':'#f2b349'};--w:${78-i*6}%"></i></div><div class="dual"><b>${r[1]} 条</b><span class="badge ${r[2]==='异常'?'b-red':'b-amber'}">${r[2]}</span></div></div>`).join('');
+function showExceptions(){mask.querySelector('header span').textContent='异常验货记录明细（18 条）';mask.querySelector('thead tr').innerHTML='<th>序号</th><th>供应商名称</th><th>验货时间</th><th>产品编号</th><th>验货结果</th><th>验货任务</th><th>操作</th>';mask.querySelector('tbody').innerHTML=Array.from({length:18},(_,i)=>`<tr><td>${i+1}</td><td>${exceptionRows[i%exceptionRows.length][0]}</td><td>2026-0${(i%8)+1}-15</td><td>SKU-${10021+i}</td><td><span class="badge b-red">不通过</span></td><td>YH-${2026001+i}</td><td class="action" onclick="notify('已打开该验货记录明细')">查看明细</td></tr>`).join('');mask.style.display='flex'}exceptionLink.textContent='查看全部异常';exceptionLink.onclick=showExceptions;
+render();
+</script><script>
+/* Final interaction refinements: readable axes, selectable series, and in-table supplier scrolling. */
+var finalCss=document.createElement('style');finalCss.textContent='.label{white-space:nowrap;flex:0 0 68px}.list-row{grid-template-columns:96px 1fr 166px}.dual{font-size:11px;gap:5px;white-space:nowrap}.rank-scroll{max-height:300px;overflow-y:auto}.rank-scroll thead th{position:sticky;top:0;z-index:1}.legend span{cursor:pointer;user-select:none}.legend span.off{opacity:.35;text-decoration:line-through}';document.head.appendChild(finalCss);
+var seriesHidden={};function applySeries(){document.querySelectorAll('#legend span').forEach(s=>{var color=getComputedStyle(s).getPropertyValue('--c').trim();var off=!!seriesHidden[color];s.classList.toggle('off',off);svg.querySelectorAll(`[fill="${color}"],[stroke="${color}"]`).forEach(n=>n.style.opacity=off?'0':'1')})}function wireLegend(){document.querySelectorAll('#legend span').forEach(s=>{s.onclick=()=>{var color=getComputedStyle(s).getPropertyValue('--c').trim();seriesHidden[color]=!seriesHidden[color];applySeries()}});applySeries()}
+var rowsForScroll=allRows();renderRows=function(){var table=document.querySelector('main > section.card:last-child table'),wrap=table.closest('.table-wrap');wrap.classList.add('rank-scroll');table.querySelector('thead tr').innerHTML='<th style="width:48px">排名</th><th style="width:240px">供应商名称</th><th>验货批次</th><th>合格批次</th><th>不通过批次</th><th>批次合格率</th><th>质量标签</th><th style="width:75px">操作</th>';document.getElementById('rows').innerHTML=rowsForScroll.map((r,i)=>`<tr><td>${i+1}</td><td class="supplier" onclick="notify('已按供应商：${r[0]} 打开验货记录明细')">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]?'<span class=\"badge b-red\">'+r[3]+'</span>':'0'}</td><td class="${Number(r[4].replace('%',''))<97?'bad':'good'}">${r[4]}</td><td><span class="badge ${r[6][0]==='A'?'b-green':r[6][0]==='D'?'b-red':'b-amber'}">${r[6]}</span></td><td class="action" onclick="notify('已打开该供应商验货记录明细')">查看明细</td></tr>`).join('');document.getElementById('pageNote').textContent='共 '+rowsForScroll.length+' 家供应商，可向下滚动查看';document.querySelector('.pages').style.display='none';var link=document.querySelector('main > section.card:last-child .panel-head .link');if(link)link.remove()};
+var tableDownload=document.querySelector('.download-all');if(tableDownload)tableDownload.remove();document.querySelector('.head .button').onclick=()=>download.onclick();
+exceptionTitle.textContent='供应商验货不通过批次（18 批）';exceptionList.innerHTML=exceptionRows.map((r,i)=>`<div class="list-row"><span>${r[0]}</span><div class="bar-bg"><i style="--c:${r[2]==='异常'?'#e57676':'#f2b349'};--w:${78-i*6}%"></i></div><div class="dual"><b>${r[1]} 批</b><span class="badge ${r[2]==='异常'?'b-red':'b-amber'}">${r[2]}</span></div></div>`).join('');exceptionLink.textContent='查看全部不通过批次';exceptionLink.onclick=()=>{showExceptions();mask.querySelector('header span').textContent='供应商验货不通过批次明细（18 批）'};
+var renderBeforeFinal=render;function renderPassAxesFinal(d){document.getElementById('chartTitle').childNodes[0].nodeValue='验货合格率趋势 ';document.getElementById('chartNote').textContent='左轴为批次数，右轴为批次合格率；可点击图例隐藏或显示对应指标';document.getElementById('chartHint').textContent='左轴：批次数　右轴：批次合格率（90% - 100%）';document.getElementById('legend').innerHTML='<span style="--c:#5b9bd5">总验货批次</span><span style="--c:#00a65a">合格批次</span><span class="line" style="--c:#7860d9">批次合格率</span>';var max=Math.ceil(Math.max(...d.bars)/100)*100,out='<g stroke="#d8e0eb" stroke-width="1">';[0,1,2,3,4].forEach(i=>{var y=188-i*37.5,v=i*max/4;out+=`<line x1="58" y1="${y}" x2="910" y2="${y}"/><text x="49" y="${y+4}" text-anchor="end" fill="#536274" font-size="11" font-weight="600">${v}</text>`});out+='</g><text x="17" y="18" fill="#536274" font-size="11" font-weight="700">批次数</text><text x="962" y="18" text-anchor="end" fill="#536274" font-size="11" font-weight="700">批次合格率</text><line x1="58" y1="188" x2="910" y2="188" stroke="#aeb9c8"/><g fill="#697588" font-size="10">';d.labels.forEach((l,i)=>{var x=99+i*(760/(d.labels.length-1)),totalH=d.bars[i]/max*150,passH=d.passBars[i]/max*150,top=Math.min(188-totalH,188-passH)-7;out+=`<text x="${x}" y="211" text-anchor="middle">${l}</text><rect x="${x-19}" y="${188-totalH}" width="16" height="${totalH}" rx="2" fill="#5b9bd5"/><rect x="${x+3}" y="${188-passH}" width="16" height="${passH}" rx="2" fill="#00a65a"/><text x="${x}" y="${top}" text-anchor="middle" fill="#4c5d73" font-size="10">总${d.bars[i]} / 合${d.passBars[i]}</text>`});out+='</g><g fill="#536274" font-size="11" font-weight="600">';[90,92,94,96,98,100].forEach(v=>{var y=188-(v-90)/10*150;out+=`<text x="918" y="${y+4}">${v}%</text>`});out+='</g>';var rates=d.passBars.map((v,i)=>v/d.bars[i]*100),pts=rates.map((v,i)=>`${99+i*(760/(rates.length-1))},${188-(v-90)/10*150}`);out+=`<polyline points="${pts.join(' ')}" fill="none" stroke="#7860d9" stroke-width="2.7"/>`;rates.forEach((v,i)=>{var p=pts[i].split(',');out+=`<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="#fff" stroke="#7860d9" stroke-width="2"/><text x="${p[0]}" y="${+p[1]-8}" text-anchor="middle" fill="#7860d9" font-size="9">${v.toFixed(1)}%</text>`});svg.innerHTML=out;document.getElementById('tableTitle').textContent='供应商质量排名';renderRows();wireLegend()}
+render=function(){if(view==='pass')return renderPassAxesFinal(data());renderBeforeFinal();wireLegend()};
+render();
+</script><script>
+/* Remove prototype annotations and keep all output surfaces data-first. */
+var cleanCss=document.createElement('style');cleanCss.textContent='#chart text{font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif}.filters .date-label{white-space:nowrap;color:#657184}.lower .list-row{grid-template-columns:92px 1fr 196px}.lower .dual{justify-content:flex-end}.lower .dual .rate{min-width:50px;text-align:center}';document.head.appendChild(cleanCss);
+var commentLink=document.querySelector('.more');if(commentLink)commentLink.remove();var bizOption=[...document.querySelectorAll('#biz option')].find(x=>x.textContent.trim()==='精品');if(bizOption)bizOption.remove();var dateLabel=document.createElement('span');dateLabel.className='date-label';dateLabel.textContent='验货时间';document.querySelector('.filters .date').before(dateLabel);var commonButton=document.querySelector('.config .button');if(commonButton)commonButton.remove();
+function cleanAnnotations(){var note=document.getElementById('chartNote'),hint=document.getElementById('chartHint');if(note)note.textContent='';if(hint)hint.textContent='';document.querySelectorAll('#legend span').forEach(x=>{if(x.textContent.includes('点击'))x.remove()});document.querySelectorAll('#chart text').forEach(x=>{if(/^总\d+ \/ 合\d+$/.test(x.textContent))x.textContent=x.textContent.replace(/^总(\d+) \/ 合(\d+)$/,'$1 / $2')})}
+var renderRowsBeforeDetailRemoval=renderRows;renderRows=function(){renderRowsBeforeDetailRemoval();var table=document.querySelector('main > section.card:last-child table');table.querySelectorAll('tr').forEach(tr=>{if(tr.lastElementChild)tr.lastElementChild.remove()});document.querySelectorAll('td.supplier').forEach(x=>{x.removeAttribute('onclick');x.style.color='#445166';x.style.cursor='default'});var note=document.getElementById('pageNote');if(note)note.textContent=''};
+var lowerCards=document.querySelectorAll('.lower .card'),buyerCard=lowerCards[0],inspectorCard=lowerCards[1];function staffCard(card,title,rows){card.querySelector('.panel-title').textContent=title;var link=card.querySelector('.link');if(link)link.remove();card.querySelector('.list').innerHTML=rows.map((r,i)=>`<div class="list-row"><span>${r[0]}</span><div class="bar-bg"><i style="--c:#68a8eb;--w:${78-i*10}%"></i></div><div class="dual"><b>总${r[1]}</b><b class="good">合${r[2]}</b><b class="bad">不${r[3]}</b><span class="rate">${r[4]}</span></div></div>`).join('')}staffCard(buyerCard,'采购员验货工作量与合格率',[['文俊洁',19,16,3,'84.21%'],['赵柳慧',117,117,0,'100.00%'],['采购员C',86,83,3,'96.51%'],['采购员D',72,71,1,'98.61%']]);staffCard(inspectorCard,'品质员验货工作量与合格率',[['李建彪',242,237,5,'97.93%'],['王丽英',206,199,7,'96.60%'],['何喜兰',160,159,1,'99.38%'],['王顺英',134,131,3,'97.76%']]);
+var renderBeforeAnnotationClean=render;render=function(){renderBeforeAnnotationClean();cleanAnnotations()};
+render();
+</script><script>
+/* 2026-09-09: natural-period behavior and complete prototype interaction pass. */
+(function () {
+  var css = document.createElement('style');
+  css.textContent = '' +
+    '.filters .filter-row{gap:10px}.biz-filter{display:flex;align-items:center;height:28px;border:1px solid #d8dee8;border-radius:3px;padding:0 8px;background:#fff;gap:14px}.biz-filter label{display:flex;align-items:center;gap:5px;color:#536074;white-space:nowrap;cursor:pointer}.biz-filter input{margin:0;accent-color:#1677ff}.biz-filter .biz-all{padding-right:8px;border-right:1px solid #edf0f4}.filters .date-label{margin-left:2px}.chart-title{display:flex;align-items:center;gap:8px}.chart-title .chart-note{margin-left:auto}.chart-title .view-all{margin-left:auto;border:0;background:transparent;color:#1677ff;cursor:pointer;font:12px inherit;padding:2px 0}.chart-title .view-all + .chart-note{margin-left:0}.lower{grid-template-columns:repeat(2,minmax(0,1fr))}.lower .card{min-width:0}.lower .list{min-height:184px}.detail-modal{width:min(980px,calc(100vw - 64px))}.detail-modal .table-wrap{max-height:58vh;overflow:auto}.detail-modal thead th{position:sticky;top:0;z-index:1}.biz-filter input:focus-visible,.button:focus-visible,.mode:focus-visible,.tab:focus-visible{outline:2px solid #8fc3ff;outline-offset:2px}';
+  document.head.appendChild(css);
+
+  /* Replace the ambiguous dropdown with the business-type multi-select shown in the reference. */
+  var filterRow = document.querySelector('.filters .filter-row');
+  var filterLabel = filterRow.querySelector('.label');
+  if (filterLabel) filterLabel.remove();
+  var bizSelect = document.getElementById('biz');
+  var bizFilter = document.createElement('div');
+  bizFilter.className = 'biz-filter';
+  bizFilter.id = 'bizFilter';
+  bizFilter.innerHTML = '<label class="biz-all"><input type="checkbox" value="all" checked>全部</label>' +
+    '<label><input type="checkbox" value="大件" checked>大件</label>' +
+    '<label><input type="checkbox" value="样品" checked>样品</label>' +
+    '<label><input type="checkbox" value="FBA精品" checked>FBA精品</label>';
+  if (bizSelect) bizSelect.replaceWith(bizFilter);
+  function syncBusinessTypes(source) {
+    var all = bizFilter.querySelector('[value="all"]');
+    var items = Array.from(bizFilter.querySelectorAll('input:not([value="all"])'));
+    if (source === all) items.forEach(function (item) { item.checked = all.checked; });
+    else all.checked = items.every(function (item) { return item.checked; });
+  }
+  bizFilter.addEventListener('change', function (event) { syncBusinessTypes(event.target); });
+  var filterButtons = filterRow.querySelectorAll('.button');
+  if (filterButtons[0]) filterButtons[0].onclick = function () {
+    var selected = Array.from(bizFilter.querySelectorAll('input:not([value="all"]):checked')).map(function (item) { return item.value; });
+    notify('已按验货时间和业务类型刷新：' + (selected.length ? selected.join('、') : '未选择业务类型'));
+    render();
+  };
+  if (filterButtons[1]) filterButtons[1].onclick = function () {
+    bizFilter.querySelectorAll('input').forEach(function (item) { item.checked = true; });
+    notify('已重置为全部业务类型');
+    render();
+  };
+
+  /* Sample quantity and abnormal supplier retain only the metric itself. */
+  document.querySelectorAll('.kpi').forEach(function (card) {
+    var name = card.querySelector('.kpi-name');
+    if (name && (name.textContent.trim() === '抽检数量' || name.textContent.trim() === '异常供应商')) {
+      var foot = card.querySelector('.kpi-foot');
+      if (foot) foot.remove();
+    }
+  });
+
+  /* Natural month / natural quarter / annual aggregation, all based on the filtered inspection time. */
+  var dataBeforeNaturalPeriods = data;
+  data = function () {
+    var d = dataBeforeNaturalPeriods();
+    var periods = {
+      month: {
+        labels: ['1月','2月','3月','4月','5月','6月','7月','8月'],
+        prior: [105,92,110,93,65,53,83,119], current: [333,34,135,102,86,91,117,150]
+      },
+      quarter: {
+        labels: ['1-3月','4-6月','7-9月'],
+        prior: [307,211,202], current: [502,279,267]
+      },
+      year: {
+        labels: ['2024年','2025年','2026年'],
+        prior: [1992,2818,3173], current: [2216,3173,1003]
+      }
+    };
+    var set = periods[period];
+    if (view === 'compare') {
+      d.labels = set.labels;
+      d.bars = set.prior;
+      d.bars2 = set.current;
+      d.lines = [[c.green, set.current.map(function (value, index) { return +((value / set.prior[index] - 1) * 100).toFixed(1); })],
+        [c.purple, set.current.map(function (value, index) { return index ? +((value / set.current[index - 1] - 1) * 100).toFixed(1) : 0; })]];
+    }
+    if (view === 'pass' && period === 'quarter') {
+      d.labels = ['1-3月','4-6月','7-9月'];
+      d.bars = [746,390,500]; d.passBars = [734,380,486];
+      d.lines = [[c.purple, [98.39,97.44,97.20]]];
+    }
+    if (view === 'pass' && period === 'year') {
+      d.labels = ['2024年','2025年','2026年'];
+      d.bars = [1992,3173,1003]; d.passBars = [1954,3133,985];
+      d.lines = [[c.purple, [98.09,98.74,98.21]]];
+    }
+    return d;
+  };
+  document.querySelectorAll('[data-period]').forEach(function (button) {
+    button.onclick = function () {
+      period = button.dataset.period;
+      document.querySelectorAll('[data-period]').forEach(function (item) { item.classList.toggle('on', item === button); });
+      document.getElementById('configTitle').textContent = '统计周期：' + button.textContent;
+      notify('已按验货时间切换为自然' + button.textContent + '汇总');
+      render();
+    };
+  });
+
+  var supplierDetailRows = allRows().concat([
+    ['中山优格家居有限公司', 10, 10, 0, '100.00%', '', 'A 优秀'],
+    ['东莞森木家具有限公司', 8, 7, 1, '87.50%', '', 'D 整改'],
+    ['杭州居艺家居有限公司', 7, 7, 0, '100.00%', '', 'A 优秀'],
+    ['厦门悦享生活有限公司', 6, 6, 0, '100.00%', '', 'A 优秀'],
+    ['惠州美诺科技有限公司', 6, 5, 1, '83.33%', '', 'D 整改'],
+    ['苏州雅居制造有限公司', 5, 5, 0, '100.00%', '', 'A 优秀'],
+    ['武汉家悦实业有限公司', 4, 4, 0, '100.00%', '', 'A 优秀'],
+    ['佛山新居工贸有限公司', 3, 3, 0, '100.00%', '', 'A 优秀']
+  ]);
+  function showAllSuppliers() {
+    mask.querySelector('header span').textContent = '全部供应商验货批次明细（' + supplierDetailRows.length + ' 家）';
+    mask.querySelector('thead tr').innerHTML = '<th>排名</th><th>供应商名称</th><th>验货批次</th><th>合格批次</th><th>不通过批次</th><th>批次合格率</th><th>质量标签</th>';
+    mask.querySelector('tbody').innerHTML = supplierDetailRows.map(function (row, index) {
+      return '<tr><td>' + (index + 1) + '</td><td>' + row[0] + '</td><td>' + row[1] + '</td><td>' + row[2] + '</td><td>' + row[3] + '</td><td>' + row[4] + '</td><td>' + row[6] + '</td></tr>';
+    }).join('');
+    mask.style.display = 'flex';
+  }
+  var renderBeforeTop10Action = render;
+  render = function () {
+    renderBeforeTop10Action();
+    var oldAction = document.querySelector('#chartTitle .view-all');
+    if (oldAction) oldAction.remove();
+    if (view === 'supplier' && supplierMetric === 'batch') {
+      var action = document.createElement('button');
+      action.className = 'view-all';
+      action.type = 'button';
+      action.textContent = '查看所有';
+      action.onclick = showAllSuppliers;
+      document.getElementById('chartTitle').appendChild(action);
+    }
+  };
+
+  /* Provide meaningful feedback for remaining navigation-style controls. */
+  document.querySelectorAll('aside .nav').forEach(function (nav) {
+    nav.onclick = function () { notify('原型中将进入“' + nav.textContent.trim() + '”'); };
+  });
+  document.querySelectorAll('.mode, .tab, .button, .link').forEach(function (control) {
+    if (!control.onclick && !control.dataset.period) control.onclick = function () { notify('该操作已在原型中响应'); };
+  });
+  render();
+}());
+</script><script>
+/* 2026-09-09: unified axes and independent series labels. */
+(function () {
+  var subtitle = document.querySelector('.head .sub');
+  if (subtitle) subtitle.remove();
+  var exportButton = document.querySelector('.head > .button');
+  if (exportButton) exportButton.remove();
+
+  var dataBeforeGradePeriods = data;
+  data = function () {
+    var d = dataBeforeGradePeriods();
+    if (view === 'grade') {
+      var gradeSets = {
+        month: [12, 16, 7, 3],
+        quarter: [31, 37, 16, 6],
+        year: [125, 141, 67, 23]
+      };
+      d.bars = gradeSets[period];
+      d.labels = ['A 优秀', 'B 合格', 'C 关注', 'D 整改'];
+      d.title = '供应商质量分层';
+      d.note = '按当前验货时间范围的自然' + ({month:'月', quarter:'季度', year:'年'}[period]) + '汇总';
+    }
+    return d;
+  };
+
+  var visibleSeries = { total: true, pass: true, rate: true, prior: true, current: true, yoy: true, mom: true, grade: true };
+  function legend(items) {
+    document.getElementById('legend').innerHTML = items.map(function (item) {
+      return '<span class="' + (item.line ? 'line' : '') + (visibleSeries[item.key] ? '' : ' off') + '" data-key="' + item.key + '" style="--c:' + item.color + '">' + item.name + '</span>';
+    }).join('');
+    document.querySelectorAll('#legend [data-key]').forEach(function (item) {
+      item.onclick = function () { visibleSeries[item.dataset.key] = !visibleSeries[item.dataset.key]; render(); };
+    });
+  }
+  function axisGrid(leftMax, rightMin, rightMax, rightTitle) {
+    var output = '<g stroke="#d8e0eb" stroke-width="1">';
+    for (var i = 0; i < 5; i += 1) {
+      var y = 188 - i * 37.5;
+      output += '<line x1="58" y1="' + y + '" x2="910" y2="' + y + '"/>' +
+        '<text x="49" y="' + (y + 4) + '" text-anchor="end" fill="#536274" font-size="11" font-weight="600">' + Math.round(leftMax * i / 4) + '</text>';
+    }
+    output += '</g><text x="17" y="18" fill="#536274" font-size="11" font-weight="700">批次数</text>' +
+      '<text x="962" y="18" text-anchor="end" fill="#536274" font-size="11" font-weight="700">' + rightTitle + '</text>' +
+      '<line x1="58" y1="188" x2="910" y2="188" stroke="#aeb9c8"/>';
+    if (rightMin !== null) {
+      for (var j = 0; j < 6; j += 1) {
+        var value = rightMin + (rightMax - rightMin) * j / 5;
+        var rightY = 188 - j * 30;
+        output += '<text x="918" y="' + (rightY + 4) + '" fill="#536274" font-size="11" font-weight="600">' + Math.round(value) + '%</text>';
+      }
+    }
+    return output;
+  }
+  function xAt(index, length) { return length === 1 ? 480 : 99 + index * (760 / (length - 1)); }
+  function drawPassTrend(d) {
+    var leftMax = Math.ceil(Math.max.apply(null, d.bars) / 100) * 100;
+    document.getElementById('chartTitle').childNodes[0].nodeValue = '验货合格率趋势 ';
+    document.getElementById('chartNote').textContent = '';
+    legend([
+      {key:'total', color:'#5b9bd5', name:'总验货批次'},
+      {key:'pass', color:'#00a65a', name:'合格批次'},
+      {key:'rate', color:'#7860d9', name:'批次合格率', line:true}
+    ]);
+    var output = axisGrid(leftMax, 90, 100, '批次合格率');
+    d.labels.forEach(function (label, index) {
+      var x = xAt(index, d.labels.length), totalH = d.bars[index] / leftMax * 150, passH = d.passBars[index] / leftMax * 150;
+      output += '<text x="' + x + '" y="211" text-anchor="middle" fill="#697588" font-size="10">' + label + '</text>';
+      if (visibleSeries.total) output += '<rect x="' + (x - 19) + '" y="' + (188 - totalH) + '" width="16" height="' + totalH + '" rx="2" fill="#5b9bd5"/><text x="' + (x - 11) + '" y="' + (180 - totalH) + '" text-anchor="middle" fill="#2f75b5" font-size="10">' + d.bars[index] + '</text>';
+      if (visibleSeries.pass) output += '<rect x="' + (x + 3) + '" y="' + (188 - passH) + '" width="16" height="' + passH + '" rx="2" fill="#00a65a"/><text x="' + (x + 11) + '" y="' + (180 - passH) + '" text-anchor="middle" fill="#008a52" font-size="10">' + d.passBars[index] + '</text>';
+    });
+    if (visibleSeries.rate) {
+      var rates = d.passBars.map(function (value, index) { return value / d.bars[index] * 100; });
+      var points = rates.map(function (value, index) { return xAt(index, rates.length) + ',' + (188 - (value - 90) / 10 * 150); });
+      output += '<polyline points="' + points.join(' ') + '" fill="none" stroke="#7860d9" stroke-width="2.7"/>';
+      rates.forEach(function (value, index) {
+        var xy = points[index].split(',');
+        output += '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="3.2" fill="#fff" stroke="#7860d9" stroke-width="2"/><text x="' + xy[0] + '" y="' + (+xy[1] - 8) + '" text-anchor="middle" fill="#7860d9" font-size="9">' + value.toFixed(1) + '%</text>';
+      });
+    }
+    svg.innerHTML = output;
+  }
+  function drawCompare(d) {
+    var leftMax = Math.ceil(Math.max.apply(null, d.bars.concat(d.bars2)) / 100) * 100;
+    var rateValues = d.lines[0][1].concat(d.lines[1][1]);
+    var rightMin = Math.floor((Math.min.apply(null, rateValues) - 10) / 20) * 20;
+    var rightMax = Math.ceil((Math.max.apply(null, rateValues) + 10) / 20) * 20;
+    if (rightMax === rightMin) rightMax += 20;
+    document.getElementById('chartTitle').childNodes[0].nodeValue = '验货批次同比 / 环比 ';
+    document.getElementById('chartNote').textContent = '';
+    legend([
+      {key:'prior', color:'#5b9bd5', name:'去年同期验货批次'},
+      {key:'current', color:'#ffc000', name:'本期验货批次'},
+      {key:'yoy', color:'#00a65a', name:'同比', line:true},
+      {key:'mom', color:'#7860d9', name:'环比', line:true}
+    ]);
+    var output = axisGrid(leftMax, rightMin, rightMax, '同比 / 环比');
+    d.labels.forEach(function (label, index) {
+      var x = xAt(index, d.labels.length), h1 = d.bars[index] / leftMax * 150, h2 = d.bars2[index] / leftMax * 150;
+      output += '<text x="' + x + '" y="211" text-anchor="middle" fill="#697588" font-size="10">' + label + '</text>';
+      if (visibleSeries.prior) output += '<rect x="' + (x - 20) + '" y="' + (188 - h1) + '" width="16" height="' + h1 + '" rx="2" fill="#5b9bd5"/><text x="' + (x - 12) + '" y="' + (180 - h1) + '" text-anchor="middle" fill="#2f75b5" font-size="10">' + d.bars[index] + '</text>';
+      if (visibleSeries.current) output += '<rect x="' + (x + 4) + '" y="' + (188 - h2) + '" width="16" height="' + h2 + '" rx="2" fill="#c99300"/><text x="' + (x + 12) + '" y="' + (180 - h2) + '" text-anchor="middle" fill="#a77700" font-size="10">' + d.bars2[index] + '</text>';
+    });
+    [[visibleSeries.yoy, '#00a65a', d.lines[0][1]], [visibleSeries.mom, '#7860d9', d.lines[1][1]]].forEach(function (line, lineIndex) {
+      if (!line[0]) return;
+      var points = line[2].map(function (value, index) { return xAt(index, line[2].length) + ',' + (188 - (value - rightMin) / (rightMax - rightMin) * 150); });
+      output += '<polyline points="' + points.join(' ') + '" fill="none" stroke="' + line[1] + '" stroke-width="2.5"/>';
+      line[2].forEach(function (value, index) {
+        var xy = points[index].split(',');
+        output += '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="3" fill="#fff" stroke="' + line[1] + '" stroke-width="2"/><text x="' + xy[0] + '" y="' + (+xy[1] + (lineIndex ? 15 : -8)) + '" text-anchor="middle" fill="' + line[1] + '" font-size="9">' + value.toFixed(1) + '%</text>';
+      });
+    });
+    svg.innerHTML = output;
+  }
+  function drawGrade(d) {
+    var max = Math.ceil(Math.max.apply(null, d.bars) / 20) * 20;
+    document.getElementById('chartTitle').childNodes[0].nodeValue = '供应商质量分层 ';
+    document.getElementById('chartNote').textContent = '';
+    legend([{key:'grade', color:'#00a65a', name:'供应商数量'}]);
+    var output = axisGrid(max, null, null, '');
+    d.labels.forEach(function (label, index) {
+      var x = xAt(index, d.labels.length), height = d.bars[index] / max * 150;
+      output += '<text x="' + x + '" y="211" text-anchor="middle" fill="#697588" font-size="10">' + label + '</text>';
+      if (visibleSeries.grade) output += '<rect x="' + (x - 18) + '" y="' + (188 - height) + '" width="36" height="' + height + '" rx="2" fill="#00a65a"/><text x="' + x + '" y="' + (180 - height) + '" text-anchor="middle" fill="#008a52" font-size="11">' + d.bars[index] + '</text>';
+    });
+    svg.innerHTML = output;
+  }
+
+  var renderBeforeUnifiedAxes = render;
+  render = function () {
+    var d = data();
+    if (view === 'pass') { drawPassTrend(d); renderRows(); return; }
+    if (view === 'compare') { drawCompare(d); renderRows(); return; }
+    if (view === 'grade') { drawGrade(d); renderRows(); return; }
+    renderBeforeUnifiedAxes();
+  };
+  render();
+}());
+</script><script>
+/* 2026-09-09: supplier-only actions and denser personnel metrics. */
+(function () {
+  var css = document.createElement('style');
+  css.textContent = '' +
+    '#chartHint{display:none}.lower .list{padding:9px 14px}.lower .list-row{grid-template-columns:78px minmax(140px,1fr) 178px;gap:7px;margin:8px 0}.lower .staff-caption{display:grid;grid-template-columns:78px minmax(140px,1fr) 178px;gap:7px;padding:0 14px 2px;color:#8a96a6;font-size:11px}.lower .staff-caption span:nth-child(2){color:#5d90c7}.staff-metrics{display:grid;grid-template-columns:repeat(3,auto) 52px;justify-content:end;gap:7px;align-items:center;white-space:nowrap}.staff-metrics .total{color:#445166}.staff-metrics .pass{color:#149862}.staff-metrics .fail{color:#d94c4c}.staff-metrics .rate{min-width:52px;padding:2px 4px;text-align:center}.detail-modal table{min-width:860px}.detail-modal th:nth-child(4),.detail-modal td:nth-child(4){min-width:98px}.rank-scroll th:nth-child(4),.rank-scroll td:nth-child(4){min-width:98px}';
+  document.head.appendChild(css);
+  var hint = document.getElementById('chartHint');
+  if (hint) hint.remove();
+
+  function renderStaffCard(card, title, rows) {
+    card.querySelector('.panel-title').textContent = title;
+    var list = card.querySelector('.list');
+    var oldCaption = card.querySelector('.staff-caption');
+    if (oldCaption) oldCaption.remove();
+    var caption = document.createElement('div');
+    caption.className = 'staff-caption';
+    caption.innerHTML = '<span>人员</span><span>蓝色条：验货总批次</span><span>总批次 / 合格 / 不通过 / 合格率</span>';
+    list.before(caption);
+    list.innerHTML = rows.map(function (row, index) {
+      return '<div class="list-row"><span>' + row[0] + '</span><div class="bar-bg"><i style="--c:#68a8eb;--w:' + (78 - index * 10) + '%"></i></div>' +
+        '<div class="staff-metrics"><span class="total">总 ' + row[1] + '</span><span class="pass">合 ' + row[2] + '</span><span class="fail">不 ' + row[3] + '</span><span class="rate">' + row[4] + '</span></div></div>';
+    }).join('');
+  }
+  var cards = document.querySelectorAll('.lower .card');
+  renderStaffCard(cards[0], '采购员验货工作量与合格率', [['文俊洁',19,16,3,'84.21%'],['赵柳慧',117,117,0,'100.00%'],['采购员C',86,83,3,'96.51%'],['采购员D',72,71,1,'98.61%']]);
+  renderStaffCard(cards[1], '品质员验货工作量与合格率', [['李建彪',242,237,5,'97.93%'],['王丽英',206,199,7,'96.60%'],['何喜兰',160,159,1,'99.38%'],['王顺英',134,131,3,'97.76%']]);
+
+  showAllSuppliers = function () {
+    var total = supplierDetailRows.reduce(function (sum, row) { return sum + row[1]; }, 0);
+    mask.querySelector('header span').textContent = '全部供应商验货批次明细（' + supplierDetailRows.length + ' 家）';
+    mask.querySelector('thead tr').innerHTML = '<th>排名</th><th>供应商名称</th><th>验货批次</th><th>验货批次占比</th><th>合格批次</th><th>不通过批次</th><th>批次合格率</th><th>质量标签</th>';
+    mask.querySelector('tbody').innerHTML = supplierDetailRows.map(function (row, index) {
+      return '<tr><td>' + (index + 1) + '</td><td>' + row[0] + '</td><td>' + row[1] + '</td><td>' + (row[1] / total * 100).toFixed(2) + '%</td><td>' + row[2] + '</td><td>' + row[3] + '</td><td>' + row[4] + '</td><td>' + row[6] + '</td></tr>';
+    }).join('');
+    mask.style.display = 'flex';
+  };
+
+  var rowSource = rowsForScroll;
+  renderRows = function () {
+    var table = document.querySelector('main > section.card:last-child table');
+    var total = rowSource.reduce(function (sum, row) { return sum + row[1]; }, 0);
+    table.querySelector('thead tr').innerHTML = '<th style="width:48px">排名</th><th style="width:240px">供应商名称</th><th>验货批次</th><th>验货批次占比</th><th>合格批次</th><th>不通过批次</th><th>批次合格率</th><th>质量标签</th>';
+    document.getElementById('rows').innerHTML = rowSource.map(function (row, index) {
+      var cls = Number(row[4].replace('%','')) < 97 ? 'bad' : 'good';
+      return '<tr><td>' + (index + 1) + '</td><td>' + row[0] + '</td><td>' + row[1] + '</td><td>' + (row[1] / total * 100).toFixed(2) + '%</td><td>' + row[2] + '</td><td>' + (row[3] ? '<span class="badge b-red">' + row[3] + '</span>' : '0') + '</td><td class="' + cls + '">' + row[4] + '</td><td><span class="badge ' + (row[6][0] === 'A' ? 'b-green' : row[6][0] === 'D' ? 'b-red' : 'b-amber') + '">' + row[6] + '</span></td></tr>';
+    }).join('');
+  };
+
+  var renderBeforeSupplierScope = render;
+  render = function () {
+    var action = document.querySelector('#chartTitle .view-all');
+    if (action) action.remove();
+    renderBeforeSupplierScope();
+    action = document.querySelector('#chartTitle .view-all');
+    if (view !== 'supplier' || supplierMetric !== 'batch') {
+      if (action) action.remove();
+    } else if (action) {
+      action.onclick = showAllSuppliers;
+    }
+  };
+  render();
+}());
+</script><script>
+/* 2026-09-09: stable view switching and final personnel-card cleanup. */
+(function () {
+  var css = document.createElement('style');
+  css.textContent = '.lower .staff-caption span:nth-child(2){color:#8a96a6;font-weight:500}.lower .staff-caption span:nth-child(3){text-align:right}.lower .list-row{grid-template-columns:78px minmax(160px,1fr) 178px}.lower .staff-caption{grid-template-columns:78px minmax(160px,1fr) 178px}.staff-metrics{column-gap:8px}.staff-metrics span{font-variant-numeric:tabular-nums}';
+  document.head.appendChild(css);
+
+  document.querySelectorAll('.staff-caption').forEach(function (caption) {
+    caption.innerHTML = '<span>人员</span><span>验货批次</span><span>总批次 / 合格 / 不通过 / 合格率</span>';
+  });
+  var pageNote = document.getElementById('pageNote');
+  if (pageNote) pageNote.textContent = '';
+
+  function activateView(nextView) {
+    view = nextView;
+    document.querySelectorAll('.tab').forEach(function (tab) { tab.classList.toggle('active', tab.dataset.view === nextView); });
+    var supplierView = nextView === 'supplier';
+    document.getElementById('metricTitle').style.display = supplierView ? '' : 'none';
+    document.getElementById('batchMode').style.display = supplierView ? '' : 'none';
+    document.getElementById('passMode').style.display = supplierView ? '' : 'none';
+    render();
+  }
+  document.querySelectorAll('.tab').forEach(function (tab) {
+    tab.onclick = function () { activateView(tab.dataset.view); };
+    tab.setAttribute('role', 'button');
+    tab.setAttribute('tabindex', '0');
+    tab.onkeydown = function (event) { if (event.key === 'Enter' || event.key === ' ') activateView(tab.dataset.view); };
+  });
+  document.getElementById('batchMode').onclick = function () {
+    supplierMetric = 'batch';
+    this.classList.add('on'); document.getElementById('passMode').classList.remove('on');
+    render();
+  };
+  document.getElementById('passMode').onclick = function () {
+    supplierMetric = 'pass';
+    this.classList.add('on'); document.getElementById('batchMode').classList.remove('on');
+    render();
+  };
+
+  /* The chart is redrawn on period/metric switches, so use delegated handling for this action. */
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('#chartTitle .view-all');
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    showAllSuppliers();
+  });
+  var renderBeforeFinalPageNote = render;
+  render = function () {
+    renderBeforeFinalPageNote();
+    var note = document.getElementById('pageNote');
+    if (note) note.textContent = '';
+  };
+  render();
+}());
+</script><script>
+/* 2026-09-09: self-contained supplier modal and workload-bar cleanup. */
+(function () {
+  var css = document.createElement('style');
+  css.textContent = '' +
+    '.lower .bar-bg{background:transparent;height:7px;border-radius:7px}.lower .bar-bg i{min-width:18px}.supplier-all-mask{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(18,32,52,.45);z-index:9999}.supplier-all-dialog{width:min(980px,calc(100vw - 48px));max-height:76vh;background:#fff;border-radius:4px;box-shadow:0 18px 48px rgba(20,35,55,.36);overflow:hidden}.supplier-all-head{height:52px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e7ebf2;font-weight:700}.supplier-all-close{border:0;background:transparent;color:#697588;font-size:20px;line-height:1;cursor:pointer}.supplier-all-scroll{max-height:calc(76vh - 52px);overflow:auto}.supplier-all-dialog table{width:100%;min-width:900px;border-collapse:collapse}.supplier-all-dialog th{position:sticky;top:0;z-index:1}.supplier-all-dialog td,.supplier-all-dialog th{white-space:nowrap}';
+  document.head.appendChild(css);
+
+  var modal = document.createElement('div');
+  modal.className = 'supplier-all-mask';
+  modal.id = 'supplierAllModal';
+  modal.innerHTML = '<div class="supplier-all-dialog" role="dialog" aria-modal="true" aria-label="全部供应商验货批次明细">' +
+    '<div class="supplier-all-head"><span>全部供应商验货批次明细</span><button class="supplier-all-close" type="button" aria-label="关闭">×</button></div>' +
+    '<div class="supplier-all-scroll"><table><thead><tr><th>排名</th><th>供应商名称</th><th>验货批次</th><th>验货批次占比</th><th>合格批次</th><th>不通过批次</th><th>批次合格率</th><th>质量标签</th></tr></thead><tbody></tbody></table></div></div>';
+  document.body.appendChild(modal);
+  var supplierList = [
+    ['广州奥科照明电器有限公司',83,80,3,'96.39%','C 关注'],['广东万博科技有限公司',58,58,0,'100.00%','A 优秀'],['珠海正远光电有限公司',38,37,1,'97.37%','B 合格'],['珠海川能新能源科技有限公司',31,30,1,'96.77%','C 关注'],['绿城照明有限公司',28,27,1,'96.43%','C 关注'],['深圳佳林通科技有限公司',24,21,3,'87.50%','D 整改'],['广州恩途电气有限公司',18,17,1,'94.44%','C 关注'],['浙江立诚工贸有限公司',16,15,1,'93.75%','C 关注'],['江门达克斯智能家具有限公司',13,10,3,'76.92%','D 整改'],['广州东鑫电子科技有限公司',11,9,2,'81.82%','D 整改'],['佛山美居家居有限公司',9,9,0,'100.00%','A 优秀'],['宁波新锐制造有限公司',8,7,1,'87.50%','D 整改'],['中山优格家居有限公司',10,10,0,'100.00%','A 优秀'],['东莞森木家具有限公司',8,7,1,'87.50%','D 整改'],['杭州居艺家居有限公司',7,7,0,'100.00%','A 优秀'],['厦门悦享生活有限公司',6,6,0,'100.00%','A 优秀'],['惠州美诺科技有限公司',6,5,1,'83.33%','D 整改'],['苏州雅居制造有限公司',5,5,0,'100.00%','A 优秀'],['武汉家悦实业有限公司',4,4,0,'100.00%','A 优秀'],['佛山新居工贸有限公司',3,3,0,'100.00%','A 优秀']
+  ];
+  function openSupplierAllModal() {
+    var total = supplierList.reduce(function (sum, row) { return sum + row[1]; }, 0);
+    modal.querySelector('.supplier-all-head span').textContent = '全部供应商验货批次明细（' + supplierList.length + ' 家）';
+    modal.querySelector('tbody').innerHTML = supplierList.map(function (row, index) {
+      return '<tr><td>' + (index + 1) + '</td><td>' + row[0] + '</td><td>' + row[1] + '</td><td>' + (row[1] / total * 100).toFixed(2) + '%</td><td>' + row[2] + '</td><td>' + row[3] + '</td><td>' + row[4] + '</td><td>' + row[5] + '</td></tr>';
+    }).join('');
+    modal.style.display = 'flex';
+  }
+  function closeSupplierAllModal() { modal.style.display = 'none'; }
+  modal.querySelector('.supplier-all-close').onclick = closeSupplierAllModal;
+  modal.onclick = function (event) { if (event.target === modal) closeSupplierAllModal(); };
+  document.addEventListener('keydown', function (event) { if (event.key === 'Escape') closeSupplierAllModal(); });
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('#chartTitle .view-all');
+    if (!button) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openSupplierAllModal();
+  }, true);
+}());
+</script><script>
+/* 2026-09-09: one supplier-detail surface, with the ranking table as the full list. */
+(function () {
+  var css = document.createElement('style');
+  css.textContent = '.rank-scroll{max-height:360px;overflow-y:auto}.rank-scroll thead th{position:sticky;top:0;z-index:1}.supplier-all-mask{display:none!important}';
+  document.head.appendChild(css);
+  var allSupplierRows = [
+    ['广州奥科照明电器有限公司',83,80,3,'96.39%','', 'C 关注'],['广东万博科技有限公司',58,58,0,'100.00%','', 'A 优秀'],['珠海正远光电有限公司',38,37,1,'97.37%','', 'B 合格'],['珠海川能新能源科技有限公司',31,30,1,'96.77%','', 'C 关注'],['绿城照明有限公司',28,27,1,'96.43%','', 'C 关注'],['深圳佳林通科技有限公司',24,21,3,'87.50%','', 'D 整改'],['广州恩途电气有限公司',18,17,1,'94.44%','', 'C 关注'],['浙江立诚工贸有限公司',16,15,1,'93.75%','', 'C 关注'],['江门达克斯智能家具有限公司',13,10,3,'76.92%','', 'D 整改'],['广州东鑫电子科技有限公司',11,9,2,'81.82%','', 'D 整改'],['中山优格家居有限公司',10,10,0,'100.00%','', 'A 优秀'],['佛山美居家居有限公司',9,9,0,'100.00%','', 'A 优秀'],['宁波新锐制造有限公司',8,7,1,'87.50%','', 'D 整改'],['东莞森木家具有限公司',8,7,1,'87.50%','', 'D 整改'],['杭州居艺家居有限公司',7,7,0,'100.00%','', 'A 优秀'],['厦门悦享生活有限公司',6,6,0,'100.00%','', 'A 优秀'],['惠州美诺科技有限公司',6,5,1,'83.33%','', 'D 整改'],['苏州雅居制造有限公司',5,5,0,'100.00%','', 'A 优秀'],['武汉家悦实业有限公司',4,4,0,'100.00%','', 'A 优秀'],['佛山新居工贸有限公司',3,3,0,'100.00%','', 'A 优秀']
+  ];
+  renderRows = function () {
+    var table = document.querySelector('main > section.card:last-child table');
+    var wrap = table.closest('.table-wrap');
+    var total = allSupplierRows.reduce(function (sum, row) { return sum + row[1]; }, 0);
+    wrap.classList.add('rank-scroll');
+    table.querySelector('thead tr').innerHTML = '<th style="width:48px">排名</th><th style="width:240px">供应商名称</th><th>验货批次</th><th>验货批次占比</th><th>合格批次</th><th>不通过批次</th><th>批次合格率</th><th>质量标签</th>';
+    document.getElementById('rows').innerHTML = allSupplierRows.map(function (row, index) {
+      var gradeClass = row[6][0] === 'A' ? 'b-green' : row[6][0] === 'D' ? 'b-red' : 'b-amber';
+      return '<tr><td>' + (index + 1) + '</td><td>' + row[0] + '</td><td>' + row[1] + '</td><td>' + (row[1] / total * 100).toFixed(2) + '%</td><td>' + row[2] + '</td><td>' + (row[3] ? '<span class="badge b-red">' + row[3] + '</span>' : '0') + '</td><td class="' + (Number(row[4].replace('%','')) < 97 ? 'bad' : 'good') + '">' + row[4] + '</td><td><span class="badge ' + gradeClass + '">' + row[6] + '</span></td></tr>';
+    }).join('');
+    var foot = document.querySelector('main > section.card:last-child .foot');
+    if (foot) foot.style.display = 'none';
+  };
+  var renderBeforeSingleSupplierDetail = render;
+  render = function () {
+    renderBeforeSingleSupplierDetail();
+    document.querySelectorAll('#chartTitle .view-all').forEach(function (action) { action.remove(); });
+    var title = document.getElementById('tableTitle');
+    if (title) title.textContent = '供应商质量排名（全部）';
+    renderRows();
+  };
+  render();
+}());
 </script></body></html>
