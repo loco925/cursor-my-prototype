@@ -239,14 +239,14 @@ render();
       item.onclick = function () { visibleSeries[item.dataset.key] = !visibleSeries[item.dataset.key]; render(); };
     });
   }
-  function axisGrid(leftMax, rightMin, rightMax, rightTitle) {
+  function axisGrid(leftMax, rightMin, rightMax, rightTitle, leftTitle) {
     var output = '<g stroke="#d8e0eb" stroke-width="1">';
     for (var i = 0; i < 5; i += 1) {
       var y = 188 - i * 37.5;
       output += '<line x1="58" y1="' + y + '" x2="910" y2="' + y + '"/>' +
         '<text x="49" y="' + (y + 4) + '" text-anchor="end" fill="#536274" font-size="11" font-weight="600">' + Math.round(leftMax * i / 4) + '</text>';
     }
-    output += '</g><text x="17" y="18" fill="#536274" font-size="11" font-weight="700">批次数</text>' +
+    output += '</g><text x="17" y="18" fill="#536274" font-size="11" font-weight="700">' + (leftTitle || '批次数') + '</text>' +
       '<text x="962" y="18" text-anchor="end" fill="#536274" font-size="11" font-weight="700">' + rightTitle + '</text>' +
       '<line x1="58" y1="188" x2="910" y2="188" stroke="#aeb9c8"/>';
     if (rightMin !== null) {
@@ -323,7 +323,7 @@ render();
     document.getElementById('chartTitle').childNodes[0].nodeValue = '供应商质量分层 ';
     document.getElementById('chartNote').textContent = '';
     legend([{key:'grade', color:'#00a65a', name:'供应商数量'}]);
-    var output = axisGrid(max, null, null, '');
+    var output = axisGrid(max, null, null, '', '数量');
     d.labels.forEach(function (label, index) {
       var x = xAt(index, d.labels.length), height = d.bars[index] / max * 150;
       output += '<text x="' + x + '" y="211" text-anchor="middle" fill="#697588" font-size="10">' + label + '</text>';
