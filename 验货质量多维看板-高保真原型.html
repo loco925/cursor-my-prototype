@@ -790,6 +790,9 @@ render();
   if (dashboardMain) dashboardMain.style.paddingLeft = '24px';
   var breadcrumb = document.querySelector('.crumb');
   if (breadcrumb) breadcrumb.textContent = '数据中心 / 质检 / 品质验货多维看板';
+  document.querySelectorAll('.kpi-name').forEach(function (name) {
+    if (name.textContent.trim() === '验货记录') name.textContent = '总验货批次';
+  });
 
   var allowedTypes = (window.qualityDashboardBusinessTypes || ['FBA精品', '大件', '样品']).slice();
   var typeWeights = {'FBA精品': 0.42, '大件': 0.38, '样品': 0.20};
@@ -876,7 +879,7 @@ render();
   function applyBusinessFilter() {
     var selected = selectedTypes();
     businessFactor = selected.reduce(function (sum, type) { return sum + (typeWeights[type] || 0); }, 0);
-    var values = {'验货记录': Math.round(1003 * businessFactor), '合格批次': Math.round(985 * businessFactor), '不合格批次': Math.round(18 * businessFactor), '异常供应商': Math.max(0, Math.round(6 * businessFactor))};
+    var values = {'总验货批次': Math.round(1003 * businessFactor), '合格批次': Math.round(985 * businessFactor), '不合格批次': Math.round(18 * businessFactor), '异常供应商': Math.max(0, Math.round(6 * businessFactor))};
     document.querySelectorAll('.kpi').forEach(function (card) {
       var name = card.querySelector('.kpi-name').textContent.trim();
       if (values[name] !== undefined) card.querySelector('.kpi-val').textContent = values[name].toLocaleString();
