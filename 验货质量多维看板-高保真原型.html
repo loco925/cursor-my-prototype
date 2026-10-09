@@ -790,6 +790,16 @@ render();
   if (dashboardMain) dashboardMain.style.paddingLeft = '24px';
   var breadcrumb = document.querySelector('.crumb');
   if (breadcrumb) breadcrumb.textContent = '数据中心 / 质检 / 品质验货多维看板';
+  var configStyle = document.createElement('style');
+  configStyle.textContent = '.config.supplier-config #configTitle,.config.supplier-config [data-period]{display:none!important}';
+  document.head.appendChild(configStyle);
+  function syncSupplierConfig() {
+    var config = document.querySelector('.analysis .config');
+    if (config) config.classList.toggle('supplier-config', view === 'supplier');
+  }
+  document.querySelectorAll('.tab').forEach(function (tab) {
+    tab.addEventListener('click', function () { setTimeout(syncSupplierConfig, 0); });
+  });
   document.querySelectorAll('.kpi-name').forEach(function (name) {
     if (name.textContent.trim() === '验货记录') name.textContent = '总验货批次';
   });
@@ -821,6 +831,15 @@ render();
       if (next !== text) textNode.nodeValue = next;
     });
   }
+  var dataWithoutSupplierPeriod = data;
+  data = function () {
+    if (view !== 'supplier') return dataWithoutSupplierPeriod();
+    var selectedPeriod = period;
+    period = 'month';
+    var supplierData = dataWithoutSupplierPeriod();
+    period = selectedPeriod;
+    return supplierData;
+  };
   var baseDataByBusiness = data;
   data = function () {
     var d = baseDataByBusiness();
@@ -875,6 +894,7 @@ render();
       document.querySelectorAll('#chart [stroke="#7860d9"], #chart [fill="#7860d9"]').forEach(function (item) { item.remove(); });
     }
     renameUnqualified();
+    syncSupplierConfig();
   };
   function applyBusinessFilter() {
     var selected = selectedTypes();
@@ -910,5 +930,286 @@ render();
   document.getElementById('inspectionStart').addEventListener('change', function () { setTimeout(function () { applyBusinessFilter(); }, 0); });
   new MutationObserver(renameUnqualified).observe(document.body, {childList:true, subtree:true, characterData:true});
   applyBusinessFilter();
+}());
+</script><script>
+/* 2026-10-09: QCD-09 online-use optimizations. */
+(function () {
+  var style = document.createElement('style');
+  style.textContent = '' +
+    '.compare-metric{display:none;align-items:center;gap:8px;margin-left:10px}.compare-metric.show{display:flex}.compare-metric b{font-size:13px}.rank-filter{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #e7ebf2;background:#fbfcfe}.rank-filter label{white-space:nowrap;color:#59677a}.rank-filter input{height:30px;width:220px;padding:0 9px;border:1px solid #d8dee8;border-radius:3px;outline:0}.rank-grade-select{position:relative}.rank-grade-trigger{height:30px;min-width:188px;padding:0 27px 0 10px;border:1px solid #d8dee8;border-radius:3px;background:#fff;color:#4b5b70;text-align:left;cursor:pointer;position:relative}.rank-grade-trigger:after{content:"▾";position:absolute;right:10px;top:6px;color:#8d99a9}.rank-grade-menu{display:none;position:absolute;top:34px;left:0;z-index:30;width:236px;padding:6px 0;background:#fff;border:1px solid #d8dee8;border-radius:3px;box-shadow:0 8px 18px rgba(29,48,74,.16)}.rank-grade-select.open .rank-grade-menu{display:block}.rank-grade-menu label{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;cursor:pointer}.rank-grade-menu label:hover{background:#f2f7fd}.rank-grade-menu input{width:14px;height:14px;margin:0;accent-color:#1677ff}.rank-fixed-wrap{height:430px;overflow-y:auto}.rank-fixed-wrap thead th{position:sticky;top:0;z-index:2}.rank-sort{border:0;background:transparent;color:#738093;cursor:pointer;padding:0;font:inherit}.rank-sort:after{content:" ↕";color:#a8b1bd}.rank-fixed-wrap td{cursor:pointer}.rank-fixed-wrap tbody tr:hover{background:#f2f8ff}.rank-cell-menu{position:fixed;display:none;z-index:10002;width:142px;padding:5px;background:#fff;border:1px solid #dce4ee;border-radius:4px;box-shadow:0 8px 22px rgba(29,48,74,.18)}.rank-cell-menu button{display:block;width:100%;height:31px;padding:0 9px;border:0;border-radius:3px;background:#fff;color:#3f4e63;text-align:left;cursor:pointer}.rank-cell-menu button:hover{background:#edf5ff;color:#1677ff}.inspection-detail-mask{position:fixed;inset:0;z-index:10001;display:none;align-items:center;justify-content:center;background:rgba(18,32,52,.46)}.inspection-detail-dialog{width:min(1220px,calc(100vw - 48px));max-height:78vh;overflow:hidden;background:#fff;border-radius:4px;box-shadow:0 18px 48px rgba(20,35,55,.36)}.inspection-detail-head{height:52px;padding:0 18px;display:flex;align-items:center;gap:14px;border-bottom:1px solid #e7ebf2}.inspection-detail-title{font-size:16px;font-weight:700}.inspection-detail-head .spacer{flex:1}.inspection-detail-close{border:0;background:transparent;font-size:20px;color:#697588;cursor:pointer}.inspection-detail-scroll{max-height:calc(78vh - 52px);overflow:auto}.inspection-detail-scroll table{min-width:1850px}.inspection-detail-scroll thead th{position:sticky;top:0;z-index:1}.file-link{color:#1677ff;cursor:pointer}.chart-rate-note{color:#8994a4;font-size:12px;font-weight:normal;float:right}';
+  document.head.appendChild(style);
+
+  var compareMetric = 'batch';
+  var config = document.querySelector('.analysis .config');
+  var compareControls = document.createElement('div');
+  compareControls.className = 'compare-metric';
+  compareControls.innerHTML = '<b>对比指标</b><button type="button" class="mode on" data-compare-metric="batch">验货批次</button><button type="button" class="mode" data-compare-metric="rate">验货合格率</button>';
+  config.insertBefore(compareControls, config.querySelector('.spacer'));
+
+  function currentRateSet() {
+    var sets = {
+      month: {labels:['1月','2月','3月','4月','5月','6月','7月','8月'], prior:[97.4,98.1,96.2,98.7,95.8,96.4,97.1,98.0], current:[99.0,98.7,96.9,99.4,95.4,97.2,98.3,98.6], previous:[98.2,99.0,98.7,96.9,99.4,95.4,97.2,98.3]},
+      quarter: {labels:['1-3月','4-6月','7-9月'], prior:[97.2,96.8,97.4], current:[98.4,97.6,98.1], previous:[97.9,98.4,97.6]},
+      year: {labels:['2024年','2025年','2026年'], prior:[96.7,97.2,97.8], current:[97.6,98.1,98.4], previous:[]}
+    };
+    return sets[period] || sets.month;
+  }
+  function smoothPath(points) {
+    if (!points.length) return '';
+    var path = 'M' + points[0].x + ',' + points[0].y;
+    for (var i = 1; i < points.length; i++) {
+      var previous = points[i - 1], current = points[i], middle = (previous.x + current.x) / 2;
+      path += ' C' + middle + ',' + previous.y + ' ' + middle + ',' + current.y + ' ' + current.x + ',' + current.y;
+    }
+    return path;
+  }
+  function renderRateComparison() {
+    var dataSet = currentRateSet(), labels = dataSet.labels, prior = dataSet.prior, current = dataSet.current;
+    var yoy = current.map(function (value, index) { return +(value - prior[index]).toFixed(2); });
+    var mom = period === 'year' ? [] : current.map(function (value, index) { return +(value - dataSet.previous[index]).toFixed(2); });
+    var rateFloor = Math.max(0, Math.floor((Math.min.apply(null, prior.concat(current)) - 1) / 5) * 5);
+    var rateCeiling = Math.min(100, Math.ceil((Math.max.apply(null, prior.concat(current)) + 1) / 5) * 5);
+    if (rateCeiling - rateFloor < 10) { rateFloor = Math.max(0, rateFloor - 5); rateCeiling = Math.min(100, rateCeiling + 5); }
+    var changeValues = yoy.concat(mom.length ? mom : [0]), maxChange = Math.max(2, Math.ceil(Math.max.apply(null, changeValues.map(function (value) { return Math.abs(value); })) + 1));
+    var chart = document.getElementById('chart');
+    document.getElementById('chartTitle').innerHTML = '验货合格率同比 / 环比 <span class="chart-rate-note">左轴：批次合格率　右轴：同比/环比变化（百分点）</span>';
+    document.getElementById('chartHint').textContent = period === 'year' ? '年度仅展示同比变化' : '合格率变化按百分点展示';
+    document.getElementById('legend').innerHTML = '<span style="--c:#8ab7e8">去年同期批次合格率</span><span style="--c:#00a65a">本期批次合格率</span><span class="line" style="--c:#18a566">同比变化</span>' + (period === 'year' ? '' : '<span class="line" style="--c:#7860d9">环比变化</span>');
+    var width = 980, left = 64, right = 910, baseline = 188, top = 30, height = baseline - top;
+    var xFor = function (index) { return labels.length === 1 ? (left + right) / 2 : left + index * ((right - left) / (labels.length - 1)); };
+    var yRate = function (value) { return baseline - (value - rateFloor) / (rateCeiling - rateFloor) * height; };
+    var yChange = function (value) { return baseline - (value + maxChange) / (maxChange * 2) * height; };
+    var out = '<g stroke="#d8e0eb" stroke-width="1">';
+    for (var t = 0; t <= 4; t++) { var yy = baseline - t * height / 4, rateTick = rateFloor + t * (rateCeiling - rateFloor) / 4; out += '<line x1="' + left + '" y1="' + yy + '" x2="' + right + '" y2="' + yy + '"/><text x="' + (left - 9) + '" y="' + (yy + 4) + '" text-anchor="end" fill="#536274" font-size="11">' + rateTick.toFixed(0) + '%</text><text x="' + (right + 8) + '" y="' + (yy + 4) + '" fill="#536274" font-size="11">' + (-maxChange + t * maxChange / 2).toFixed(1) + 'pp</text>'; }
+    out += '</g><text x="15" y="18" fill="#536274" font-size="11" font-weight="700">批次合格率</text><text x="966" y="18" text-anchor="end" fill="#536274" font-size="11" font-weight="700">变化（百分点）</text><line x1="' + left + '" y1="' + baseline + '" x2="' + right + '" y2="' + baseline + '" stroke="#aeb9c8"/>';
+    labels.forEach(function (label, index) {
+      var x = xFor(index), priorY = yRate(prior[index]), currentY = yRate(current[index]);
+      out += '<text x="' + x + '" y="211" text-anchor="middle" fill="#697588" font-size="10">' + label + '</text><rect x="' + (x - 18) + '" y="' + priorY + '" width="15" height="' + (baseline - priorY) + '" rx="2" fill="#8ab7e8"/><rect x="' + (x + 3) + '" y="' + currentY + '" width="15" height="' + (baseline - currentY) + '" rx="2" fill="#00a65a"/><text x="' + (x - 10) + '" y="' + (priorY - 6) + '" text-anchor="middle" fill="#5e7a9a" font-size="9">' + prior[index].toFixed(1) + '%</text><text x="' + (x + 11) + '" y="' + (currentY - 6) + '" text-anchor="middle" fill="#008d58" font-size="9">' + current[index].toFixed(1) + '%</text>';
+    });
+    function drawChange(values, color, yOffset) {
+      var points = values.map(function (value, index) { return {x:xFor(index), y:yChange(value)}; });
+      out += '<path d="' + smoothPath(points) + '" fill="none" stroke="' + color + '" stroke-width="2.5"/>';
+      points.forEach(function (point, index) { var value = values[index], sign = value > 0 ? '+' : ''; out += '<circle cx="' + point.x + '" cy="' + point.y + '" r="3" fill="#fff" stroke="' + color + '" stroke-width="2"/><text x="' + point.x + '" y="' + (point.y + yOffset) + '" text-anchor="middle" fill="' + color + '" font-size="9">' + sign + value.toFixed(2) + 'pp</text>'; });
+    }
+    drawChange(yoy, '#18a566', -8);
+    if (mom.length) drawChange(mom, '#7860d9', 15);
+    chart.innerHTML = out;
+  }
+  function renderBatchComparison() {
+    var sets = {
+      month:{labels:['1月','2月','3月','4月','5月','6月','7月','8月'],prior:[352,166,159,138,102,121,147,186],current:[393,178,175,149,108,133,162,205],previous:[336,393,178,175,149,108,133,162]},
+      quarter:{labels:['1-3月','4-6月','7-9月'],prior:[677,361,528],current:[746,390,500],previous:[540,746,390]},
+      year:{labels:['2024年','2025年','2026年'],prior:[1888,2094,1755],current:[2131,2325,2480],previous:[]}
+    }, dataSet = sets[period] || sets.month, labels = dataSet.labels, prior = dataSet.prior, current = dataSet.current;
+    var yoy = current.map(function (value, index) { return prior[index] ? +((value - prior[index]) / prior[index] * 100).toFixed(1) : 0; });
+    var mom = period === 'year' ? [] : current.map(function (value, index) { return dataSet.previous[index] ? +((value - dataSet.previous[index]) / dataSet.previous[index] * 100).toFixed(1) : 0; });
+    var maxBatch = Math.ceil(Math.max.apply(null, prior.concat(current)) / 100) * 100, maxChange = Math.max(10, Math.ceil(Math.max.apply(null, yoy.concat(mom.length ? mom : [0]).map(function (value) { return Math.abs(value); })) / 10) * 10);
+    var chart = document.getElementById('chart'), width = 980, left = 64, right = 910, baseline = 188, top = 30, height = baseline - top;
+    var xFor = function (index) { return labels.length === 1 ? (left + right) / 2 : left + index * ((right - left) / (labels.length - 1)); };
+    var yBatch = function (value) { return baseline - value / maxBatch * height; }, yChange = function (value) { return baseline - (value + maxChange) / (maxChange * 2) * height; };
+    document.getElementById('chartTitle').innerHTML = '验货批次同比 / 环比 <span class="chart-rate-note">左轴：验货批次　右轴：同比/环比</span>';
+    document.getElementById('chartHint').textContent = period === 'year' ? '年度仅展示同比变化' : '本期与去年同期、上一相邻周期比较';
+    document.getElementById('legend').innerHTML = '<span style="--c:#8ab7e8">去年同期验货批次</span><span style="--c:#1677ff">本期验货批次</span><span class="line" style="--c:#18a566">同比</span>' + (period === 'year' ? '' : '<span class="line" style="--c:#7860d9">环比</span>');
+    var out = '<g stroke="#d8e0eb" stroke-width="1">';
+    for (var t = 0; t <= 4; t++) { var yy = baseline - t * height / 4, batchTick = maxBatch * t / 4, changeTick = -maxChange + t * maxChange / 2; out += '<line x1="' + left + '" y1="' + yy + '" x2="' + right + '" y2="' + yy + '"/><text x="' + (left - 9) + '" y="' + (yy + 4) + '" text-anchor="end" fill="#536274" font-size="11">' + batchTick.toFixed(0) + '</text><text x="' + (right + 8) + '" y="' + (yy + 4) + '" fill="#536274" font-size="11">' + changeTick.toFixed(0) + '%</text>'; }
+    out += '</g><text x="15" y="18" fill="#536274" font-size="11" font-weight="700">验货批次</text><text x="966" y="18" text-anchor="end" fill="#536274" font-size="11" font-weight="700">同比 / 环比</text><line x1="' + left + '" y1="' + baseline + '" x2="' + right + '" y2="' + baseline + '" stroke="#aeb9c8"/>';
+    labels.forEach(function (label, index) { var x = xFor(index), priorY = yBatch(prior[index]), currentY = yBatch(current[index]); out += '<text x="' + x + '" y="211" text-anchor="middle" fill="#697588" font-size="10">' + label + '</text><rect x="' + (x - 18) + '" y="' + priorY + '" width="15" height="' + (baseline - priorY) + '" rx="2" fill="#8ab7e8"/><rect x="' + (x + 3) + '" y="' + currentY + '" width="15" height="' + (baseline - currentY) + '" rx="2" fill="#1677ff"/><text x="' + (x - 10) + '" y="' + (priorY - 6) + '" text-anchor="middle" fill="#5e7a9a" font-size="9">' + prior[index] + '</text><text x="' + (x + 11) + '" y="' + (currentY - 6) + '" text-anchor="middle" fill="#1677ff" font-size="9">' + current[index] + '</text>'; });
+    function drawChange(values, color, offset) { var points = values.map(function (value, index) { return {x:xFor(index),y:yChange(value)}; }); out += '<path d="' + smoothPath(points) + '" fill="none" stroke="' + color + '" stroke-width="2.5"/>'; points.forEach(function (point, index) { var value = values[index], sign = value > 0 ? '+' : ''; out += '<circle cx="' + point.x + '" cy="' + point.y + '" r="3" fill="#fff" stroke="' + color + '" stroke-width="2"/><text x="' + point.x + '" y="' + (point.y + offset) + '" text-anchor="middle" fill="' + color + '" font-size="9">' + sign + value.toFixed(1) + '%</text>'; }); }
+    drawChange(yoy, '#18a566', -8); if (mom.length) drawChange(mom, '#7860d9', 15); chart.innerHTML = out;
+  }
+  function syncCompareControls() {
+    var compareView = view === 'compare';
+    compareControls.classList.toggle('show', compareView);
+    document.getElementById('metricTitle').style.display = view === 'supplier' ? '' : 'none';
+    if (compareView) document.getElementById('chartHint').style.display = '';
+  }
+  compareControls.querySelectorAll('[data-compare-metric]').forEach(function (button) {
+    button.onclick = function () {
+      compareMetric = button.dataset.compareMetric;
+      compareControls.querySelectorAll('[data-compare-metric]').forEach(function (item) { item.classList.toggle('on', item === button); });
+      render();
+    };
+  });
+
+  var rankCard = document.querySelector('main > section.card:last-child');
+  var rankHead = rankCard.querySelector('.panel-head');
+  var rankFilter = document.createElement('div');
+  rankFilter.className = 'rank-filter';
+  rankFilter.innerHTML = '<label for="supplierNameFilter">供应商名称</label><input id="supplierNameFilter" type="text" placeholder="请输入供应商名称"/><label>供应商等级</label><div class="rank-grade-select" id="supplierGradeFilter"><button type="button" class="rank-grade-trigger" aria-expanded="false">全部</button><div class="rank-grade-menu"><label><input type="checkbox" value="all" checked/>全部</label><label><input type="checkbox" value="A"/>A级 优秀供应商</label><label><input type="checkbox" value="B"/>B级 良好供应商</label><label><input type="checkbox" value="C"/>C级 待提升供应商</label><label><input type="checkbox" value="D"/>D级 不合格供应商</label></div></div><button type="button" class="button primary" id="supplierRankQuery">查询</button><button type="button" class="button" id="supplierRankReset">重置</button>';
+  rankHead.innerHTML = '<span class="panel-title">供应商质量排名</span><button type="button" class="button supplier-export" id="supplierRankExport">导出</button>';
+  rankHead.insertAdjacentElement('afterend', rankFilter);
+  rankCard.querySelector('.table-wrap').innerHTML = '<table><thead><tr><th style="width:56px"><button class="rank-sort" data-sort="rank">排名</button></th><th style="width:260px"><button class="rank-sort" data-sort="name">供应商名称</button></th><th><button class="rank-sort" data-sort="total">验货批次</button></th><th><button class="rank-sort" data-sort="share">验货批次占比</button></th><th><button class="rank-sort" data-sort="pass">合格批次</button></th><th><button class="rank-sort" data-sort="fail">不合格批次</button></th><th><button class="rank-sort" data-sort="rate">批次合格率</button></th><th style="width:175px"><button class="rank-sort" data-sort="grade">供应商等级</button></th></tr></thead><tbody id="supplierRankBody"></tbody></table>';
+  rankCard.querySelector('.table-wrap').classList.add('rank-fixed-wrap');
+  var oldFoot = rankCard.querySelector('.foot'); if (oldFoot) oldFoot.remove();
+  var rankSort = {key:'total', direction:'desc'};
+  var rankBase = [
+    ['宁德市信本家具有限公司',30,28],['东莞市聚达木制品有限公司',11,9],['泉州广丰家居制品有限公司',11,11],['广东万博科技有限公司',7,7],['东莞市倾城家具有限公司',6,6],['FB惠州市绿城半导体照明有限公司',3,3],['广州市普菲科办公家具有限公司',3,3],['FB珠海市正远光电科技有限公司',2,2],['东莞市燕尚屋生活科技有限公司',2,1],['漳州冠荣家具有限公司',2,2],['贝加美（福建）投资集团有限公司',2,2],['鹤山市宝仕利五金实业有限公司',1,1],['佛山市悦宜家居有限公司',1,1],['厦门海景工贸有限公司',1,0]
+  ];
+  function gradeFor(rate) { if (rate >= 99) return {key:'A',label:'A级 优秀供应商'}; if (rate >= 97) return {key:'B',label:'B级 良好供应商'}; if (rate >= 90) return {key:'C',label:'C级 待提升供应商'}; return {key:'D',label:'D级 不合格供应商'}; }
+  function totalBatchCount() {
+    var card = Array.from(document.querySelectorAll('.kpi')).find(function (item) { return item.querySelector('.kpi-name') && item.querySelector('.kpi-name').textContent.trim() === '总验货批次'; });
+    var number = card ? Number(card.querySelector('.kpi-val').textContent.replace(/,/g, '')) : 1003;
+    return Number.isFinite(number) && number > 0 ? number : 80;
+  }
+  function supplierRows() {
+    var sourceTotal = rankBase.reduce(function (sum, row) { return sum + row[1]; }, 0), targetTotal = totalBatchCount(), ratio = targetTotal / sourceTotal;
+    var rows = rankBase.map(function (row, index) { var total = Math.max(0, Math.round(row[1] * ratio)), pass = Math.min(total, Math.round(row[2] * ratio)); return {name:row[0], total:total, pass:pass, fail:total-pass, original:index}; });
+    var adjustment = targetTotal - rows.reduce(function (sum, row) { return sum + row.total; }, 0); rows[0].total += adjustment; rows[0].pass = Math.min(rows[0].total, Math.max(0, rows[0].pass + adjustment));
+    var allTotal = rows.reduce(function (sum, row) { return sum + row.total; }, 0);
+    rows.forEach(function (row) { row.rate = row.total ? row.pass / row.total * 100 : 0; row.share = allTotal ? row.total / allTotal * 100 : 0; row.grade = gradeFor(row.rate); });
+    return rows;
+  }
+  function selectedGrades() { var all = document.querySelector('#supplierGradeFilter [value="all"]'); if (all && all.checked) return ['A','B','C','D']; return Array.from(document.querySelectorAll('#supplierGradeFilter input:not([value="all"])')).filter(function (item) { return item.checked; }).map(function (item) { return item.value; }); }
+  function visibleSupplierRows() {
+    var keyword = document.getElementById('supplierNameFilter').value.trim().toLowerCase(), grades = selectedGrades();
+    var rows = supplierRows().filter(function (row) { return (!keyword || row.name.toLowerCase().indexOf(keyword) !== -1) && grades.indexOf(row.grade.key) !== -1; });
+    rows.sort(function (a, b) { var aa = rankSort.key === 'name' ? a.name : rankSort.key === 'grade' ? a.grade.key : rankSort.key === 'rate' || rankSort.key === 'share' ? a[rankSort.key] : a[rankSort.key] || a.total; var bb = rankSort.key === 'name' ? b.name : rankSort.key === 'grade' ? b.grade.key : rankSort.key === 'rate' || rankSort.key === 'share' ? b[rankSort.key] : b[rankSort.key] || b.total; if (aa === bb) return a.name.localeCompare(b.name, 'zh-CN'); return (aa > bb ? 1 : -1) * (rankSort.direction === 'asc' ? 1 : -1); });
+    return rows;
+  }
+  function renderRanking() {
+    var rows = visibleSupplierRows(), body = document.getElementById('supplierRankBody');
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="8" style="height:390px;text-align:center;color:#8a96a6;cursor:default">暂无符合筛选条件的供应商数据</td></tr>'; return; }
+    body.innerHTML = rows.map(function (row, index) { return '<tr data-supplier="' + row.name.replace(/"/g, '&quot;') + '"><td>' + (index + 1) + '</td><td>' + row.name + '</td><td>' + row.total + '</td><td>' + row.share.toFixed(2) + '%</td><td>' + row.pass + '</td><td>' + (row.fail ? '<span class="badge b-red">' + row.fail + '</span>' : '0') + '</td><td class="' + (row.rate < 97 ? 'bad' : 'good') + '">' + row.rate.toFixed(2) + '%</td><td><span class="badge ' + (row.grade.key === 'A' ? 'b-green' : row.grade.key === 'D' ? 'b-red' : 'b-amber') + '">' + row.grade.label + '</span></td></tr>'; }).join('');
+  }
+  function gradeTriggerText() { var grades = selectedGrades(), trigger = document.querySelector('#supplierGradeFilter .rank-grade-trigger'); trigger.textContent = grades.length === 4 ? '全部' : grades.length ? grades.map(function (key) { return key + '级'; }).join('、') : '请选择供应商等级'; }
+  function syncAllGrades() { var grades = Array.from(document.querySelectorAll('#supplierGradeFilter input:not([value="all"])')), all = document.querySelector('#supplierGradeFilter [value="all"]'); all.checked = grades.every(function (item) { return item.checked; }); gradeTriggerText(); }
+  document.querySelector('#supplierGradeFilter .rank-grade-trigger').onclick = function () { var box = document.getElementById('supplierGradeFilter'), opened = box.classList.toggle('open'); this.setAttribute('aria-expanded', opened ? 'true' : 'false'); };
+  document.getElementById('supplierGradeFilter').onchange = function (event) { var input = event.target, grades = Array.from(document.querySelectorAll('#supplierGradeFilter input:not([value="all"])')); if (input.value === 'all') grades.forEach(function (item) { item.checked = input.checked; }); else { document.querySelector('#supplierGradeFilter [value="all"]').checked = grades.every(function (item) { return item.checked; }); } gradeTriggerText(); };
+  document.getElementById('supplierRankQuery').onclick = renderRanking;
+  document.getElementById('supplierRankReset').onclick = function () { document.getElementById('supplierNameFilter').value = ''; document.querySelectorAll('#supplierGradeFilter input').forEach(function (item) { item.checked = item.value === 'all'; }); gradeTriggerText(); rankSort = {key:'total', direction:'desc'}; renderRanking(); };
+  document.getElementById('supplierNameFilter').onkeydown = function (event) { if (event.key === 'Enter') renderRanking(); };
+  rankCard.querySelector('thead').onclick = function (event) { var button = event.target.closest('[data-sort]'); if (!button) return; var key = button.dataset.sort; rankSort = {key:key, direction:rankSort.key === key && rankSort.direction === 'desc' ? 'asc' : 'desc'}; renderRanking(); };
+  document.addEventListener('click', function (event) { var gradeBox = document.getElementById('supplierGradeFilter'); if (!gradeBox.contains(event.target)) { gradeBox.classList.remove('open'); gradeBox.querySelector('.rank-grade-trigger').setAttribute('aria-expanded', 'false'); } });
+  gradeTriggerText();
+
+  var menu = document.createElement('div');
+  menu.className = 'rank-cell-menu'; menu.id = 'supplierRankCellMenu';
+  menu.innerHTML = '<button type="button" data-action="detail">查看验货记录</button><button type="button" data-action="download">下载验货记录</button>';
+  document.body.appendChild(menu);
+  var menuSupplier = '';
+  function hideCellMenu() { menu.style.display = 'none'; }
+  rankCard.querySelector('.table-wrap').addEventListener('click', function (event) { var cell = event.target.closest('#supplierRankBody td'), row = cell && cell.closest('tr[data-supplier]'); if (!row) return; menuSupplier = row.dataset.supplier; var rect = cell.getBoundingClientRect(); menu.style.left = Math.min(rect.left, window.innerWidth - 156) + 'px'; menu.style.top = Math.min(rect.bottom + 4, window.innerHeight - 82) + 'px'; menu.style.display = 'block'; });
+
+  var detailHeaders = ['采购单号','请购单号','产品编号','产品名称','供应商名称','采购员','验货时间','验货员','验货结果','验货数量','抽检数量','不良数量','不良图片','不良原因','装箱规格','质检报告','质检图片','备注'];
+  function recordRows(supplier) {
+    var names = ['简约组合柜','北欧书桌','实木边柜','折叠收纳架','多层置物柜'];
+    return Array.from({length:16}, function (_, index) { var fail = index % 5 === 3; return ['PO202610' + String(index + 1).padStart(4, '0'),'YP202610' + String(index + 1).padStart(4, '0'),'SKU-' + (860001 + index),names[index % names.length],supplier,index % 2 ? '赵柳慧' : '杨典华','2026-10-' + String((index % 9) + 1).padStart(2, '0') + ' 10:' + String(12 + index).padStart(2, '0') + ':00',index % 2 ? '刘永想' : '刘欢1',fail ? '验货不通过' : '验货通过',String(20 + index),String(8 + index),fail ? String((index % 3) + 1) : '0',fail ? 'https://files.example.com/inspection/bad-' + (index + 1) + '.jpg' : '-','尺寸偏差、表面划痕','重量[kg]：' + (12 + index) + '；长[cm]：80','https://files.example.com/inspection/report-' + (index + 1) + '.pdf',fail ? 'https://files.example.com/inspection/photo-' + (index + 1) + '.jpg' : '-','验货记录备注 ' + (index + 1)]; });
+  }
+  var detailMask = document.createElement('div');
+  detailMask.className = 'inspection-detail-mask'; detailMask.id = 'inspectionDetailMask';
+  detailMask.innerHTML = '<div class="inspection-detail-dialog"><div class="inspection-detail-head"><span class="inspection-detail-title"></span><span class="spacer"></span><button type="button" class="button" data-action="download">下载验货记录</button><button type="button" class="inspection-detail-close" aria-label="关闭">×</button></div><div class="inspection-detail-scroll"><table><thead></thead><tbody></tbody></table></div></div>';
+  document.body.appendChild(detailMask);
+  function cellDisplay(header, value) { if ((header === '不良图片' || header === '质检图片') && value) return '<span class="file-link" data-file="image">下载</span>'; if (header === '质检报告' && value) return '<span class="file-link" data-file="report">下载</span>'; return value || '--'; }
+  function showInspectionDetail(supplier) { var rows = recordRows(supplier), table = detailMask.querySelector('table'); detailMask.dataset.supplier = supplier; detailMask.querySelector('.inspection-detail-title').textContent = supplier + ' - 验货记录明细（' + rows.length + ' 条）'; table.querySelector('thead').innerHTML = '<tr>' + detailHeaders.map(function (header) { return '<th>' + header + '</th>'; }).join('') + '</tr>'; table.querySelector('tbody').innerHTML = rows.map(function (row) { return '<tr>' + row.map(function (value, index) { return '<td>' + cellDisplay(detailHeaders[index], value) + '</td>'; }).join('') + '</tr>'; }).join(''); detailMask.style.display = 'flex'; }
+  function xmlEscape(value) { return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function excelColumn(index) { var value = index + 1, name = ''; while (value) { var mod = (value - 1) % 26; name = String.fromCharCode(65 + mod) + name; value = Math.floor((value - 1) / 26); } return name; }
+  function crc32(bytes) { var table = crc32.table || (crc32.table = (function () { var values = []; for (var i = 0; i < 256; i++) { var c = i; for (var j = 0; j < 8; j++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; values[i] = c >>> 0; } return values; }())); var crc = -1; for (var k = 0; k < bytes.length; k++) crc = (crc >>> 8) ^ table[(crc ^ bytes[k]) & 255]; return (crc ^ -1) >>> 0; }
+  function le16(value) { return new Uint8Array([value & 255, (value >>> 8) & 255]); }
+  function le32(value) { return new Uint8Array([value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255]); }
+  function combine(parts) { var size = parts.reduce(function (sum, part) { return sum + part.length; }, 0), out = new Uint8Array(size), offset = 0; parts.forEach(function (part) { out.set(part, offset); offset += part.length; }); return out; }
+  function zipStore(files) { var encoder = new TextEncoder(), locals = [], centrals = [], offset = 0; files.forEach(function (file) { var name = encoder.encode(file.name), data = typeof file.data === 'string' ? encoder.encode(file.data) : file.data, crc = crc32(data), local = combine([le32(0x04034b50),le16(20),le16(0),le16(0),le16(0),le16(0),le32(crc),le32(data.length),le32(data.length),le16(name.length),le16(0),name,data]); locals.push(local); centrals.push(combine([le32(0x02014b50),le16(20),le16(20),le16(0),le16(0),le16(0),le16(0),le32(crc),le32(data.length),le32(data.length),le16(name.length),le16(0),le16(0),le16(0),le16(0),le32(0),le32(offset),name])); offset += local.length; }); var central = combine(centrals), end = combine([le32(0x06054b50),le16(0),le16(0),le16(files.length),le16(files.length),le32(central.length),le32(offset),le16(0)]); return combine(locals.concat([central,end])); }
+  function downloadXlsx(fileName, headers, rows) { var xmlRows = [headers].concat(rows).map(function (row, rowIndex) { return '<row r="' + (rowIndex + 1) + '">' + row.map(function (value, colIndex) { return '<c r="' + excelColumn(colIndex) + (rowIndex + 1) + '" t="inlineStr"><is><t xml:space="preserve">' + xmlEscape(value) + '</t></is></c>'; }).join('') + '</row>'; }).join(''); var files = [{name:'[Content_Types].xml',data:'<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'},{name:'_rels/.rels',data:'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},{name:'xl/workbook.xml',data:'<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="验货记录" sheetId="1" r:id="rId1"/></sheets></workbook>'},{name:'xl/_rels/workbook.xml.rels',data:'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'},{name:'xl/worksheets/sheet1.xml',data:'<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + xmlRows + '</sheetData></worksheet>'}]; var blob = new Blob([zipStore(files)], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = fileName; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 0); }
+  function downloadXlsxSheets(fileName, sheets) { var rowXml = function (sheet) { return [sheet.headers].concat(sheet.rows).map(function (row, rowIndex) { return '<row r="' + (rowIndex + 1) + '">' + row.map(function (value, colIndex) { return '<c r="' + excelColumn(colIndex) + (rowIndex + 1) + '" t="inlineStr"><is><t xml:space="preserve">' + xmlEscape(value) + '</t></is></c>'; }).join('') + '</row>'; }).join(''); }, overrides = sheets.map(function (_, index) { return '<Override PartName="/xl/worksheets/sheet' + (index + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join(''), sheetNodes = sheets.map(function (sheet, index) { return '<sheet name="' + xmlEscape(sheet.name) + '" sheetId="' + (index + 1) + '" r:id="rId' + (index + 1) + '"/>'; }).join(''), relations = sheets.map(function (_, index) { return '<Relationship Id="rId' + (index + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (index + 1) + '.xml"/>'; }).join(''), files = [{name:'[Content_Types].xml',data:'<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + overrides + '</Types>'},{name:'_rels/.rels',data:'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},{name:'xl/workbook.xml',data:'<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + sheetNodes + '</sheets></workbook>'},{name:'xl/_rels/workbook.xml.rels',data:'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + relations + '</Relationships>'}]; sheets.forEach(function (sheet, index) { files.push({name:'xl/worksheets/sheet' + (index + 1) + '.xml',data:'<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + rowXml(sheet) + '</sheetData></worksheet>'}); }); var blob = new Blob([zipStore(files)], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = fileName; link.click(); setTimeout(function () { URL.revokeObjectURL(link.href); }, 0); }
+  function downloadInspectionRecords(supplier) { downloadXlsx('供应商验货记录_' + supplier.replace(/[\\/:*?"<>|]/g, '_') + '_20261009.xlsx', detailHeaders, recordRows(supplier)); notify('已下载 ' + supplier + ' 的验货记录'); }
+  function downloadSupplierRanking() { var headers = ['排名','供应商名称','验货批次','验货批次占比','合格批次','不合格批次','批次合格率','供应商等级'], rows = visibleSupplierRows().map(function (row, index) { return [index + 1,row.name,row.total,row.share.toFixed(2) + '%',row.pass,row.fail,row.rate.toFixed(2) + '%',row.grade.label]; }), allRecords = rankBase.reduce(function (list, row) { return list.concat(recordRows(row[0])); }, []); if (!rows.length) { notify('暂无可下载的供应商质量排名数据'); return; } downloadXlsxSheets('供应商质量排名_20261009.xlsx', [{name:'供应商质量排名',headers:headers,rows:rows},{name:'验货记录',headers:detailHeaders,rows:allRecords}]); notify('已导出供应商质量排名及验货记录'); }
+  menu.onclick = function (event) { var action = event.target.dataset.action; if (!action) return; hideCellMenu(); if (action === 'detail') showInspectionDetail(menuSupplier); else downloadInspectionRecords(menuSupplier); };
+  detailMask.querySelector('.inspection-detail-close').onclick = function () { detailMask.style.display = 'none'; };
+  detailMask.querySelector('[data-action="download"]').onclick = function () { downloadInspectionRecords(detailMask.dataset.supplier); };
+  detailMask.querySelector('.inspection-detail-scroll').onclick = function (event) { if (event.target.classList.contains('file-link')) notify(event.target.dataset.file === 'image' ? '已下载图片文件' : '已下载质检报告'); };
+  detailMask.onclick = function (event) { if (event.target === detailMask) detailMask.style.display = 'none'; };
+  document.addEventListener('click', function (event) { if (!menu.contains(event.target) && !event.target.closest('#supplierRankBody td')) hideCellMenu(); });
+  document.getElementById('supplierRankExport').onclick = downloadSupplierRanking;
+
+  var priorRender = render;
+  render = function () {
+    if (view === 'compare') { if (compareMetric === 'rate') renderRateComparison(); else renderBatchComparison(); } else priorRender();
+    syncCompareControls();
+    renderRanking();
+  };
+  var globalQuery = document.querySelector('.filters .button.primary'), globalQueryHandler = globalQuery && globalQuery.onclick;
+  if (globalQuery) globalQuery.onclick = function () { if (globalQueryHandler) globalQueryHandler.call(this); setTimeout(renderRanking, 0); };
+  var globalReset = document.querySelector('.filters .button:not(.primary)'), globalResetHandler = globalReset && globalReset.onclick;
+  if (globalReset) globalReset.onclick = function () { if (globalResetHandler) globalResetHandler.call(this); setTimeout(renderRanking, 0); };
+  document.querySelectorAll('.tab').forEach(function (tab) { tab.addEventListener('click', function () { setTimeout(function () { syncCompareControls(); renderRanking(); }, 0); }); });
+  render();
+  /* Keep comparison-metric switching independent from the prototype's historical render wrappers. */
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-compare-metric]');
+    if (!button) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    compareMetric = button.dataset.compareMetric;
+    compareControls.querySelectorAll('[data-compare-metric]').forEach(function (item) { item.classList.toggle('on', item === button); });
+    setTimeout(function () {
+      if (view !== 'compare') return;
+      if (compareMetric === 'rate') renderRateComparison(); else renderBatchComparison();
+      syncCompareControls();
+    }, 0);
+  }, true);
+}());
+</script><script>
+/* Final interaction controller: owns the comparison chart and supplier-ranking state. */
+(function () {
+  var compareMetric = 'batch', comparePeriod = 'month';
+  var supplierLinkStyle = document.createElement('style');
+  supplierLinkStyle.textContent = '.supplier-name-link{display:inline-block;max-width:100%;padding:3px 7px;border-radius:2px;background:#edf6ff;color:#1677c9;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}.supplier-name-link:hover{background:#dceeff;color:#096dd9}';
+  document.head.appendChild(supplierLinkStyle);
+  var tooltip = document.createElement('div');
+  tooltip.id = 'compareChartTooltip';
+  tooltip.style.cssText = 'display:none;position:absolute;z-index:8;min-width:176px;padding:9px 11px;border:1px solid #dce4ee;border-radius:3px;background:#fff;color:#47566b;box-shadow:0 6px 18px rgba(29,48,74,.18);font-size:12px;line-height:1.8;pointer-events:none';
+  document.querySelector('.chart-area').appendChild(tooltip);
+  var comparison = {
+    batch: {
+      month:{labels:['1月','2月','3月','4月','5月','6月','7月','8月'],prior:[352,166,159,138,102,121,147,186],current:[393,178,175,149,108,133,162,205],previous:[336,393,178,175,149,108,133,162]},
+      quarter:{labels:['1-3月','4-6月','7-9月'],prior:[677,361,528],current:[746,390,500],previous:[540,746,390]},
+      year:{labels:['2024年','2025年','2026年'],prior:[1888,2094,1755],current:[2131,2325,2480],previous:[]}
+    },
+    rate: {
+      month:{labels:['1月','2月','3月','4月','5月','6月','7月','8月'],prior:[97.4,98.1,96.2,98.7,95.8,96.4,97.1,98.0],current:[99.0,98.7,96.9,99.4,95.4,97.2,98.3,98.6],previous:[98.2,99.0,98.7,96.9,99.4,95.4,97.2,98.3]},
+      quarter:{labels:['1-3月','4-6月','7-9月'],prior:[97.2,96.8,97.4],current:[98.4,97.6,98.1],previous:[97.9,98.4,97.6]},
+      year:{labels:['2024年','2025年','2026年'],prior:[96.7,97.2,97.8],current:[97.6,98.1,98.4],previous:[]}
+    }
+  };
+  function smooth(points) { if (!points.length) return ''; var d='M'+points[0][0]+','+points[0][1]; for(var i=1;i<points.length;i++){var m=(points[i-1][0]+points[i][0])/2;d+=' C'+m+','+points[i-1][1]+' '+m+','+points[i][1]+' '+points[i][0]+','+points[i][1];} return d; }
+  function drawComparison() {
+    var active = document.querySelector('.tab.active');
+    if (!active || active.dataset.view !== 'compare') return;
+    var data = comparison[compareMetric][comparePeriod], chart=document.getElementById('chart');
+    if (!chart) return;
+    var rate = compareMetric === 'rate', prior=data.prior, current=data.current, labels=data.labels;
+    var yoy=current.map(function(v,i){return rate ? +(v-prior[i]).toFixed(2) : +((v-prior[i])/prior[i]*100).toFixed(1);});
+    var mom=comparePeriod==='year'?[]:current.map(function(v,i){return rate ? +(v-data.previous[i]).toFixed(2) : +((v-data.previous[i])/data.previous[i]*100).toFixed(1);});
+    var min=rate?Math.floor((Math.min.apply(null,prior.concat(current))-1)/5)*5:0, max=rate?Math.min(100,Math.ceil((Math.max.apply(null,prior.concat(current))+1)/5)*5):Math.ceil(Math.max.apply(null,prior.concat(current))/100)*100;
+    if(rate && max-min<10){min=Math.max(0,min-5);max=Math.min(100,max+5);}
+    var changeMax=Math.max(rate?2:10,Math.ceil(Math.max.apply(null,yoy.concat(mom.length?mom:[0]).map(function(v){return Math.abs(v)}))/(rate?1:10))*(rate?1:10));
+    var left=64,right=910,plotLeft=105,plotRight=870,base=188,top=30,h=base-top,x=function(i){return labels.length===1?(plotLeft+plotRight)/2:plotLeft+i*(plotRight-plotLeft)/(labels.length-1)},y=function(v){return base-(v-min)/(max-min)*h},yc=function(v){return base-(v+changeMax)/(changeMax*2)*h};
+    document.getElementById('chartTitle').innerHTML=(rate?'验货合格率':'验货批次')+'同比 / 环比';
+    document.getElementById('legend').innerHTML='<span style="--c:#8ab7e8">去年同期'+(rate?'批次合格率':'验货批次')+'</span><span style="--c:#1677ff">本期'+(rate?'批次合格率':'验货批次')+'</span><span class="line" style="--c:#18a566">同比'+(rate?'变化':'')+'</span>'+(comparePeriod==='year'?'':'<span class="line" style="--c:#7860d9">环比'+(rate?'变化':'')+'</span>');
+    var svg='<g stroke="#d8e0eb" stroke-width="1">';
+    for(var t=0;t<=4;t++){var yy=base-t*h/4,lv=min+t*(max-min)/4,rv=-changeMax+t*changeMax/2;svg+='<line x1="'+left+'" y1="'+yy+'" x2="'+right+'" y2="'+yy+'"/><text x="'+(left-9)+'" y="'+(yy+4)+'" text-anchor="end" fill="#536274" font-size="11">'+(rate?lv.toFixed(0)+'%':lv.toFixed(0))+'</text><text x="'+(right+8)+'" y="'+(yy+4)+'" fill="#536274" font-size="11">'+rv.toFixed(rate?1:0)+(rate?'pp':'%')+'</text>';}
+    svg+='</g><text x="15" y="18" fill="#536274" font-size="11" font-weight="700">'+(rate?'批次合格率':'验货批次')+'</text><text x="966" y="18" text-anchor="end" fill="#536274" font-size="11" font-weight="700">同比 / 环比</text><line x1="'+left+'" y1="'+base+'" x2="'+right+'" y2="'+base+'" stroke="#aeb9c8"/>';
+    labels.forEach(function(label,i){var xx=x(i),py=y(prior[i]),cy=y(current[i]);svg+='<text x="'+xx+'" y="211" text-anchor="middle" fill="#697588" font-size="10">'+label+'</text><rect x="'+(xx-18)+'" y="'+py+'" width="15" height="'+(base-py)+'" rx="2" fill="#8ab7e8"/><rect x="'+(xx+3)+'" y="'+cy+'" width="15" height="'+(base-cy)+'" rx="2" fill="#1677ff"/>';});
+    function line(values,color){var pts=values.map(function(v,i){return [x(i),yc(v)]});svg+='<path d="'+smooth(pts)+'" fill="none" stroke="'+color+'" stroke-width="2.5"/>';pts.forEach(function(p){svg+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="#fff" stroke="'+color+'" stroke-width="2"/>';});}
+    line(yoy,'#18a566');if(mom.length)line(mom,'#7860d9');chart.innerHTML=svg;
+    chart.onmousemove=function(event){var rect=chart.getBoundingClientRect(),mouseX=(event.clientX-rect.left)/rect.width*980,index=Math.round((mouseX-left)/(right-left)*(labels.length-1));if(index<0||index>=labels.length){tooltip.style.display='none';return;}var unit=rate?'%':'',changeUnit=rate?'pp':'%',sign=function(v){return v>0?'+':''};tooltip.innerHTML='<b>'+labels[index]+'</b><br><span style="color:#5e9fe3">●</span> 去年同期'+(rate?'批次合格率':'验货批次')+'　<b>'+prior[index]+unit+'</b><br><span style="color:#1677ff">●</span> 本期'+(rate?'批次合格率':'验货批次')+'　<b>'+current[index]+unit+'</b><br><span style="color:#18a566">●</span> 同比　<b>'+sign(yoy[index])+yoy[index].toFixed(rate?2:1)+changeUnit+'</b>'+(mom.length?'<br><span style="color:#7860d9">●</span> 环比　<b>'+sign(mom[index])+mom[index].toFixed(rate?2:1)+changeUnit+'</b>':'');tooltip.style.display='block';tooltip.style.left=Math.min(event.offsetX+18,chart.parentElement.clientWidth-194)+'px';tooltip.style.top=Math.max(48,event.offsetY-8)+'px';};
+    chart.onmouseleave=function(){tooltip.style.display='none';};
+  }
+  var supplierMetric = 'batch';
+  function periodSet() { return {month:{labels:['1月','2月','3月','4月','5月','6月','7月','8月'],total:[393,178,175,149,108,133,162,205],pass:[389,176,169,148,103,129,159,202]},quarter:{labels:['1-3月','4-6月','7-9月'],total:[746,390,500],pass:[734,380,486]},year:{labels:['2024年','2025年','2026年'],total:[1992,3173,1003],pass:[1954,3133,985]}}[comparePeriod]; }
+  function drawPass() { var d=periodSet(),chart=document.getElementById('chart'),left=64,right=910,base=188,h=158,max=Math.ceil(Math.max.apply(null,d.total)/100)*100,x=function(i){return d.labels.length===1?(left+right)/2:left+i*(right-left)/(d.labels.length-1)},y=function(v){return base-v/max*h};document.getElementById('chartTitle').innerHTML='验货合格率趋势 <span class="chart-rate-note">左轴：验货批次　右轴：批次合格率</span>';document.getElementById('legend').innerHTML='<span style="--c:#5b9bd5">总验货批次</span><span style="--c:#00a65a">合格批次</span><span class="line" style="--c:#7860d9">批次合格率</span>';var out='<g stroke="#d8e0eb" stroke-width="1">';for(var t=0;t<=4;t++){var yy=base-t*h/4;out+='<line x1="'+left+'" y1="'+yy+'" x2="'+right+'" y2="'+yy+'"/><text x="'+(left-8)+'" y="'+(yy+4)+'" text-anchor="end" fill="#536274" font-size="11">'+(max*t/4).toFixed(0)+'</text><text x="'+(right+8)+'" y="'+(yy+4)+'" fill="#536274" font-size="11">'+(90+t*2.5).toFixed(1)+'%</text>';}out+='</g><text x="15" y="18" fill="#536274" font-size="11" font-weight="700">验货批次</text><text x="966" y="18" text-anchor="end" fill="#536274" font-size="11" font-weight="700">批次合格率</text>';var pts=[];d.labels.forEach(function(label,i){var xx=x(i),ty=y(d.total[i]),py=y(d.pass[i]),rate=d.pass[i]/d.total[i]*100,ry=base-(rate-90)/10*h;pts.push([xx,ry]);out+='<text x="'+xx+'" y="211" text-anchor="middle" fill="#697588" font-size="10">'+label+'</text><rect x="'+(xx-18)+'" y="'+ty+'" width="15" height="'+(base-ty)+'" rx="2" fill="#5b9bd5"/><rect x="'+(xx+3)+'" y="'+py+'" width="15" height="'+(base-py)+'" rx="2" fill="#00a65a"/>';});out+='<path d="'+smooth(pts)+'" fill="none" stroke="#7860d9" stroke-width="2.5"/>';pts.forEach(function(p){out+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3" fill="#fff" stroke="#7860d9" stroke-width="2"/>';});chart.innerHTML=out;chart.onmousemove=null;chart.onmouseleave=function(){tooltip.style.display='none';}; }
+  var supplierData=[['广东万博科技有限公司',56.18,100,191,191],['广州恩途电气科技有限公司',13.82,98.6,47,46],['广州奥科照明电器有限公司',12.94,96.39,44,42],['珠海川能新能源科技有限公司',4.12,96.77,14,13],['FB珠海市正远光电科技有限公司',3.82,100,13,13],['珠海市优博高科科技有限公司',2.35,97.14,8,8],['FB惠州市绿城半导体照明有限公司',2.06,98.08,7,7],['广东若川科技有限公司',0.88,95.45,3,3],['厦门劲界工业有限公司',0.59,97.5,2,2],['FB慈溪雄辉电器有限公司',0.29,96.1,1,1]],colors=['#4096f5','#67c23a','#e6a23c','#f56c6c','#7b61ff','#16b5b0','#2148d8','#9c27b0','#00a8c6','#8d99a6'];
+  function drawSupplier() { var chart=document.getElementById('chart'),isBatch=supplierMetric==='batch',circ=402,offset=0;document.getElementById('chartTitle').innerHTML='供应商验货'+(isBatch?'批次占比':'合格率对比')+' <span class="chart-rate-note">展示当前筛选范围内 Top 10 供应商</span>';document.getElementById('legend').innerHTML='<span style="--c:#4096f5">'+(isBatch?'验货批次占比':'批次合格率')+'</span>';if(!isBatch){var out='<g stroke="#d8e0eb" stroke-width="1">';for(var t=0;t<5;t++){var yy=42+t*34,v=100-t*2.5;out+='<line x1="250" y1="'+yy+'" x2="900" y2="'+yy+'"/><text x="238" y="'+(yy+4)+'" text-anchor="end" fill="#667589" font-size="10">'+v.toFixed(1)+'%</text>';}out+='</g>';supplierData.forEach(function(r,i){var yy=42+i*16,w=(r[2]-90)/10*600;out+='<text x="70" y="'+(yy+4)+'" fill="#59677a" font-size="10">'+(i+1)+'　'+r[0].slice(0,13)+'</text><rect x="250" y="'+(yy-7)+'" width="'+Math.max(5,w)+'" height="10" rx="2" fill="'+colors[i]+'"/><text x="'+(258+Math.max(5,w))+'" y="'+(yy+2)+'" fill="'+colors[i]+'" font-size="10">'+r[2].toFixed(2)+'%</text>';});chart.innerHTML=out;chart.onmousemove=null;return;}var out='<g transform="translate(390,116)">';supplierData.forEach(function(r,i){var len=r[1]/100*circ;out+='<circle r="64" fill="none" stroke="'+colors[i]+'" stroke-width="30" stroke-dasharray="'+len+' '+(circ-len)+'" stroke-dashoffset="'+(-offset)+'" transform="rotate(-90)"/>';offset+=len;});out+='<circle r="45" fill="#fff"/><text y="-3" text-anchor="middle" fill="#25354d" font-size="16" font-weight="700">TOP 10</text><text y="19" text-anchor="middle" fill="#697588" font-size="12">占 '+supplierData.reduce(function(s,r){return s+r[1]},0).toFixed(2)+'%</text></g>';supplierData.forEach(function(r,i){var yy=42+i*17;out+='<rect x="575" y="'+(yy-8)+'" width="9" height="9" rx="1" fill="'+colors[i]+'"/><text x="592" y="'+yy+'" fill="#536274" font-size="11">'+r[0]+'</text><text x="865" y="'+yy+'" text-anchor="end" fill="#445166" font-size="11">'+r[1].toFixed(2)+'%</text>';});chart.innerHTML=out;chart.onmousemove=function(event){var rect=chart.getBoundingClientRect(),px=(event.clientX-rect.left)/rect.width*980,py=(event.clientY-rect.top)/rect.height*230,dx=px-390,dy=py-116,distance=Math.sqrt(dx*dx+dy*dy);if(distance<45||distance>82){tooltip.style.display='none';return;}var angle=(Math.atan2(dy,dx)*180/Math.PI+450)%360,total=0,index=0;for(var i=0;i<supplierData.length;i++){total+=supplierData[i][1]*3.6;if(angle<=total){index=i;break;}}var row=supplierData[index];tooltip.innerHTML='<b style="color:'+colors[index]+'">●　'+row[0]+'</b><br>验货批次　<b>'+row[3]+'</b><br>验货批次占比　<b>'+row[1].toFixed(2)+'%</b><br>合格批次　<b>'+row[4]+'</b><br>不合格批次　<b>'+(row[3]-row[4])+'</b><br>批次合格率　<b>'+row[2].toFixed(2)+'%</b>';tooltip.style.display='block';tooltip.style.left=Math.min(event.offsetX+18,chart.parentElement.clientWidth-205)+'px';tooltip.style.top=Math.max(52,event.offsetY-10)+'px';};chart.onmouseleave=function(){tooltip.style.display='none';}; }
+  function drawGrade(){var values=[12,16,7,3],labels=['A级 优秀','B级 良好','C级 待提升','D级 不合格'],chart=document.getElementById('chart');document.getElementById('chartTitle').innerHTML='供应商质量分层 <span class="chart-rate-note">按当前筛选范围内批次合格率计算</span>';document.getElementById('legend').innerHTML='<span style="--c:#00a65a">供应商数量</span>';var out='<g stroke="#d8e0eb" stroke-width="1">';for(var t=0;t<=4;t++){var y=188-t*38;out+='<line x1="64" y1="'+y+'" x2="910" y2="'+y+'"/><text x="55" y="'+(y+4)+'" text-anchor="end" fill="#536274" font-size="11">'+(t*5)+'</text>';}out+='</g><text x="15" y="18" fill="#536274" font-size="11" font-weight="700">数量</text>';values.forEach(function(v,i){var x=150+i*230,h=v/20*152;out+='<rect x="'+(x-22)+'" y="'+(188-h)+'" width="44" height="'+h+'" rx="2" fill="#00a65a"/><text x="'+x+'" y="'+(180-h)+'" text-anchor="middle" fill="#008d58" font-size="11">'+v+'</text><text x="'+x+'" y="211" text-anchor="middle" fill="#697588" font-size="10">'+labels[i]+'</text>';});chart.innerHTML=out;chart.onmousemove=null;}
+  function drawActiveView(){var active=document.querySelector('.tab.active'),view=active&&active.dataset.view,periodButtons=document.querySelectorAll('[data-period]'),supplier=view==='supplier';periodButtons.forEach(function(b){b.style.display=supplier?'none':'';});var metricTitle=document.getElementById('metricTitle'),batch=document.getElementById('batchMode'),pass=document.getElementById('passMode');if(metricTitle)metricTitle.style.display=supplier?'':'none';if(batch)batch.style.display=supplier?'':'none';if(pass)pass.style.display=supplier?'':'none';if(view==='compare')drawComparison();else if(view==='supplier')drawSupplier();else if(view==='grade')drawGrade();else drawPass();}
+  var suppliers=[['宁德市信本家具有限公司',30,28],['东莞市聚达木制品有限公司',11,9],['泉州广丰家居制品有限公司',11,11],['广东万博科技有限公司',7,7],['东莞市倾城家具有限公司',6,6],['FB惠州市绿城半导体照明有限公司',3,3],['广州市普菲科办公家具有限公司',3,3],['FB珠海市正远光电科技有限公司',2,2],['东莞市燕尚屋生活科技有限公司',2,1],['漳州冠荣家具有限公司',2,2],['贝加美（福建）投资集团有限公司',2,2],['鹤山市宝仕利五金实业有限公司',1,1],['佛山市悦宜家居有限公司',1,1],['厦门海景工贸有限公司',1,0]];
+  function grade(rate){return rate>=99?['A','A级 优秀供应商','b-green']:rate>=97?['B','B级 良好供应商','b-green']:rate>=90?['C','C级 待提升供应商','b-amber']:['D','D级 不合格供应商','b-red'];}
+  function renderSupplierRanking(){var body=document.getElementById('supplierRankBody');if(!body)return;var name=(document.getElementById('supplierNameFilter')||{}).value||'', all=document.querySelector('#supplierGradeFilter [value="all"]'), selected=all&&all.checked?['A','B','C','D']:Array.from(document.querySelectorAll('#supplierGradeFilter input:not([value="all"])')).filter(function(i){return i.checked}).map(function(i){return i.value}),total=suppliers.reduce(function(s,r){return s+r[1]},0),rows=suppliers.map(function(r){var rate=r[2]/r[1]*100,g=grade(rate);return {name:r[0],total:r[1],pass:r[2],fail:r[1]-r[2],rate:rate,grade:g};}).filter(function(r){return r.name.indexOf(name.trim())>-1&&selected.indexOf(r.grade[0])>-1;}).sort(function(a,b){return b.total-a.total||a.name.localeCompare(b.name,'zh-CN')});body.innerHTML=rows.length?rows.map(function(r,i){return '<tr data-supplier="'+r.name+'"><td>'+ (i+1) +'</td><td><span class="supplier-name-link" title="查看验货记录">'+r.name+'</span></td><td>'+r.total+'</td><td>'+ (r.total/total*100).toFixed(2)+'%</td><td>'+r.pass+'</td><td>'+ (r.fail?'<span class="badge b-red">'+r.fail+'</span>':'0') +'</td><td class="'+(r.rate<97?'bad':'good')+'">'+r.rate.toFixed(2)+'%</td><td><span class="badge '+r.grade[2]+'">'+r.grade[1]+'</span></td></tr>';}).join(''):'<tr><td colspan="8" style="height:390px;text-align:center;color:#8a96a6">暂无符合筛选条件的供应商数据</td></tr>';}
+  document.addEventListener('click',function(event){var tab=event.target.closest('.tab[data-view]'),period=event.target.closest('[data-period]'),metric=event.target.closest('[data-compare-metric]'),supplierMetricButton=event.target.closest('#batchMode,#passMode'),query=event.target.closest('#supplierRankQuery'),reset=event.target.closest('#supplierRankReset');if(metric){compareMetric=metric.dataset.compareMetric;document.querySelectorAll('[data-compare-metric]').forEach(function(b){b.classList.toggle('on',b===metric)});setTimeout(drawActiveView,0);return;}if(supplierMetricButton){supplierMetric=supplierMetricButton.id==='batchMode'?'batch':'rate';document.querySelectorAll('#batchMode,#passMode').forEach(function(b){b.classList.toggle('on',b===supplierMetricButton)});setTimeout(drawActiveView,0);return;}if(period){comparePeriod=period.dataset.period;setTimeout(drawActiveView,0);return;}if(tab){setTimeout(drawActiveView,0);return;}if(query){renderSupplierRanking();if(typeof notify==='function')notify('已按供应商名称和等级刷新排名');return;}if(reset){setTimeout(renderSupplierRanking,0);return;}},true);
+  document.addEventListener('keydown',function(event){if(event.key==='Enter'&&event.target&&event.target.id==='supplierNameFilter')renderSupplierRanking();});
+  document.addEventListener('click',function(event){var nameCell=event.target.closest('#supplierRankBody td:nth-child(2)');if(!nameCell)return;setTimeout(function(){var detailAction=document.querySelector('#supplierRankCellMenu [data-action="detail"]');if(detailAction)detailAction.click();},0);},true);
+  var globalQuery=document.querySelector('.filters .button.primary'), globalReset=document.querySelector('.filters .button:not(.primary)');
+  if(globalQuery)globalQuery.addEventListener('click',function(){setTimeout(function(){renderSupplierRanking();drawActiveView();},0);});
+  if(globalReset)globalReset.addEventListener('click',function(){setTimeout(function(){renderSupplierRanking();drawActiveView();},0);});
+  setTimeout(function(){renderSupplierRanking();drawActiveView();},0);
 }());
 </script></body></html>
