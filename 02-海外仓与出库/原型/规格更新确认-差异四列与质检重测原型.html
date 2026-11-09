@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>规格更新确认 · 差异四列 / 筛选 / 质检上传重测 · 原型</title>
+  <style>
+    :root {
+      --primary: #008fa1;
+      --primary-dark: #087f90;
+      --line: #cdd8e7;
+      --line-soft: #e8eef6;
+      --header: #edf3fa;
+      --text: #23384f;
+      --muted: #718399;
+      --bg: #f4f7fb;
+      --orange: #f08a24;
+      --green: #168456;
+      --blue: #2878d7;
+      --red: #c84b4b;
+      --white: #fff;
+      --warn-bg: #fff4e5;
+      --diff-pos: #c84b4b;
+      --diff-neg: #168456;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg);
+    }
+    button, input, select, textarea { font-family: inherit; font-size: 12px; }
+
+    .app {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+    }
+    .sidebar {
+      background: var(--primary);
+      color: #fff;
+      padding-top: 8px;
+    }
+    .logo {
+      width: 34px; height: 34px; margin: 0 auto 12px;
+      border: 1px solid rgba(255,255,255,.9);
+      display: grid; place-items: center; font-weight: 700;
+    }
+    .side-item {
+      height: 36px; display: grid; place-items: center;
+      color: rgba(255,255,255,.9);
+    }
+    .side-item.active { background: rgba(255,255,255,.18); }
+
+    .main {
+      height: 100vh; min-width: 0;
+      display: flex; flex-direction: column;
+    }
+    .topbar {
+      height: 36px; flex: 0 0 36px; background: #fff;
+      border-bottom: 1px solid var(--line-soft);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px;
+    }
+    .tabs {
+      height: 34px; flex: 0 0 34px; background: #fff;
+      border-bottom: 1px solid var(--line-soft);
+      display: flex; align-items: center; gap: 6px; padding: 0 10px;
+    }
+    .tab {
+      height: 28px; padding: 0 12px; border: 1px solid var(--line);
+      background: #fff; display: inline-flex; align-items: center;
+      border-radius: 4px 4px 0 0;
+    }
+    .tab.active {
+      color: var(--primary-dark); border-color: var(--primary);
+      border-bottom-color: #fff; font-weight: 600;
+    }
+    .crumb {
+      height: 30px; flex: 0 0 30px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 12px; background: #fff;
+      border-bottom: 1px solid var(--line-soft); color: var(--muted);
+    }
+    .crumb b { color: var(--primary-dark); }
+
+    .toolbar {
+      background: #fff; border-bottom: 1px solid var(--line-soft);
+      padding: 8px 10px;
+    }
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    }
+    .status-box {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 4px 8px; border: 1px solid #d2d8e5; border-radius: 4px;
+      user-select: none; height: 28px;
+    }
+    .status-box label {
+      display: inline-flex; align-items: center; gap: 3px; cursor: pointer;
+    }
+    .input, .select, .combo {
+      height: 28px; border: 1px solid var(--line); background: #fff;
+      border-radius: 4px; padding: 0 8px; color: var(--text); min-width: 0;
+    }
+    .select { min-width: 120px; }
+    .combo {
+      display: inline-flex; align-items: stretch; padding: 0; overflow: hidden;
+    }
+    .combo select {
+      border: 0; border-right: 1px solid var(--line);
+      padding: 0 6px; background: #f7fafc; min-width: 108px; outline: none;
+    }
+    .combo input {
+      border: 0; padding: 0 8px; min-width: 160px; outline: none;
+    }
+    .combo.numeric select { min-width: 128px; }
+    .combo.numeric .op {
+      border-right: 1px solid var(--line); padding: 0 6px;
+      background: #f7fafc; display: flex; align-items: center; color: var(--muted);
+      min-width: 36px; justify-content: center;
+    }
+    .combo.numeric input { width: 88px; min-width: 88px; }
+    .actions-filter {
+      display: inline-flex; gap: 6px; margin-left: 4px;
+    }
+
+    .btn {
+      height: 28px; min-width: 58px; border: 1px solid var(--primary);
+      background: #fff; color: var(--primary-dark); border-radius: 4px;
+      padding: 0 12px; cursor: pointer;
+    }
+    .btn.primary { background: var(--primary); color: #fff; }
+    .btn.orange { background: var(--orange); border-color: var(--orange); color: #fff; }
+    .btn.ghost { border-color: var(--line); color: var(--text); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn.danger-outline { border-color: #e8a0a0; color: var(--red); }
+
+    .quick {
+      height: 40px; flex: 0 0 40px; background: #fff;
+      border-bottom: 1px solid var(--line-soft);
+      display: flex; align-items: center; gap: 8px; padding: 0 10px;
+    }
+    .summary { margin-left: auto; color: var(--muted); white-space: nowrap; }
+    .hint-pill {
+      display: inline-flex; align-items: center; height: 22px;
+      padding: 0 8px; border-radius: 11px; background: #e8f7f9;
+      color: var(--primary-dark); border: 1px solid #b7e3ea;
+    }
+
+    .content { min-height: 0; flex: 1; padding: 8px; }
+    .table-wrap {
+      height: 100%; min-width: 0; background: #fff;
+      border: 1px solid var(--line); overflow: auto;
+    }
+    table {
+      border-collapse: collapse;
+      width: 2680px;
+      table-layout: fixed;
+    }
+    th, td {
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      height: 44px; padding: 5px 8px;
+      vertical-align: middle; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    th {
+      height: 32px; background: var(--header); text-align: left;
+      font-weight: 600; color: #34495e; position: sticky; top: 0; z-index: 2;
+    }
+    th.new-col { background: #e5f5f7; color: var(--primary-dark); }
+    td.new-col { background: #f7fcfd; }
+    .center { text-align: center; }
+    .muted { color: var(--muted); }
+    .pos { color: var(--diff-pos); font-weight: 600; }
+    .neg { color: var(--diff-neg); }
+    .zero { color: var(--muted); }
+
+    .expand-btn {
+      width: 24px; height: 24px; border: 1px solid var(--line);
+      background: #fff; border-radius: 3px; color: var(--primary-dark);
+      cursor: pointer; line-height: 20px; padding: 0;
+    }
+    .row-main { background: #fff; }
+    .row-main.selected {
+      background: #f8fbff; box-shadow: inset 3px 0 0 var(--primary);
+    }
+    .row-history { display: none; background: #f7f9fc; color: #4b5f76; }
+    .row-history.show { display: table-row; }
+    .history-mark {
+      display: inline-flex; align-items: center; gap: 4px;
+      color: var(--muted); padding-left: 8px;
+    }
+    .tag {
+      display: inline-flex; align-items: center; height: 20px;
+      padding: 0 7px; border-radius: 4px; border: 1px solid transparent;
+    }
+    .tag.warn { color: #b76300; background: #fff4e5; border-color: #f5d7ae; }
+    .tag.ok { color: var(--green); background: #eaf7f1; border-color: #bfe5d4; }
+    .tag.info { color: var(--blue); background: #edf5ff; border-color: #c7ddf8; }
+    .tag.special { color: #a32020; background: #fdecec; border-color: #f0b6b6; font-weight: 600; }
+    .tag.normal { color: #5a6b7d; background: #eef2f6; border-color: #d5dde7; }
+    .reason-cell {
+      white-space: normal; line-height: 16px; font-size: 11px; color: #5a3a12;
+    }
+    .multi { line-height: 17px; white-space: normal; }
+    .multi div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .link {
+      color: var(--primary-dark); text-decoration: underline; cursor: pointer;
+    }
+
+    .footer {
+      height: 34px; flex: 0 0 34px; background: #fff;
+      border-top: 1px solid var(--line-soft);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px; color: var(--muted);
+    }
+
+    /* modal */
+    .mask {
+      position: fixed; inset: 0; background: rgba(20, 32, 45, .42);
+      display: none; align-items: center; justify-content: center; z-index: 40;
+    }
+    .mask.show { display: flex; }
+    .dialog {
+      width: 560px; background: #fff; border-radius: 6px;
+      box-shadow: 0 12px 40px rgba(20, 40, 60, .22);
+      overflow: hidden;
+    }
+    .dialog-hd {
+      height: 44px; padding: 0 16px; display: flex; align-items: center;
+      justify-content: space-between; border-bottom: 1px solid var(--line-soft);
+      font-weight: 600; font-size: 14px;
+    }
+    .dialog-bd { padding: 16px 18px 8px; }
+    .dialog-ft {
+      padding: 12px 16px; border-top: 1px solid var(--line-soft);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .form-row {
+      display: grid; grid-template-columns: 128px 1fr; gap: 10px;
+      align-items: start; margin-bottom: 14px;
+    }
+    .form-row label {
+      padding-top: 6px; color: #44586e;
+    }
+    .form-row label .req { color: var(--red); margin-right: 2px; }
+    .form-row .field input, .form-row .field textarea {
+      width: 100%; height: 32px; border: 1px solid var(--line);
+      border-radius: 4px; padding: 0 10px;
+    }
+    .form-row .field textarea { height: 64px; padding: 8px 10px; resize: vertical; }
+    .size-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    }
+    .size-grid .unit {
+      position: relative;
+    }
+    .size-grid .unit span {
+      position: absolute; right: 8px; top: 8px; color: var(--muted);
+    }
+    .size-grid input { padding-right: 28px !important; }
+    .meta-line {
+      display: flex; gap: 18px; padding: 8px 10px; background: #f5f8fb;
+      border: 1px dashed var(--line); border-radius: 4px; color: var(--muted);
+    }
+    .upload-box {
+      border: 1px dashed #9ecad2; border-radius: 4px; background: #f7fcfd;
+      padding: 12px; min-height: 88px;
+    }
+    .upload-box.empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px; color: var(--muted); cursor: pointer;
+    }
+    .upload-box .file-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 8px; background: #fff; border: 1px solid var(--line-soft);
+      border-radius: 4px; margin-top: 6px;
+    }
+    .ctx {
+      margin: 0 0 10px; padding: 8px 10px; background: #fff8ef;
+      border: 1px solid #f5d7ae; border-radius: 4px; color: #8a5a12;
+      line-height: 1.5;
+    }
+
+    .toast {
+      position: fixed; left: 50%; top: 72px; transform: translateX(-50%);
+      min-width: 260px; height: 34px; padding: 0 16px; border-radius: 4px;
+      background: rgba(28, 42, 56, .92); color: #fff;
+      display: none; align-items: center; justify-content: center; z-index: 50;
+    }
+    .toast.show { display: flex; }
+    .toast.err { background: rgba(160, 48, 48, .94); }
+
+    .legend {
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+      padding: 6px 10px; background: #fff; border-bottom: 1px solid var(--line-soft);
+      color: var(--muted);
+    }
+    .legend b { color: var(--primary-dark); }
+    .dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 4px;
+    }
+    .dot.teal { background: var(--primary); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="logo">WMS</div>
+      <div class="side-item">⌕</div>
+      <div class="side-item">⌂</div>
+      <div class="side-item">▦</div>
+      <div class="side-item active">▤</div>
+      <div class="side-item">↩</div>
+      <div class="side-item">◎</div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>☰</div>
+        <div class="muted">系统更新时间：2026-11-06 18:08:00　当前用户：质检员-王敏</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab">首页</div>
+        <div class="tab">海外仓转运</div>
+        <div class="tab active">规格更新确认</div>
+      </div>
+
+      <div class="crumb">海外仓 〉 商品管理 〉 <b>规格更新确认</b></div>
+
+      <!-- 筛选区：对齐现网 ai-search-box 布局 -->
+      <section class="toolbar">
+        <div class="filters">
+          <div class="status-box">
+            <span>状态：</span>
+            <label><input type="checkbox" id="stAll" checked> 全部(<span id="qtyAll">?</span>)</label>
+            <label><input type="checkbox" id="stWait" checked> 未确认(<span id="qtyWait">?</span>)</label>
+            <label><input type="checkbox" id="stConfirm" checked> 已确认(<span id="qtyConfirm">?</span>)</label>
+          </div>
+
+          <select class="select" id="fltCenter" style="width:150px">
+            <option value="">全部处理中心</option>
+            <option value="谷仓处理中心">谷仓处理中心</option>
+            <option value="西邮处理中心">西邮处理中心</option>
+            <option value="长迈处理中心">长迈处理中心</option>
+          </select>
+
+          <select class="select" id="fltSource" style="width:120px">
+            <option value="">来源类型</option>
+            <option value="OA">OA</option>
+            <option value="第三方">第三方</option>
+          </select>
+
+          <select class="select" id="fltReview" style="width:120px" title="复核类型">
+            <option value="">复核类型</option>
+            <option value="特别复核">特别复核</option>
+            <option value="一般复核">一般复核</option>
+          </select>
+
+          <select class="select" id="fltRetest" style="width:130px" title="是否开发重测">
+            <option value="">是否开发重测</option>
+            <option value="yes">是</option>
+            <option value="no">否</option>
+          </select>
+
+          <div class="combo" style="width:280px">
+            <select>
+              <option selected>创建时间</option>
+            </select>
+            <input value="2026-10-30 ~ 2026-11-06" readonly>
+          </div>
+
+          <div class="combo numeric">
+            <select id="diffType">
+              <option value="dw" selected>重量差异(kg)</option>
+              <option value="dl">长差(cm)</option>
+              <option value="dwd">宽差(cm)</option>
+              <option value="dh">高差(cm)</option>
+            </select>
+            <div class="op">&gt;</div>
+            <input id="diffVal" type="text" placeholder="差异值" value="">
+          </div>
+
+          <div class="combo" style="min-width:300px">
+            <select id="kwType">
+              <option value="productCode" selected>产品编号</option>
+              <option value="code">编号</option>
+            </select>
+            <input id="kwInput" placeholder="多个值使用空格隔开" value="">
+          </div>
+
+          <select class="select" id="fltSeries" style="width:150px">
+            <option value="">全部产品系列</option>
+            <option value="大件产品">大件产品</option>
+            <option value="普通产品">普通产品</option>
+            <option value="精品">精品</option>
+          </select>
+
+          <div class="actions-filter">
+            <button class="btn primary" id="btnSearch">搜索</button>
+            <button class="btn ghost" id="btnReset">重置</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="quick">
+        <button class="btn" id="btnConfirm">确认</button>
+        <button class="btn orange">导出</button>
+        <button class="btn primary" id="btnRetestUpload">上传开发重测</button>
+        <button class="btn" id="btnRetestEdit">修改开发重测</button>
+        <span class="summary">共 <b id="mainCount">0</b> 条主数据 · 已选 <b id="selCount">0</b> 条</span>
+      </section>
+
+      <section class="content">
+        <div class="table-wrap">
+          <table>
+            <colgroup>
+              <col style="width:36px">
+              <col style="width:42px">
+              <col style="width:118px">
+              <col style="width:72px">
+              <col style="width:58px">
+              <col style="width:140px">
+              <col style="width:88px">
+              <col style="width:72px">
+              <col style="width:72px">
+              <col style="width:72px">
+              <col style="width:88px">
+              <col style="width:220px">
+              <col style="width:110px">
+              <col style="width:110px">
+              <col style="width:100px">
+              <col style="width:100px">
+              <col style="width:100px">
+              <col style="width:90px">
+              <col style="width:140px">
+              <col style="width:110px">
+              <col style="width:120px">
+              <col style="width:140px">
+              <col style="width:130px">
+              <col style="width:140px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="center"></th>
+                <th class="center"><input type="checkbox" id="checkAll"></th>
+                <th>编号</th>
+                <th>状态</th>
+                <th>来源</th>
+                <th>规格更新</th>
+                <th class="new-col">重量差异(kg)</th>
+                <th class="new-col">长差(cm)</th>
+                <th class="new-col">宽差(cm)</th>
+                <th class="new-col">高差(cm)</th>
+                <th class="new-col">复核类型</th>
+                <th class="new-col">触发原因</th>
+                <th>处理中心</th>
+                <th>产品编号</th>
+                <th>OA系统产品信息</th>
+                <th>OA系统装箱信息</th>
+                <th>第三方商品信息</th>
+                <th>产品系列</th>
+                <th>产品名称</th>
+                <th class="new-col">开发重测重量/kg</th>
+                <th class="new-col">开发重测尺寸/cm</th>
+                <th class="new-col">重测凭证 / 上传信息</th>
+                <th>人员信息</th>
+                <th>确认信息</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr class="row-main" data-group="g1" data-code="SU26110645001" data-sku="I037115A5" data-status="wait" data-source="第三方" data-review="特别复核" data-series="大件产品" data-center="谷仓处理中心" data-retest="0" data-dw="1.6" data-dl="7" data-dwd="6" data-dh="0" data-rw="" data-rl="" data-rwd="" data-rh="" data-file="">
+                <td class="center"><button class="expand-btn" data-target="g1">›</button></td>
+                <td class="center"><input type="checkbox" class="row-check"></td>
+                <td>SU26110645001</td>
+                <td><span class="tag warn">未确认</span></td>
+                <td>第三方</td>
+                <td class="multi"><div>海外仓长: 40→52</div><div>海外仓宽: 30→38</div></td>
+                <td class="new-col pos">+1.60</td>
+                <td class="new-col pos">+7.0</td>
+                <td class="new-col pos">+6.0</td>
+                <td class="new-col zero">0</td>
+                <td class="new-col"><span class="tag special">特别复核</span></td>
+                <td class="new-col reason-cell">重量差 +1.60kg&gt;1kg；长差 +7.0cm&gt;3cm；宽差 +6.0cm&gt;3cm</td>
+                <td>谷仓处理中心</td>
+                <td>I037115A5</td>
+                <td class="multi"><div>12.5</div><div>40*30*20</div></td>
+                <td class="multi"><div>15.2</div><div>45*32*22</div></td>
+                <td class="multi"><div>16.8</div><div>52*38*22</div></td>
+                <td>大件产品</td>
+                <td>展示架套装-白</td>
+                <td class="new-col muted cell-rw">未上传</td>
+                <td class="new-col muted cell-rs">未上传</td>
+                <td class="new-col muted cell-rv">未上传</td>
+                <td class="multi"><div>开发员：卢银良</div></td>
+                <td></td>
+              </tr>
+              <tr class="row-history" data-parent="g1">
+                <td></td><td></td>
+                <td><span class="history-mark">└ SU26110544980</span></td>
+                <td><span class="tag ok">已确认</span></td>
+                <td>第三方</td>
+                <td>海外仓宽: 30→31</td>
+                <td class="new-col">+0.20</td>
+                <td class="new-col">0</td>
+                <td class="new-col">+1.0</td>
+                <td class="new-col">0</td>
+                <td class="new-col"><span class="tag normal">一般复核</span></td>
+                <td class="new-col reason-cell muted">重量差 +0.20kg≤1kg；宽差 +1.0cm≤3cm</td>
+                <td>谷仓处理中心</td>
+                <td>I037115A5</td>
+                <td class="multi"><div>12.5</div><div>40*30*20</div></td>
+                <td class="multi"><div>15.2</div><div>45*32*22</div></td>
+                <td class="multi"><div>15.4</div><div>45*33*22</div></td>
+                <td>大件产品</td>
+                <td>展示架套装-白</td>
+                <td class="new-col muted">未上传</td>
+                <td class="new-col muted">未上传</td>
+                <td class="new-col muted">未上传</td>
+                <td class="multi"><div>开发员：卢银良</div></td>
+                <td class="multi"><div>系统</div><div>系统自动确认</div></td>
+              </tr>
+
+              <tr class="row-main" data-group="g2" data-code="SU26110645012" data-sku="I500084400" data-status="wait" data-source="第三方" data-review="特别复核" data-series="普通产品" data-center="谷仓处理中心" data-retest="1" data-dw="1.25" data-dl="7" data-dwd="4" data-dh="3" data-rw="2.08" data-rl="34.5" data-rwd="21.8" data-rh="14.9" data-file="重测照片.jpg">
+                <td class="center"><button class="expand-btn" data-target="g2">›</button></td>
+                <td class="center"><input type="checkbox" class="row-check"></td>
+                <td>SU26110645012</td>
+                <td><span class="tag warn">未确认</span></td>
+                <td>第三方</td>
+                <td class="multi"><div>海外仓重量: 0.8→2.1</div><div>海外仓长宽高更新</div></td>
+                <td class="new-col pos">+1.25</td>
+                <td class="new-col pos">+7.0</td>
+                <td class="new-col pos">+4.0</td>
+                <td class="new-col pos">+3.0</td>
+                <td class="new-col"><span class="tag special">特别复核</span></td>
+                <td class="new-col reason-cell">重量差 +1.25kg&gt;1kg；长差 +7.0cm&gt;3cm；宽差 +4.0cm&gt;3cm；高差 +3.0cm&gt;3cm</td>
+                <td>谷仓处理中心</td>
+                <td>I500084400</td>
+                <td class="multi"><div>0.85</div><div>28*18*12</div></td>
+                <td class="multi muted"><div>0</div><div>0*0*0</div></td>
+                <td class="multi"><div>2.10</div><div>35*22*15</div></td>
+                <td>普通产品</td>
+                <td>收纳盒套装</td>
+                <td class="new-col cell-rw">2.08</td>
+                <td class="new-col cell-rs">34.5*21.8*14.9</td>
+                <td class="new-col multi cell-rv">
+                  <div><span class="link">重测照片.jpg</span></div>
+                  <div>王敏 2026-11-06 15:22</div>
+                </td>
+                <td class="multi"><div>开发员：吴丽应</div></td>
+                <td></td>
+              </tr>
+
+              <tr class="row-main" data-group="g3" data-code="SU26110645028" data-sku="I870000674A1" data-status="wait" data-source="第三方" data-review="特别复核" data-series="大件产品" data-center="谷仓处理中心" data-retest="0" data-dw="29.31" data-dl="49.5" data-dwd="19" data-dh="-11.5" data-rw="" data-rl="" data-rwd="" data-rh="" data-file="">
+                <td class="center"><button class="expand-btn" data-target="g3">›</button></td>
+                <td class="center"><input type="checkbox" class="row-check"></td>
+                <td>SU26110645028</td>
+                <td><span class="tag warn">未确认</span></td>
+                <td>第三方</td>
+                <td class="multi"><div>海外仓重量: 20.2→49.51</div><div>海外仓长: 100→149.5</div></td>
+                <td class="new-col pos">+29.31</td>
+                <td class="new-col pos">+49.5</td>
+                <td class="new-col pos">+19.0</td>
+                <td class="new-col neg">-11.5</td>
+                <td class="new-col"><span class="tag special">特别复核</span></td>
+                <td class="new-col reason-cell">重量差 +29.31kg&gt;1kg；长差 +49.5cm&gt;3cm；宽差 +19.0cm&gt;3cm</td>
+                <td>谷仓处理中心</td>
+                <td>I870000674A1</td>
+                <td class="multi"><div>18.0</div><div>95*28*27</div></td>
+                <td class="multi"><div>20.2</div><div>100*29*28.5</div></td>
+                <td class="multi"><div>49.51</div><div>149.5*48*17</div></td>
+                <td>大件产品</td>
+                <td>板式家具-橡木色</td>
+                <td class="new-col muted cell-rw">未上传</td>
+                <td class="new-col muted cell-rs">未上传</td>
+                <td class="new-col muted cell-rv">未上传</td>
+                <td class="multi"><div>开发员：卢银良</div></td>
+                <td></td>
+              </tr>
+
+              <tr class="row-main" data-group="g4" data-code="SU26110544801" data-sku="I127093" data-status="confirm" data-source="第三方" data-review="一般复核" data-series="普通产品" data-center="谷仓处理中心" data-retest="1" data-dw="0.1" data-dl="0" data-dwd="2" data-dh="0" data-rw="3.55" data-rl="52" data-rwd="23.8" data-rh="16" data-file="尺寸复核.pdf">
+                <td class="center"><button class="expand-btn" data-target="g4">›</button></td>
+                <td class="center"><input type="checkbox" class="row-check"></td>
+                <td>SU26110544801</td>
+                <td><span class="tag ok">已确认</span></td>
+                <td>第三方</td>
+                <td>海外仓宽: 20→22</td>
+                <td class="new-col">+0.10</td>
+                <td class="new-col">0</td>
+                <td class="new-col">+2.0</td>
+                <td class="new-col">0</td>
+                <td class="new-col"><span class="tag normal">一般复核</span></td>
+                <td class="new-col reason-cell muted">重量差 +0.10kg≤1kg；宽差 +2.0cm≤3cm</td>
+                <td>谷仓处理中心</td>
+                <td>I127093</td>
+                <td class="multi"><div>3.2</div><div>50*20*15</div></td>
+                <td class="multi"><div>3.5</div><div>52*21*16</div></td>
+                <td class="multi"><div>3.6</div><div>52*23*16</div></td>
+                <td>普通产品</td>
+                <td>桌面收纳架</td>
+                <td class="new-col cell-rw">3.55</td>
+                <td class="new-col cell-rs">52*23.8*16</td>
+                <td class="new-col multi cell-rv">
+                  <div><span class="link">尺寸复核.pdf</span></div>
+                  <div>王敏 2026-11-05 16:40</div>
+                </td>
+                <td class="multi"><div>开发员：陈李茂</div></td>
+                <td class="multi"><div>allenke</div><div>2026-11-05 17:01</div><div>人工确认</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="footer">
+        <span></span>
+        <span id="footerCount">20 条/页　1 / 1　共 0 条</span>
+      </div>
+    </main>
+  </div>
+
+  <!-- 质检：上传 / 修改开发重测（一条编号仅一套） -->
+  <div class="mask" id="retestMask">
+    <div class="dialog">
+      <div class="dialog-hd">
+        <span id="retestTitle">上传开发重测</span>
+        <button class="btn ghost" id="btnCloseX" style="min-width:auto;border:0;font-size:16px">×</button>
+      </div>
+      <div class="dialog-bd">
+        <div class="ctx" id="retestCtx">
+          已选编号：<b>—</b>　产品编号：<b>—</b>　处理中心：谷仓处理中心
+        </div>
+        <div class="form-row">
+          <label><span class="req">*</span>开发重测重量/kg</label>
+          <div class="field">
+            <input id="retestWeight" type="text" placeholder="请输入重测重量，如 2.08">
+          </div>
+        </div>
+        <div class="form-row">
+          <label><span class="req">*</span>开发重测尺寸/cm</label>
+          <div class="field size-grid">
+            <div class="unit"><input id="retestL" placeholder="长"><span>cm</span></div>
+            <div class="unit"><input id="retestW" placeholder="宽"><span>cm</span></div>
+            <div class="unit"><input id="retestH" placeholder="高"><span>cm</span></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label><span class="req">*</span>重测凭证</label>
+          <div class="field">
+            <div class="upload-box empty" id="uploadZone">
+              <div style="font-size:22px;color:var(--primary)">⇧</div>
+              <div>点击或拖拽上传凭证（图片 / PDF）</div>
+              <div class="muted">支持 jpg / png / pdf，单文件 ≤ 10MB</div>
+            </div>
+            <div id="fileList" style="display:none"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>备注</label>
+          <div class="field"><textarea id="retestRemark" placeholder="选填"></textarea></div>
+        </div>
+      </div>
+      <div class="dialog-ft">
+        <button class="btn ghost" id="btnCancel">取消</button>
+        <button class="btn primary" id="btnSaveRetest">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let editMode = false;
+    let hasFile = false;
+    let fileName = '';
+    let activeRow = null;
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const nowText = () => {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    const toast = (msg, isErr) => {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.toggle('err', !!isErr);
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 2400);
+    };
+
+    const visibleMains = () => [...document.querySelectorAll('.row-main')].filter(r => r.style.display !== 'none');
+
+    const updateSel = () => {
+      const n = visibleMains().filter(r => r.querySelector('.row-check')?.checked).length;
+      document.getElementById('selCount').textContent = n;
+    };
+
+    const refreshCounts = () => {
+      const mains = [...document.querySelectorAll('.row-main')];
+      const vis = visibleMains();
+      document.getElementById('mainCount').textContent = vis.length;
+      document.getElementById('qtyAll').textContent = mains.length;
+      document.getElementById('qtyWait').textContent = mains.filter(r => r.dataset.status === 'wait').length;
+      document.getElementById('qtyConfirm').textContent = mains.filter(r => r.dataset.status === 'confirm').length;
+      document.getElementById('footerCount').textContent = `20 条/页　1 / 1　共 ${vis.length} 条`;
+      updateSel();
+    };
+
+    const bindRowChecks = () => {
+      document.querySelectorAll('.row-check').forEach(chk => {
+        chk.onchange = () => {
+          chk.closest('tr').classList.toggle('selected', chk.checked);
+          updateSel();
+        };
+      });
+      document.querySelectorAll('.expand-btn').forEach(btn => {
+        btn.onclick = () => {
+          const g = btn.dataset.target;
+          const parent = document.querySelector(`.row-main[data-group="${g}"]`);
+          if (parent && parent.style.display === 'none') return;
+          const rows = document.querySelectorAll(`.row-history[data-parent="${g}"]`);
+          const open = rows[0] && rows[0].classList.contains('show');
+          rows.forEach(r => {
+            if (parent && parent.style.display === 'none') {
+              r.classList.remove('show');
+              r.style.display = 'none';
+            } else {
+              r.classList.toggle('show', !open);
+              r.style.display = !open ? 'table-row' : 'none';
+            }
+          });
+          btn.textContent = open ? '›' : '˅';
+        };
+      });
+    };
+
+    const applyFilter = () => {
+      const stAll = document.getElementById('stAll').checked;
+      const stWait = document.getElementById('stWait').checked;
+      const stConfirm = document.getElementById('stConfirm').checked;
+      const center = document.getElementById('fltCenter').value;
+      const source = document.getElementById('fltSource').value;
+      const review = document.getElementById('fltReview').value;
+      const retest = document.getElementById('fltRetest').value;
+      const series = document.getElementById('fltSeries').value;
+      const diffKey = document.getElementById('diffType').value;
+      const diffRaw = document.getElementById('diffVal').value.trim();
+      const diffVal = diffRaw === '' ? null : Number(diffRaw);
+      const kwType = document.getElementById('kwType').value;
+      const kws = document.getElementById('kwInput').value.trim().split(/[\s,，]+/).filter(Boolean);
+
+      document.querySelectorAll('.row-main').forEach(tr => {
+        let ok = true;
+        if (!stAll) {
+          if (tr.dataset.status === 'wait' && !stWait) ok = false;
+          if (tr.dataset.status === 'confirm' && !stConfirm) ok = false;
+          if (!stWait && !stConfirm) ok = false;
+        }
+        if (center && tr.dataset.center !== center) ok = false;
+        if (source && tr.dataset.source !== source) ok = false;
+        if (review && tr.dataset.review !== review) ok = false;
+        if (retest === 'yes' && tr.dataset.retest !== '1') ok = false;
+        if (retest === 'no' && tr.dataset.retest !== '0') ok = false;
+        if (series && tr.dataset.series !== series) ok = false;
+        if (diffVal !== null && !Number.isNaN(diffVal)) {
+          const v = Number(tr.dataset[diffKey] || 0);
+          if (!(v > diffVal)) ok = false;
+        }
+        if (kws.length) {
+          const field = kwType === 'code' ? tr.dataset.code : tr.dataset.sku;
+          if (!kws.some(k => field.toUpperCase().includes(k.toUpperCase()))) ok = false;
+        }
+
+        tr.style.display = ok ? '' : 'none';
+        if (!ok) {
+          tr.classList.remove('selected');
+          const chk = tr.querySelector('.row-check');
+          if (chk) chk.checked = false;
+          document.querySelectorAll(`.row-history[data-parent="${tr.dataset.group}"]`).forEach(h => {
+            h.classList.remove('show');
+            h.style.display = 'none';
+          });
+          const btn = tr.querySelector('.expand-btn');
+          if (btn) btn.textContent = '›';
+        } else {
+          document.querySelectorAll(`.row-history[data-parent="${tr.dataset.group}"]`).forEach(h => {
+            if (!h.classList.contains('show')) h.style.display = 'none';
+          });
+        }
+      });
+      document.getElementById('checkAll').checked = false;
+      refreshCounts();
+    };
+
+    document.getElementById('checkAll').addEventListener('change', (e) => {
+      visibleMains().forEach(r => {
+        const c = r.querySelector('.row-check');
+        if (c) {
+          c.checked = e.target.checked;
+          r.classList.toggle('selected', e.target.checked);
+        }
+      });
+      updateSel();
+    });
+
+    document.getElementById('kwType').addEventListener('change', (e) => {
+      const input = document.getElementById('kwInput');
+      input.placeholder = e.target.value === 'code'
+        ? '规格更新确认编号，多个空格隔开'
+        : '多个值使用空格隔开';
+    });
+
+    // 状态「全部」与子项联动
+    document.getElementById('stAll').addEventListener('change', (e) => {
+      if (e.target.checked) {
+        document.getElementById('stWait').checked = true;
+        document.getElementById('stConfirm').checked = true;
+      }
+    });
+    ['stWait', 'stConfirm'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => {
+        const w = document.getElementById('stWait').checked;
+        const c = document.getElementById('stConfirm').checked;
+        document.getElementById('stAll').checked = w && c;
+      });
+    });
+
+    const mask = document.getElementById('retestMask');
+
+    const showFile = (name) => {
+      hasFile = true;
+      fileName = name;
+      document.getElementById('uploadZone').style.display = 'none';
+      const list = document.getElementById('fileList');
+      list.style.display = 'block';
+      list.innerHTML = `<div class="upload-box"><div class="file-row"><span>📎 ${name}</span><span class="link" id="rmFile">移除/更换</span></div></div>`;
+      document.getElementById('rmFile').onclick = () => {
+        hasFile = false;
+        fileName = '';
+        list.style.display = 'none';
+        document.getElementById('uploadZone').style.display = 'flex';
+      };
+    };
+
+    const resetForm = () => {
+      document.getElementById('retestWeight').value = '';
+      document.getElementById('retestL').value = '';
+      document.getElementById('retestW').value = '';
+      document.getElementById('retestH').value = '';
+      document.getElementById('retestRemark').value = '';
+      hasFile = false;
+      fileName = '';
+      document.getElementById('fileList').style.display = 'none';
+      document.getElementById('uploadZone').style.display = 'flex';
+    };
+
+    const openRetest = (wantEdit) => {
+      const checked = visibleMains().filter(r => r.querySelector('.row-check')?.checked);
+      if (checked.length !== 1) {
+        toast('请勾选且仅勾选 1 条主数据', true);
+        return;
+      }
+      const tr = checked[0];
+      const has = tr.dataset.retest === '1';
+      if (!wantEdit && has) return toast('该编号已上传开发重测，请使用「修改开发重测」', true);
+      if (wantEdit && !has) return toast('该编号尚未上传开发重测，请先「上传开发重测」', true);
+
+      editMode = wantEdit;
+      activeRow = tr;
+      resetForm();
+      document.getElementById('retestTitle').textContent = wantEdit ? '修改开发重测' : '上传开发重测';
+      document.getElementById('retestCtx').innerHTML =
+        `已选编号：<b>${tr.dataset.code}</b>　产品编号：<b>${tr.dataset.sku}</b>　处理中心：${tr.dataset.center}`;
+
+      if (wantEdit) {
+        document.getElementById('retestWeight').value = tr.dataset.rw || '';
+        document.getElementById('retestL').value = tr.dataset.rl || '';
+        document.getElementById('retestW').value = tr.dataset.rwd || '';
+        document.getElementById('retestH').value = tr.dataset.rh || '';
+        if (tr.dataset.file) showFile(tr.dataset.file);
+      }
+      mask.classList.add('show');
+    };
+
+    const paintRetestCells = (tr, w, l, wi, h, file, operator, time) => {
+      const rw = tr.querySelector('.cell-rw');
+      const rs = tr.querySelector('.cell-rs');
+      const rv = tr.querySelector('.cell-rv');
+      rw.classList.remove('muted');
+      rs.classList.remove('muted');
+      rv.classList.remove('muted');
+      rw.textContent = w;
+      rs.textContent = `${l}*${wi}*${h}`;
+      rv.className = 'new-col multi cell-rv';
+      rv.innerHTML = `<div><span class="link">${file}</span></div><div>${operator} ${time}</div>`;
+      tr.dataset.retest = '1';
+      tr.dataset.rw = w;
+      tr.dataset.rl = l;
+      tr.dataset.rwd = wi;
+      tr.dataset.rh = h;
+      tr.dataset.file = file;
+    };
+
+    document.getElementById('btnRetestUpload').addEventListener('click', () => openRetest(false));
+    document.getElementById('btnRetestEdit').addEventListener('click', () => openRetest(true));
+    document.getElementById('btnCancel').addEventListener('click', () => mask.classList.remove('show'));
+    document.getElementById('btnCloseX').addEventListener('click', () => mask.classList.remove('show'));
+    document.getElementById('uploadZone').addEventListener('click', () => {
+      showFile('开发重测凭证-' + Date.now() + '.jpg');
+    });
+
+    document.getElementById('btnSaveRetest').addEventListener('click', () => {
+      const w = document.getElementById('retestWeight').value.trim();
+      const l = document.getElementById('retestL').value.trim();
+      const wi = document.getElementById('retestW').value.trim();
+      const h = document.getElementById('retestH').value.trim();
+      if (!w) return toast('请填写开发重测重量/kg', true);
+      if (!l || !wi || !h) return toast('请填写开发重测尺寸（长/宽/高）', true);
+      if (!hasFile || !fileName) return toast('请上传重测凭证', true);
+      if (!activeRow) return toast('未选中记录', true);
+
+      paintRetestCells(activeRow, w, l, wi, h, fileName, '王敏', nowText());
+      mask.classList.remove('show');
+      applyFilter();
+      toast(editMode ? '开发重测已修改，列表已更新' : '开发重测已上传，列表已更新');
+    });
+
+    document.getElementById('btnSearch').addEventListener('click', () => {
+      applyFilter();
+      toast(`查询完成，共 ${visibleMains().length} 条`);
+    });
+    document.getElementById('btnReset').addEventListener('click', () => {
+      document.getElementById('stAll').checked = true;
+      document.getElementById('stWait').checked = true;
+      document.getElementById('stConfirm').checked = true;
+      document.getElementById('fltCenter').value = '';
+      document.getElementById('fltSource').value = '';
+      document.getElementById('fltReview').value = '';
+      document.getElementById('fltRetest').value = '';
+      document.getElementById('fltSeries').value = '';
+      document.getElementById('diffVal').value = '';
+      document.getElementById('diffType').value = 'dw';
+      document.getElementById('kwType').value = 'productCode';
+      document.getElementById('kwInput').value = '';
+      applyFilter();
+      toast('已重置筛选');
+    });
+    document.getElementById('btnConfirm').addEventListener('click', () => {
+      const rows = visibleMains().filter(r => r.querySelector('.row-check')?.checked);
+      if (!rows.length) return toast('请先勾选未确认主数据', true);
+      toast(`已选择 ${rows.length} 条，打开确认弹窗（沿用现网）`);
+    });
+
+    bindRowChecks();
+    applyFilter();
+  </script>
+</body>
+</html>
