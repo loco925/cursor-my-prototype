@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>尾程发货时效监控统计口径优化原型</title>
+  <style>
+    :root {
+      --blue: #337ab7;
+      --blue-dark: #286090;
+      --border: #d8dde5;
+      --head: #eef3f8;
+      --text: #334155;
+      --muted: #64748b;
+      --changed: #fff1dc;
+      --changed-border: #f0a84b;
+      --group-green: #e8f5ef;
+      --group-blue: #e8f1fb;
+      --group-purple: #f0ebfa;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 1360px;
+      color: var(--text);
+      background: #eef1f4;
+      font: 13px/1.45 "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+    }
+
+    .topbar {
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 9px;
+      color: #394b5f;
+      background: #fff;
+      border-left: 5px solid #2196f3;
+      border-radius: 0 0 6px 6px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, .10);
+    }
+
+    .path { font-weight: 600; }
+    .path .current { color: #ff6d3a; }
+    .toolbar-tools,
+    .saved-search,
+    .query-mode,
+    .time-row,
+    .timezone,
+    .export-bar {
+      display: flex;
+      align-items: center;
+    }
+    .toolbar-tools { gap: 8px; color: #62758a; }
+    .topbar,
+    .filter-panel,
+    .export-bar { font-size: 12px; }
+    .saved-search { gap: 5px; color: #2689e5; }
+    .quick-search {
+      height: 25px;
+      padding: 0 8px;
+      border: 1px solid #ccd8e5;
+      border-radius: 13px;
+      background: #fff;
+    }
+    .auto-search { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+    .auto-search input { width: 14px; height: 14px; }
+    .page { padding: 4px 5px 20px; }
+
+    .filter-panel {
+      background: #fff;
+      border: 1px solid #e5e9ee;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, .05);
+      padding: 5px 9px 7px;
+    }
+
+    .query-mode {
+      height: 26px;
+      gap: 13px;
+      color: #4b5f75;
+      white-space: nowrap;
+    }
+    .query-mode strong { color: #3d4d60; }
+    .check { display: inline-flex; align-items: center; gap: 4px; }
+    .check input { width: 14px; height: 14px; margin: 0; }
+
+    .filter-selects {
+      display: grid;
+      grid-template-columns: 1.1fr 1.1fr 1.8fr 1.05fr 1.1fr .9fr 1.15fr;
+      gap: 6px;
+      margin: 1px 0 5px;
+    }
+
+    select, input {
+      width: 100%;
+      height: 26px;
+      padding: 2px 8px;
+      color: #334155;
+      background: #fff;
+      border: 1px solid #ccd8e5;
+      border-radius: 14px;
+      outline: none;
+    }
+
+    select:focus, input:focus { border-color: #6aa7da; box-shadow: 0 0 0 2px rgba(51, 122, 183, .12); }
+    .filter-selects select { color: #7b8da1; }
+
+    .time-row { gap: 9px; }
+    #timeType { width: 195px; flex: 0 0 195px; }
+    .date-range {
+      width: 360px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      flex: 0 0 360px;
+      border: 1px solid #ccd8e5;
+      border-radius: 14px;
+      background: #fff;
+      overflow: hidden;
+    }
+    .date-range .calendar { width: 34px; color: #9cadbd; text-align: center; }
+    .date-range input {
+      width: 142px;
+      height: 24px;
+      padding: 0 6px;
+      text-align: center;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .date-range .separator { color: #7c8b9c; }
+    .timezone { gap: 10px; color: #5e7083; white-space: nowrap; }
+    .timezone label { display: inline-flex; align-items: center; gap: 4px; }
+    .timezone input { width: 14px; height: 14px; margin: 0; accent-color: #3498f5; }
+
+    button {
+      height: 26px;
+      padding: 0 12px;
+      border: 1px solid #cbd3dd;
+      border-radius: 14px;
+      background: #fff;
+      color: #334155;
+      cursor: pointer;
+    }
+
+    button.primary { color: #217fce; background: #e7f3ff; border-color: #d7ebff; }
+    button.primary:hover { color: #fff; background: var(--blue); }
+    .export-bar {
+      height: 38px;
+      gap: 8px;
+      margin-top: 4px;
+      padding: 5px 8px;
+      background: #fff;
+      border: 1px solid #e5e9ee;
+      border-radius: 6px;
+    }
+    button.export { color: #fff; background: #ff7900; border-color: #ff7900; font-weight: 600; }
+
+    .table-shell {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      background: #fff;
+      border: 1px solid #d8dde5;
+      border-radius: 4px;
+    }
+
+    table {
+      width: max-content;
+      min-width: 6050px;
+      border-collapse: collapse;
+      table-layout: auto;
+    }
+
+    th, td {
+      height: 40px;
+      padding: 7px 11px;
+      text-align: center;
+      vertical-align: middle;
+      white-space: nowrap;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      min-width: 126px;
+      overflow: visible;
+      color: #34465a;
+      background: var(--head);
+      font-weight: 600;
+    }
+
+    td { min-width: 126px; overflow: visible; background: #fff; }
+    tbody tr:nth-child(even) td { background: #fafbfd; }
+    tbody tr:hover td { background: #f3f8fd; }
+
+    .wide { min-width: 165px; }
+    .type-wide { min-width: 210px; }
+    .group-base { background: #e9edf2; }
+    .group-ship { background: var(--group-green); }
+    .group-onnet { background: var(--group-blue); }
+    .group-delivery { background: var(--group-purple); }
+
+    th.changed-col,
+    td.changed-col,
+    tbody tr:nth-child(even) td.changed-col,
+    tbody tr:hover td.changed-col {
+      background: var(--changed);
+      box-shadow: inset 0 0 0 1px rgba(240, 168, 75, .34);
+    }
+
+    .tag {
+      display: inline-block;
+      margin-left: 5px;
+      padding: 1px 4px;
+      color: #a85c00;
+      background: #ffe2b7;
+      border: 1px solid #f2bd70;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: 400;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="path">物流系统 &gt; 物流跟踪 &gt; <span class="current">尾程发货时效监控</span></div>
+    <div class="toolbar-tools">
+      <span class="saved-search">⟳　▣　保存搜索条件</span>
+      <select class="quick-search" aria-label="快捷搜索条件"><option>快捷搜索条件</option></select>
+      <label class="auto-search"><input type="checkbox" />自动搜索</label>
+    </div>
+  </div>
+
+  <main class="page">
+    <section class="filter-panel">
+      <div class="query-mode">
+        <strong>查询方式：</strong>
+        <label class="check"><input type="checkbox" />时间</label>
+        <label class="check"><input type="checkbox" checked />处理中心</label>
+        <label class="check"><input type="checkbox" />仓库</label>
+        <label class="check"><input type="checkbox" checked />尾程物流</label>
+        <label class="check"><input type="checkbox" />国家</label>
+        <label class="check"><input type="checkbox" />平台</label>
+        <label class="check"><input type="checkbox" />分区名称</label>
+        <label class="check"><input type="checkbox" />订单类型</label>
+      </div>
+
+      <div class="filter-selects">
+        <select aria-label="处理中心"><option>处理中心...</option><option>英国处理中心</option><option>德国处理中心</option></select>
+        <select aria-label="仓库"><option>仓库</option><option>英国一仓</option><option>德国一仓</option></select>
+        <select aria-label="尾程物流"><option>尾程物流</option><option>Royal Mail</option><option>DPD UK</option><option>DHL Paket</option></select>
+        <select aria-label="国家"><option>国家</option><option>英国</option><option>德国</option></select>
+        <select aria-label="平台"><option>平台</option><option>eBay</option><option>Amazon</option><option>独立站</option></select>
+        <select aria-label="分区名称"><option>分区名称</option><option>英国本土</option><option>德国本土</option></select>
+        <select id="orderType" aria-label="订单类型">
+          <option value="all">订单类型</option>
+          <option value="all">全部</option>
+          <option value="一件代发">一件代发</option>
+          <option value="平台自提">平台自提</option>
+        </select>
+      </div>
+
+      <div class="time-row">
+        <select id="timeType" aria-label="查询时间类型">
+          <option value="create">海外仓创建时间</option>
+          <option value="ship">海外仓出库时间</option>
+        </select>
+        <div class="date-range">
+          <span class="calendar">⌄　▣</span>
+          <input value="2026-11-01" aria-label="开始日期" />
+          <span class="separator">-</span>
+          <input value="2026-11-07" aria-label="结束日期" />
+        </div>
+        <div class="timezone">
+          <label><input type="radio" name="timezone" checked />北京时间</label>
+          <label><input type="radio" name="timezone" />当地时间</label>
+        </div>
+        <button id="queryBtn" class="primary">⌕ 搜索</button>
+        <button id="resetBtn">↻ 重置</button>
+      </div>
+    </section>
+
+    <div class="export-bar">
+      <button class="export">▣　导出</button>
+      <button class="export">▣　导出明细</button>
+    </div>
+
+    <div class="table-shell" aria-label="尾程发货时效监控完整字段列表">
+      <table>
+        <thead>
+          <tr>
+            <th class="group-base" colspan="9">统计维度</th>
+            <th class="group-ship" colspan="8">发货统计</th>
+            <th class="group-onnet" colspan="9">上网统计</th>
+            <th class="group-delivery" colspan="17">妥投统计</th>
+          </tr>
+          <tr id="columnHead"></tr>
+        </thead>
+        <tbody id="dataBody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    const columns = [
+      { name: "时间", wide: true },
+      { name: "处理中心", wide: true },
+      { name: "尾程物流", wide: true },
+      { name: "国家" },
+      { name: "仓库", wide: true },
+      { name: "分区名称", wide: true },
+      { name: "平台" },
+      { name: "订单类型", typeWide: true },
+      { name: "订单量" },
+      { name: "已发货数量" },
+      { name: "发货率" },
+      { name: "24H发货量" },
+      { name: "24H发货率" },
+      { name: "48H发货量" },
+      { name: "48H发货率" },
+      { name: "72H发货量" },
+      { name: "72H发货率" },
+      { name: "已上网票数" },
+      { name: "上网率" },
+      { name: "未上网票数", changed: true, tag: "新增" },
+      { name: "≤24H上网票数", changed: true, tag: "改名" },
+      { name: "≤24H上网率", changed: true, tag: "改名" },
+      { name: "≤48H上网票数", changed: true, tag: "改名" },
+      { name: "≤48H上网率", changed: true, tag: "改名" },
+      { name: "≤72H上网票数", changed: true, tag: "改名" },
+      { name: "≤72H上网率", changed: true, tag: "改名" },
+      { name: "已妥投数量" },
+      { name: "妥投率" },
+      { name: "未妥投数量" },
+      { name: "≤1天妥投率", changed: true, tag: "改名" },
+      { name: "≤2天妥投率", changed: true, tag: "改名" },
+      { name: "≤3天妥投率", changed: true, tag: "改名" },
+      { name: "≤4天妥投率", changed: true, tag: "改名" },
+      { name: "≤5天妥投率", changed: true, tag: "改名" },
+      { name: "≤6天妥投率", changed: true, tag: "改名" },
+      { name: "≤7天妥投率", changed: true, tag: "改名" },
+      { name: "≤8天妥投率", changed: true, tag: "改名" },
+      { name: "≤9天妥投率", changed: true, tag: "改名" },
+      { name: "≤10天妥投率", changed: true, tag: "改名" },
+      { name: "≤11天妥投率", changed: true, tag: "改名" },
+      { name: "≤12天妥投率", changed: true, tag: "改名" },
+      { name: "≤13天妥投率", changed: true, tag: "改名" },
+      { name: ">13天妥投率", changed: true, tag: "改名" }
+    ];
+
+    const createRows = [
+      ["2026-11-01", "英国处理中心", "Royal Mail", "英国", "英国一仓", "英国本土", "eBay", "一件代发", 468, 420, "89.74%", 315, "75.00%", 390, "92.86%", 412, "98.10%", 385, "91.67%", 35, 312, "74.29%", 361, "85.95%", 379, "90.24%", 328, "78.10%", 57, "22.38%", "45.48%", "59.05%", "66.43%", "70.71%", "73.57%", "75.71%", "76.90%", "77.38%", "77.62%", "77.86%", "78.10%", "78.10%", "0.00%"],
+      ["2026-11-02", "英国处理中心", "DPD UK", "英国", "英国一仓", "英国本土", "Amazon", "一件代发、平台自提", 356, 330, "92.70%", 268, "81.21%", 311, "94.24%", 325, "98.48%", 302, "91.52%", 28, 251, "76.06%", 287, "86.97%", 297, "90.00%", 246, "74.55%", 56, "18.18%", "39.70%", "55.45%", "63.33%", "68.18%", "71.82%", "73.03%", "73.64%", "74.24%", "74.24%", "74.55%", "74.55%", "74.55%", "0.00%"],
+      ["2026-11-03", "德国处理中心", "DHL Paket", "德国", "德国一仓", "德国本土", "独立站", "平台自提", 212, 198, "93.40%", 162, "81.82%", 187, "94.44%", 195, "98.48%", 183, "92.42%", 15, 151, "76.26%", 174, "87.88%", 180, "90.91%", 157, "79.29%", 26, "19.70%", "43.43%", "60.10%", "68.69%", "73.23%", "76.26%", "77.78%", "78.28%", "78.79%", "79.29%", "79.29%", "79.29%", "79.29%", "0.00%"],
+      ["2026-11-04", "英国处理中心", "未匹配渠道", "英国", "英国二仓", "英国偏远区", "eBay", "", 90, 57, "63.33%", 31, "54.39%", 43, "75.44%", 51, "89.47%", 48, "84.21%", 9, 29, "50.88%", 39, "68.42%", 45, "78.95%", 25, "43.86%", 23, "7.02%", "17.54%", "28.07%", "35.09%", "38.60%", "40.35%", "42.11%", "42.11%", "42.11%", "43.86%", "43.86%", "43.86%", "43.86%", "0.00%"]
+    ];
+
+    const shipRows = [
+      ["2026-11-01", "英国处理中心", "Royal Mail", "英国", "英国一仓", "英国本土", "eBay", "一件代发", 420, 420, "100.00%", 315, "75.00%", 390, "92.86%", 412, "98.10%", 385, "91.67%", 35, 312, "74.29%", 361, "85.95%", 379, "90.24%", 328, "78.10%", 57, "22.38%", "45.48%", "59.05%", "66.43%", "70.71%", "73.57%", "75.71%", "76.90%", "77.38%", "77.62%", "77.86%", "78.10%", "78.10%", "0.00%"],
+      ["2026-11-02", "英国处理中心", "DPD UK", "英国", "英国一仓", "英国本土", "Amazon", "一件代发、平台自提", 330, 330, "100.00%", 268, "81.21%", 311, "94.24%", 325, "98.48%", 302, "91.52%", 28, 251, "76.06%", 287, "86.97%", 297, "90.00%", 246, "74.55%", 56, "18.18%", "39.70%", "55.45%", "63.33%", "68.18%", "71.82%", "73.03%", "73.64%", "74.24%", "74.24%", "74.55%", "74.55%", "74.55%", "0.00%"],
+      ["2026-11-03", "德国处理中心", "DHL Paket", "德国", "德国一仓", "德国本土", "独立站", "平台自提", 198, 198, "100.00%", 162, "81.82%", 187, "94.44%", 195, "98.48%", 183, "92.42%", 15, 151, "76.26%", 174, "87.88%", 180, "90.91%", 157, "79.29%", 26, "19.70%", "43.43%", "60.10%", "68.69%", "73.23%", "76.26%", "77.78%", "78.28%", "78.79%", "79.29%", "79.29%", "79.29%", "79.29%", "0.00%"]
+    ];
+
+    const changedIndexes = new Set(columns.map((column, index) => column.changed ? index : -1).filter(index => index >= 0));
+
+    function renderHead() {
+      const head = document.getElementById("columnHead");
+      head.innerHTML = columns.map(column => {
+        const classes = [column.changed ? "changed-col" : "", column.wide ? "wide" : "", column.typeWide ? "type-wide" : ""].filter(Boolean).join(" ");
+        const tag = column.tag ? `<span class="tag">${column.tag}</span>` : "";
+        return `<th class="${classes}">${column.name}${tag}</th>`;
+      }).join("");
+    }
+
+    function getFilteredRows(rows) {
+      const selected = document.getElementById("orderType").value;
+      if (selected === "all") return rows;
+      return rows.filter(row => row[7].split("、").includes(selected));
+    }
+
+    function renderRows(rows) {
+      const body = document.getElementById("dataBody");
+      const filtered = getFilteredRows(rows);
+      body.innerHTML = filtered.map(row => {
+        if (row.length !== columns.length) throw new Error(`原型数据字段数 ${row.length} 与表头字段数 ${columns.length} 不一致`);
+        const cells = row.map((value, index) => {
+          const classes = [changedIndexes.has(index) ? "changed-col" : "", columns[index].wide ? "wide" : "", columns[index].typeWide ? "type-wide" : ""].filter(Boolean).join(" ");
+          return `<td class="${classes}">${value}</td>`;
+        }).join("");
+        return `<tr>${cells}</tr>`;
+      }).join("");
+
+      if (!filtered.length) {
+        body.innerHTML = `<tr><td colspan="43" style="height:90px;color:#64748b">当前筛选条件无数据</td></tr>`;
+      }
+
+    }
+
+    function query() {
+      const isShip = document.getElementById("timeType").value === "ship";
+      renderRows(isShip ? shipRows : createRows);
+    }
+
+    renderHead();
+    query();
+    document.getElementById("queryBtn").addEventListener("click", query);
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      document.getElementById("timeType").value = "create";
+      document.getElementById("orderType").value = "all";
+      query();
+    });
+    document.getElementById("timeType").addEventListener("change", query);
+    document.getElementById("orderType").addEventListener("change", query);
+  </script>
+</body>
+</html>
