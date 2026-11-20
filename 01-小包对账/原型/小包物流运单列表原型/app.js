@@ -237,7 +237,7 @@
     var channel = document.getElementById("channelFilter").value;
     var status = document.getElementById("statusFilter").value;
     var orderStatus = document.getElementById("orderStatusFilter").value;
-    var excludeOrderStatus = document.getElementById("excludeOrderStatusFilter").value;
+    var excludeOrderStatus = document.getElementById("excludeOrderStatusCheck").checked;
     var otherStatus = document.getElementById("otherStatusFilter").value;
     var from = document.getElementById("dateFrom").value;
     var to = document.getElementById("dateTo").value;
@@ -246,8 +246,7 @@
       return (!keyword || haystack.indexOf(keyword) >= 0)
         && (!channel || row.channel === channel)
         && (!status || row.status === status)
-        && (!orderStatus || row.orderStatus === orderStatus)
-        && (!excludeOrderStatus || row.orderStatus !== excludeOrderStatus)
+        && (!orderStatus || (excludeOrderStatus ? row.orderStatus !== orderStatus : row.orderStatus === orderStatus))
         && (!otherStatus || row.otherStatus === otherStatus)
         && (currentScene === "all" || row.scene === currentScene)
         && (!from || datePart(row.generatedAt) >= from)
@@ -259,12 +258,12 @@
     var data = getFilteredRows();
     resultCount.textContent = data.length;
     if (!data.length) {
-      tbody.innerHTML = '<tr><td class="empty-row" colspan="12">未查询到符合条件的运单记录</td></tr>';
+      tbody.innerHTML = '<tr><td class="empty-row" colspan="11">未查询到符合条件的运单记录</td></tr>';
       return;
     }
     tbody.innerHTML = data.map(function (row) {
       return '<tr>'
-        + '<td><div class="mono primary-text">' + escapeHtml(row.id) + '</div></td>'
+        + '<td><button class="link-btn mono primary-text detail-btn" data-id="' + escapeHtml(row.id) + '" title="查看运单详情">' + escapeHtml(row.id) + '</button></td>'
         + '<td><div class="mono">' + escapeHtml(row.orderId) + '</div></td>'
         + '<td><div class="mono">' + escapeHtml(row.outboundCode) + '</div></td>'
         + '<td><div class="mono primary-text">' + escapeHtml(row.tracking || "-") + '</div></td>'
@@ -275,7 +274,6 @@
         + '<td><span class="status ' + (row.orderStatus === "已暂停" ? "status-return" : "status-none") + '">' + escapeHtml(row.orderStatus) + '</span></td>'
         + '<td><span class="status ' + (row.otherStatus === "暂停发货" ? "status-return" : "status-none") + '">' + escapeHtml(row.otherStatus) + '</span></td>'
         + '<td><div>' + escapeHtml(row.generatedAt) + '</div></td>'
-        + '<td><button class="link-btn detail-btn" data-id="' + escapeHtml(row.id) + '">详情</button></td>'
         + '</tr>';
     }).join("");
 
@@ -393,13 +391,23 @@
     document.body.style.overflow = "";
   }
 
+  function openExcludeNotice() {
+    document.getElementById("excludeNoticeMask").hidden = false;
+    document.getElementById("excludeNotice").hidden = false;
+  }
+
+  function closeExcludeNotice() {
+    document.getElementById("excludeNoticeMask").hidden = true;
+    document.getElementById("excludeNotice").hidden = true;
+  }
+
   document.getElementById("searchBtn").addEventListener("click", renderTable);
   document.getElementById("resetBtn").addEventListener("click", function () {
     document.getElementById("keyword").value = "";
     document.getElementById("channelFilter").value = "";
     document.getElementById("statusFilter").value = "";
     document.getElementById("orderStatusFilter").value = "";
-    document.getElementById("excludeOrderStatusFilter").value = "";
+    document.getElementById("excludeOrderStatusCheck").checked = false;
     document.getElementById("otherStatusFilter").value = "";
     document.getElementById("dateFrom").value = "2026-11-01";
     document.getElementById("dateTo").value = "2026-11-20";
@@ -412,6 +420,12 @@
   document.getElementById("keyword").addEventListener("keydown", function (event) {
     if (event.key === "Enter") renderTable();
   });
+  document.getElementById("excludeOrderStatusCheck").addEventListener("change", function (event) {
+    if (event.target.checked) openExcludeNotice();
+  });
+  document.getElementById("excludeNoticeClose").addEventListener("click", closeExcludeNotice);
+  document.getElementById("excludeNoticeConfirm").addEventListener("click", closeExcludeNotice);
+  document.getElementById("excludeNoticeMask").addEventListener("click", closeExcludeNotice);
   Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (chip) {
     chip.addEventListener("click", function () {
       currentScene = chip.getAttribute("data-scene");
@@ -427,7 +441,12 @@
   document.getElementById("closeDrawer").addEventListener("click", closeDrawer);
   mask.addEventListener("click", closeDrawer);
   document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && drawer.classList.contains("open")) closeDrawer();
+    if (event.key !== "Escape") return;
+    if (!document.getElementById("excludeNotice").hidden) {
+      closeExcludeNotice();
+    } else if (drawer.classList.contains("open")) {
+      closeDrawer();
+    }
   });
 
   renderTable();
