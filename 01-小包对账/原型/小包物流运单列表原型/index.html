@@ -49,24 +49,21 @@
             <option value="已妥投">已妥投</option>
           </select>
         </label>
-        <label class="field">
+        <div class="field">
           <span>订单状态（当前）</span>
-          <select id="orderStatusFilter">
-            <option value="">全部</option>
-            <option value="已发货">已发货</option>
-            <option value="已核查">已核查</option>
-            <option value="已暂停">已暂停</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>排除订单状态</span>
-          <select id="excludeOrderStatusFilter">
-            <option value="">不排除</option>
-            <option value="已发货">已发货</option>
-            <option value="已核查">已核查</option>
-            <option value="已暂停">已暂停</option>
-          </select>
-        </label>
+          <div class="filter-inline">
+            <select id="orderStatusFilter">
+              <option value="">全部</option>
+              <option value="已发货">已发货</option>
+              <option value="已核查">已核查</option>
+              <option value="已暂停">已暂停</option>
+            </select>
+            <label class="exclude-check">
+              <input type="checkbox" id="excludeOrderStatusCheck">
+              <span>排除</span>
+            </label>
+          </div>
+        </div>
         <label class="field">
           <span>其他状态（当前）</span>
           <select id="otherStatusFilter">
@@ -110,7 +107,7 @@
         <table>
           <thead>
             <tr>
-              <th>运单记录号</th>
+              <th>运单号</th>
               <th>订单编号</th>
               <th>WMS出库单号</th>
               <th>跟踪号</th>
@@ -121,7 +118,6 @@
               <th>订单状态（当前）</th>
               <th>其他状态（当前）</th>
               <th>创建时间</th>
-              <th>操作</th>
             </tr>
           </thead>
           <tbody id="waybillRows"></tbody>
@@ -153,6 +149,16 @@
       <section class="tab-panel" id="wmsPanel"></section>
     </div>
   </aside>
+
+  <div class="notice-mask" id="excludeNoticeMask" hidden></div>
+  <section class="notice-dialog" id="excludeNotice" role="dialog" aria-modal="true" aria-labelledby="excludeNoticeTitle" hidden>
+    <div class="notice-head">
+      <h2 id="excludeNoticeTitle">消息提示</h2>
+      <button class="notice-close" id="excludeNoticeClose" aria-label="关闭">×</button>
+    </div>
+    <div class="notice-body"><span class="notice-icon">▲</span>勾选后，查询时排除所选订单状态</div>
+    <div class="notice-actions"><button class="btn btn-primary" id="excludeNoticeConfirm">确定</button></div>
+  </section>
 
   <script src="./app.js"></script>
 </body>
