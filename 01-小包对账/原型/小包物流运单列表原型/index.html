@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>小包物流运单列表｜交互原型</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">IMC OA</div>
+    <div class="breadcrumb">物流管理 <span>/</span> 小包物流运单列表</div>
+    <div class="top-user">黄思敏</div>
+  </header>
+
+  <main>
+    <section class="page-head">
+      <div>
+        <h1>小包物流运单列表</h1>
+        <p>以每个有效物流面单为一条运单记录，相同渠道和号码的重复打印合并展示，历史渠道和号码不随订单当前信息变化。</p>
+      </div>
+      <div class="prototype-note">原型演示数据</div>
+    </section>
+
+    <section class="panel filter-panel">
+      <div class="filter-grid">
+        <label class="field field-wide">
+          <span>单号查询</span>
+          <input id="keyword" placeholder="订单编号 / 出库单号 / 跟踪号 / 物流商单号 / 尾程跟踪号">
+        </label>
+        <label class="field">
+          <span>邮寄方式</span>
+          <select id="channelFilter">
+            <option value="">全部</option>
+            <option value="SY-顺速宝挂号(普货)">SY-顺速宝挂号(普货)</option>
+            <option value="顺邮宝挂号">顺邮宝挂号</option>
+            <option value="云途全球专线挂号">云途全球专线挂号</option>
+            <option value="燕文专线追踪">燕文专线追踪</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>物流状态</span>
+          <select id="statusFilter">
+            <option value="">全部</option>
+            <option value="暂无轨迹">暂无轨迹</option>
+            <option value="已上网">已上网</option>
+            <option value="运输中">运输中</option>
+            <option value="退回">退回</option>
+            <option value="已妥投">已妥投</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>订单状态（当前）</span>
+          <select id="orderStatusFilter">
+            <option value="">全部</option>
+            <option value="已发货">已发货</option>
+            <option value="已核查">已核查</option>
+            <option value="已暂停">已暂停</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>排除订单状态</span>
+          <select id="excludeOrderStatusFilter">
+            <option value="">不排除</option>
+            <option value="已发货">已发货</option>
+            <option value="已核查">已核查</option>
+            <option value="已暂停">已暂停</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>其他状态（当前）</span>
+          <select id="otherStatusFilter">
+            <option value="">全部</option>
+            <option value="正常发货">正常发货</option>
+            <option value="暂停发货">暂停发货</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>创建时间</span>
+          <input type="date" id="dateFrom" value="2026-11-01">
+        </label>
+        <label class="field">
+          <span>至</span>
+          <input type="date" id="dateTo" value="2026-11-20">
+        </label>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-primary" id="searchBtn">查询</button>
+        <button class="btn" id="resetBtn">重置</button>
+      </div>
+    </section>
+
+    <section class="scenario-bar" aria-label="演示场景">
+      <span class="scenario-label">演示场景</span>
+      <button class="chip active" data-scene="all">全部</button>
+      <button class="chip" data-scene="reship">退件换渠道重发</button>
+      <button class="chip" data-scene="printed">仅打印未发货</button>
+      <button class="chip" data-scene="delivered">正常妥投</button>
+      <button class="chip" data-scene="repeat">相同面单重复打印</button>
+      <button class="chip" data-scene="notrack">轨迹尚未产生</button>
+      <button class="chip" data-scene="mismatch">轨迹与订单状态不一致</button>
+    </section>
+
+    <section class="panel list-panel">
+      <div class="table-toolbar">
+        <div>共 <strong id="resultCount">0</strong> 条运单记录</div>
+        <div class="legend"><span class="legend-dot"></span>物流状态取该条运单关联的跟踪号轨迹，不取订单当前状态</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>运单记录号</th>
+              <th>订单编号</th>
+              <th>WMS出库单号</th>
+              <th>跟踪号</th>
+              <th>物流商单号</th>
+              <th>尾程跟踪号</th>
+              <th>邮寄方式 / 货代</th>
+              <th>物流状态</th>
+              <th>订单状态（当前）</th>
+              <th>其他状态（当前）</th>
+              <th>创建时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="waybillRows"></tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button disabled>上一页</button><button class="current">1</button><button disabled>下一页</button>
+        <span>20 条/页</span>
+      </div>
+    </section>
+  </main>
+
+  <div class="drawer-mask" id="drawerMask" hidden></div>
+  <aside class="drawer" id="detailDrawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div>
+        <div class="drawer-kicker">运单详情</div>
+        <h2 id="drawerTitle">-</h2>
+      </div>
+      <button class="icon-btn" id="closeDrawer" aria-label="关闭">×</button>
+    </div>
+    <div class="drawer-body">
+      <section class="detail-summary" id="detailSummary"></section>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="track">物流轨迹</button>
+        <button class="tab" data-tab="wms">仓库操作记录</button>
+      </div>
+      <section class="tab-panel active" id="trackPanel"></section>
+      <section class="tab-panel" id="wmsPanel"></section>
+    </div>
+  </aside>
+
+  <script src="./app.js"></script>
+</body>
+</html>
