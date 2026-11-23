@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>海外仓订单列表－产品详情弹窗优化原型</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font:13px/1.5 "Microsoft YaHei",Arial,sans-serif;color:#2f3542;background:#eef2f7;min-width:1280px}
+    button,input,select{font:inherit}
+    .topbar{height:36px;background:#f4f5f7;border-bottom:1px solid #c8ced7;display:flex;align-items:center;padding:0 10px;gap:10px;color:#333}
+    .crumb strong{color:#e95b23;font-weight:600}
+    .icon-btn{height:24px;padding:0 9px;border:1px solid #bfd3ee;border-radius:12px;color:#1479c9;background:#e9f4ff}
+    .save{height:25px;border:1px solid #2885ca;background:#e8f4ff;color:#1876bb;border-radius:4px}
+    .search-area{background:#f8fafc;border-bottom:1px solid #d5dbe4;padding:8px 10px 7px}
+    .filters{display:grid;grid-template-columns:repeat(10,minmax(110px,1fr));gap:7px}
+    .field{height:30px;border:1px solid #c6ced9;border-radius:15px;background:white;color:#687386;display:flex;align-items:center;padding:0 10px;white-space:nowrap}
+    .query-row{display:flex;align-items:center;gap:7px;margin-top:8px}
+    .query-row .field{width:150px}.query-row .long{width:390px;color:#3b4654}
+    .btn{height:30px;padding:0 15px;border:1px solid #c5ced9;border-radius:15px;background:white;color:#4a5567;cursor:pointer}
+    .btn.primary{border-color:#2387d4;background:#2387d4;color:white}
+    .actions{height:45px;padding:7px 10px;background:white;border-bottom:1px solid #d5dce5;display:flex;gap:7px}
+    .actions .btn{border-radius:15px;color:#1679c4;border-color:#78b7e9;background:#eff8ff}
+    .actions .btn.green{background:#43a047;color:white;border-color:#43a047}
+    .tags{height:36px;background:#edf1f5;display:flex;align-items:center;padding:0 32px;gap:12px;border-bottom:1px solid #d7dde5;color:#4d5968}
+    .tag{background:#dce3eb;border-radius:13px;padding:3px 10px}.tag b{color:#297fc1;margin-left:6px}
+    .order-table{margin:0 9px;background:white;border:1px solid #cfd6df;overflow:hidden}
+    .order-head,.order-row{display:grid;grid-template-columns:34px 240px 250px 90px 210px 300px 1fr;align-items:stretch}
+    .order-head{height:34px;background:#f1f4f7;border-bottom:1px solid #cfd6df;font-weight:600;color:#4f5968}
+    .order-row{min-height:134px;background:#fff9c4}
+    .order-head>div,.order-row>div{padding:9px;border-right:1px solid #d2d8e0}
+    .order-head>div{padding:8px 9px}.order-row .select{display:flex;align-items:center;justify-content:center;padding:0}
+    .check{width:15px;height:15px;border-radius:50%;background:#2b8ed6;box-shadow:inset 0 0 0 4px #fff;border:1px solid #2b8ed6}
+    .order-no{font-weight:600;color:#cf2d20;line-height:2}.sub{display:block;color:#687386;font-weight:400;margin-top:3px}
+    .product-link{color:#0b7bc1;text-decoration:none;font-weight:600;cursor:pointer}.product-link:hover{text-decoration:underline}
+    .blue-note{color:#1687d5}.red{color:#d92d20}.route{font-weight:600;color:#b42318}.cell-title{color:#505968;margin-right:4px}
+    .log{margin:0 9px;background:white;border:1px solid #cfd6df;border-top:0;height:170px;color:#667085}
+    .log-title{height:34px;display:grid;grid-template-columns:180px 1fr 180px;border-bottom:1px solid #d4dae2;background:#f4f6f8;font-weight:600}
+    .log-title div{padding:8px 10px;border-right:1px solid #d4dae2}
+    .log-row{display:grid;grid-template-columns:180px 1fr 180px;border-bottom:1px solid #edf0f4}.log-row div{padding:7px 10px}
+    .mask{position:fixed;inset:0;background:rgba(26,32,44,.52);display:flex;align-items:center;justify-content:center;padding:24px;z-index:10}
+    .mask.hidden{display:none}
+    .modal{width:min(1530px,calc(100vw - 48px));background:#fff;border-radius:10px;box-shadow:0 18px 60px rgba(9,30,66,.3);overflow:hidden;border:1px solid #d6dde6}
+    .modal-head{height:50px;display:flex;align-items:center;padding:0 14px;border-bottom:1px solid #dbe1e8;background:#fff}
+    .modal-head h2{font-size:16px;color:#f06b2b;margin:0}.snapshot{margin-left:12px;padding:3px 9px;border-radius:12px;background:#e9f4ff;color:#1677bf;font-size:12px}
+    .close{margin-left:auto;border:0;background:transparent;color:#6c7685;font-size:26px;line-height:1;cursor:pointer}
+    .modal-body{padding:12px;background:#f7f9fb}
+    .notice{display:flex;align-items:center;gap:9px;padding:8px 11px;margin-bottom:10px;border:1px solid #b8dcfa;background:#eef8ff;border-radius:5px;color:#305b79}
+    .notice b{color:#126da8}.notice .dot{width:8px;height:8px;border-radius:50%;background:#1b8bd2;flex:none}
+    .match-time{margin:-1px 0 9px 2px;color:#5f6b7a}.match-time strong{color:#2e3848;margin-left:6px}
+    .table-box{background:#fff;border:1px solid #d4dbe4;border-radius:5px;overflow:auto}
+    table{border-collapse:collapse;width:100%;min-width:1450px;text-align:center}
+    th,td{border-right:1px solid #cfd7e1;border-bottom:1px solid #cfd7e1;padding:8px 7px;vertical-align:middle}
+    th:last-child,td:last-child{border-right:0}tbody tr:last-child td{border-bottom:0}
+    thead tr:first-child th{height:35px;background:#edf2f7;color:#384555;font-weight:600}
+    thead tr:nth-child(2) th{height:34px;background:#f6f8fa;color:#536174;font-weight:600}
+    .group-match{background:#eaf7f2!important;color:#18765a!important}.group-oa{background:#f2efff!important;color:#5b46a6!important}.group-calc{background:#fff4df!important;color:#985e08!important}
+    .thumb{width:68px;height:58px;border:1px solid #d8dee7;border-radius:4px;margin:auto;background:linear-gradient(145deg,#f8fafc,#e8edf3);display:flex;align-items:center;justify-content:center;color:#68778a;font-size:11px;position:relative;overflow:hidden}
+    .thumb:before{content:"";width:42px;height:18px;background:#1c2026;border-radius:6px 3px 10px 4px;transform:rotate(-12deg);box-shadow:0 8px 0 -5px #414750}
+    .source{display:inline-block;padding:3px 8px;border-radius:11px;background:#e8f5ef;color:#18765a;font-size:12px}
+    .order-result{background:#fffbf1;color:#3f4856;font-weight:600}.order-result .result-note{display:block;margin-top:5px;color:#a16a12;font-size:11px;font-weight:400;white-space:nowrap}
+    .product-name{text-align:left;min-width:220px;color:#3c4656}.num{font-weight:600;color:#177cc0}
+    .modal-foot{display:flex;align-items:center;padding:10px 13px;background:#fff;border-top:1px solid #d9e0e8;color:#7a8595}
+    .history-tip{display:flex;align-items:center;gap:6px}.history-tip i{width:7px;height:7px;border-radius:50%;background:#f59e0b}.modal-foot .btn{margin-left:auto;border-radius:4px;min-width:72px}
+    .prototype-note{position:fixed;right:18px;bottom:16px;background:#263445;color:white;padding:8px 12px;border-radius:5px;opacity:.88;z-index:20;font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="crumb">订单系统 &gt; 深圳订单管理 &gt; <strong>海外仓订单列表</strong></span>
+    <button class="icon-btn">↻</button><button class="save">保存搜索条件</button><span>快捷搜索条件⌄</span><label><input type="checkbox"> 自动搜索</label>
+  </div>
+  <div class="search-area">
+    <div class="filters">
+      <div class="field">单/多/散⌄</div><div class="field">处理中…⌄</div><div class="field">仓库⌄</div><div class="field">平台⌄</div><div class="field">国家⌄</div><div class="field">邮寄方式⌄</div><div class="field">所属组⌄</div><div class="field">业务员⌄</div><div class="field">卖家账号⌄</div><div class="field">状态⌄</div>
+    </div>
+    <div class="query-row"><button class="btn primary">高级搜索</button><div class="field">订单编号⌄</div><div class="field long">A261117021608</div><button class="btn primary">搜索</button><button class="btn">清空</button></div>
+  </div>
+  <div class="actions"><button class="btn">▶ 匹配尾程物流</button><button class="btn">▶ 未发货拦截订单</button><button class="btn">▶ 已发货后拦截订单</button><button class="btn green">✎ 修改订单</button><button class="btn">按单号批量查询</button></div>
+  <div class="tags"><span class="tag">搜索类型：订单编号 <b>×</b></span><span class="tag">订单号：A261117021608 <b>×</b></span><span class="tag">订单生成日期：2026-11-23 <b>×</b></span></div>
+  <div class="order-table">
+    <div class="order-head"><div></div><div>订单信息</div><div>产品编号 * 数量</div><div>状态</div><div>发货仓库</div><div>尾程信息</div><div>收件地址</div></div>
+    <div class="order-row">
+      <div class="select"><span class="check"></span></div>
+      <div class="order-no">订单编号：A261117021608<span>第三方订单号：</span><span>平台订单编号：27-15406-98959</span><span>跟踪号：</span></div>
+      <div><a class="product-link" id="productLink">I500014957 × 1</a><span class="sub">GCUS-US76-I500014957</span><span class="blue-note sub">点击产品编号查看匹配时点规格</span></div>
+      <div>已发货<span class="sub blue-note">🌐 空</span></div>
+      <div>西邮处理中心<span class="sub">西邮美南6号仓[WPHOU6-77429]</span></div>
+      <div><span class="route">快递：GC-US-FedEx-Economy-EFN</span><span class="sub">买家自定义：西邮美南6号仓</span><span class="sub">尾程运费：427.10678</span><span class="sub">头程&转运成本：1517.1916</span><span class="sub">分区名称：4</span></div>
+      <div><span class="red">国家：United States-美国</span><span class="sub red">州/省：Texas</span><span class="sub red">城市：GRAPEVINE</span><span class="sub red">邮编：76051</span></div>
+    </div>
+  </div>
+  <div class="log"><div class="log-title"><div>操作人</div><div>操作日志</div><div>操作时间</div></div><div class="log-row"><div>系统</div><div>计算订单利润，利润 862.543340</div><div>2026/11/23 10:11:55</div></div><div class="log-row"><div>订单文员</div><div>订单状态：已发货；尾程匹配完成</div><div>2026/11/23 09:52:13</div></div></div>
+
+  <div class="mask" id="productMask">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+      <div class="modal-head"><h2 id="dialogTitle">产品详情</h2><span class="snapshot">最近一次匹配定存</span><button class="close" id="closeBtn" aria-label="关闭">×</button></div>
+      <div class="modal-body">
+        <div class="notice"><span class="dot"></span><b>数据说明</b><span>以下规格、尺寸重量及计费结果均为最近一次尾程匹配时定存，不随海外仓或 OA 基础规格后续变动。</span></div>
+        <div class="match-time">匹配更新时间<strong>2026-11-23 10:11:55</strong></div>
+        <div class="table-box">
+          <table>
+            <thead>
+              <tr><th rowspan="2">产品编号</th><th rowspan="2">产品图片</th><th rowspan="2">产品名称</th><th rowspan="2">数量</th><th colspan="3" class="group-match">匹配规格尺寸重量信息</th><th colspan="3" class="group-oa">OA规格尺寸重量信息</th><th colspan="4" class="group-calc">计算尺寸重量信息（订单汇总）</th></tr>
+              <tr><th class="group-match">规格来源</th><th class="group-match">尺寸</th><th class="group-match">产品重</th><th class="group-oa">规格来源</th><th class="group-oa">尺寸</th><th class="group-oa">产品重</th><th class="group-calc">计费尺寸</th><th class="group-calc">计费重量</th><th class="group-calc">计费体积重</th><th class="group-calc">实际计费重</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="num">I500014957</td><td><div class="thumb">产品图</div></td><td class="product-name">12运输工具：汽车发动机顶盖，适用于现代 IX35 Tucson Sonata 起亚 SPORTAGE K5</td><td>× 1 PCS</td>
+                <td><span class="source">海外仓规格</span></td><td>60 × 27.7 × 6 cm</td><td>0.580 kg</td>
+                <td>OA产品规格</td><td>49 × 23 × 4 cm</td><td>0.536 kg</td>
+                <td rowspan="2" class="order-result">60 × 27.7 × 26 cm<span class="result-note">多个产品汇总后的订单级结果</span></td><td rowspan="2" class="order-result">1.420 kg</td><td rowspan="2" class="order-result">8.642 kg</td><td rowspan="2" class="order-result"><strong>8.650 kg</strong></td>
+              </tr>
+              <tr>
+                <td class="num">I500028631</td><td><div class="thumb">产品图</div></td><td class="product-name">汽车发动机密封盖配件，黑色耐高温材质</td><td>× 2 PCS</td>
+                <td><span class="source">海外仓规格</span></td><td>30 × 18 × 10 cm</td><td>0.420 kg</td>
+                <td>OA装箱规格</td><td>28 × 17 × 9 cm</td><td>0.390 kg</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-foot"><span class="history-tip"><i></i>历史订单无匹配快照时，沿用原实时关联数据，并标识“实时数据（无历史快照）”。</span><button class="btn" id="confirmBtn">关闭</button></div>
+    </section>
+  </div>
+  <div class="prototype-note">原型交互：点击产品编号可重新打开弹窗</div>
+  <script>
+    const mask=document.getElementById('productMask');
+    function closeDialog(){mask.classList.add('hidden')}
+    function openDialog(){mask.classList.remove('hidden')}
+    document.getElementById('closeBtn').addEventListener('click',closeDialog);
+    document.getElementById('confirmBtn').addEventListener('click',closeDialog);
+    document.getElementById('productLink').addEventListener('click',openDialog);
+    mask.addEventListener('click',function(event){if(event.target===mask)closeDialog()});
+    document.addEventListener('keydown',function(event){if(event.key==='Escape')closeDialog()});
+  </script>
+</body>
+</html>

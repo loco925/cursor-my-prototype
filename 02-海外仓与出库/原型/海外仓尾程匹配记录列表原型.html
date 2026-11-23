@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>海外仓尾程匹配记录</title>
+  <style>
+    :root {
+      --primary:#1677ff;
+      --primary-soft:#eaf3ff;
+      --primary-border:#b8d7ff;
+      --success:#1f9d68;
+      --warning:#d97706;
+      --danger:#d92d20;
+      --ink:#25334a;
+      --muted:#68758a;
+      --border:#dfe5ee;
+      --panel:#ffffff;
+      --page:#f4f7fb;
+      --head:#f7f9fc;
+      --shadow:0 10px 28px rgba(34,57,94,.12);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--page);color:var(--ink);font:13px/1.5 "Microsoft YaHei","PingFang SC",Arial,sans-serif}
+    button,input,select{font:inherit}
+    .topbar{height:48px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;position:sticky;top:0;z-index:30}
+    .crumb{display:flex;align-items:center;gap:7px;color:#637087}
+    .crumb strong{color:#23314a;font-size:15px}
+    .crumb .current{color:var(--primary)}
+    .top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+    .help{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:#edf4ff;color:var(--primary);font-weight:700}
+    .user{display:flex;align-items:center;gap:7px;color:#526077}
+    .avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(145deg,#5c9dff,#1264dc);color:#fff;display:grid;place-items:center;font-size:12px}
+    .layout{min-height:calc(100vh - 48px);padding:12px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;box-shadow:0 1px 3px rgba(25,46,82,.04)}
+    .search-panel{padding:12px 14px 10px}
+    .search-head{display:flex;align-items:center;margin-bottom:10px}
+    .search-head h2{font-size:14px;margin:0;color:#27364e}
+    .search-head .tip{margin-left:10px;color:#8490a3;font-size:12px}
+    .filter-grid{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:9px 12px}
+    .field{display:flex;align-items:center;min-width:0}
+    .field label{width:76px;text-align:right;padding-right:8px;color:#59667a;white-space:nowrap}
+    .control{height:30px;border:1px solid #cfd7e5;border-radius:4px;background:#fff;color:#324158;padding:0 9px;min-width:0;width:100%;outline:none}
+    .control:focus{border-color:#79afff;box-shadow:0 0 0 2px rgba(22,119,255,.10)}
+    .date-wrap{display:flex;align-items:center;gap:5px;flex:1;min-width:0}
+    .date-wrap .control{padding:0 6px}
+    .search-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;border-top:1px dashed #e5e9f0;padding-top:10px}
+    .btn{height:30px;padding:0 14px;border-radius:4px;border:1px solid #ccd6e5;background:#fff;color:#34435a;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+    .btn:hover{border-color:#82b5ff;color:#1266dc}
+    .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .btn.primary:hover{background:#0f68e4}
+    .btn.ghost-primary{border-color:#8abaff;color:#1266dc;background:#f7fbff}
+    .list-panel{overflow:hidden;margin-top:10px}
+    .toolbar{height:46px;padding:0 12px;display:flex;align-items:center;border-bottom:1px solid var(--border)}
+    .toolbar-title{font-size:14px;font-weight:700}
+    .toolbar-title span{font-weight:400;color:#7c8798;margin-left:7px;font-size:12px}
+    .toolbar-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+    .legend{display:flex;align-items:center;gap:10px;margin-right:8px;color:#68758a;font-size:12px}
+    .legend i{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
+    .table-wrap{overflow:auto;max-height:calc(100vh - 284px);min-height:410px}
+    table{border-collapse:separate;border-spacing:0;width:100%;min-width:3100px}
+    th,td{border-right:1px solid #e5e9f0;border-bottom:1px solid #e5e9f0;padding:8px 9px;text-align:left;vertical-align:middle;white-space:nowrap}
+    th{position:sticky;top:0;background:#f6f8fb;color:#4e5c71;font-weight:600;z-index:4;height:38px}
+    thead tr:first-child th{top:0}
+    thead tr:nth-child(2) th{top:38px}
+    th.group-head{text-align:center;font-weight:700;letter-spacing:.2px}
+    th.actual-head{background:#eef6ff;color:#245b91}
+    th.calc-head{background:#f2efff;color:#66509d}
+    th.fee-head{background:#eef8f3;color:#287557}
+    th.actual-sub{background:#f5f9ff}
+    th.calc-sub{background:#f8f6ff}
+    th.fee-sub{background:#f5fbf8}
+    thead tr:first-child th:first-child,tbody td:first-child{position:sticky;left:0;z-index:5;background:inherit;text-align:center}
+    thead tr:first-child th:nth-child(2),tbody td:nth-child(2){position:sticky;left:42px;z-index:5;background:inherit}
+    thead tr:first-child th:first-child,thead tr:first-child th:nth-child(2){background:#f6f8fb;z-index:7}
+    tbody tr{background:#fff}
+    tbody tr:hover{background:#f7fbff}
+    tbody tr:hover td:first-child,tbody tr:hover td:nth-child(2){background:#f7fbff}
+    .order-id{color:#126bdc;font-weight:600;cursor:pointer}
+    .sub{display:block;color:#8792a4;font-size:11px;margin-top:2px}
+    .pill{display:inline-flex;align-items:center;border-radius:12px;padding:2px 8px;font-size:12px;border:1px solid transparent}
+    .pill.blue{background:#edf5ff;color:#1267d3;border-color:#cce2ff}
+    .pill.green{background:#ecf8f3;color:#16845b;border-color:#c9eadc}
+    .pill.orange{background:#fff5e9;color:#b76508;border-color:#f4d5aa}
+    .pill.red{background:#fff0ee;color:#c6382d;border-color:#f3cbc7}
+    .pill.gray{background:#f2f4f7;color:#687386;border-color:#e0e4ea}
+    .pill.purple{background:#f4efff;color:#7050b8;border-color:#ded2fa}
+    .money{font-variant-numeric:tabular-nums;font-weight:600}
+    .manual-fee{color:#d14343;background:#fff7f6}
+    .manual-fee .sub{color:#d14343}
+    .diff-up{color:#d14343;font-weight:700}
+    .diff-down{color:#16845b;font-weight:700}
+    .link{color:#126bdc;cursor:pointer}
+    .row-check{accent-color:var(--primary)}
+    .pagination{height:46px;display:flex;align-items:center;padding:0 12px;color:#6f7a8b;border-top:1px solid #edf0f4}
+    .pages{margin-left:auto;display:flex;align-items:center;gap:5px}
+    .page{min-width:28px;height:28px;border:1px solid #d7dee9;background:#fff;border-radius:4px;display:grid;place-items:center;cursor:pointer}
+    .page.active{background:var(--primary);border-color:var(--primary);color:#fff}
+    .mask{position:fixed;inset:0;background:rgba(28,39,58,.38);display:none;z-index:80}
+    .mask.show{display:block}
+    .drawer{position:absolute;right:0;top:0;height:100%;width:min(990px,92vw);background:#fff;box-shadow:-12px 0 28px rgba(19,38,70,.20);display:flex;flex-direction:column}
+    .drawer-head{height:58px;padding:0 18px;display:flex;align-items:center;border-bottom:1px solid var(--border)}
+    .drawer-head h2{font-size:16px;margin:0}
+    .drawer-head .record-no{color:#8490a3;font-size:12px;margin-left:10px}
+    .close{margin-left:auto;border:0;background:transparent;font-size:25px;color:#778398;cursor:pointer}
+    .drawer-body{padding:14px 18px 22px;overflow:auto;background:#f7f9fc}
+    .notice{border:1px solid #b9d8ff;background:#eef6ff;color:#345b88;padding:9px 12px;border-radius:5px;margin-bottom:12px;display:flex;align-items:center}
+    .notice strong{margin-right:8px;color:#126bdc}
+    .detail-card{background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:12px;overflow:hidden}
+    .card-title{height:40px;padding:0 12px;display:flex;align-items:center;font-weight:700;border-bottom:1px solid #e6eaf0}
+    .card-title:before{content:"";width:3px;height:15px;background:var(--primary);border-radius:2px;margin-right:7px}
+    .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);padding:3px 12px 11px}
+    .summary-item{padding:9px 6px 3px;min-width:0}
+    .summary-item label{display:block;color:#8390a2;font-size:12px;margin-bottom:2px}
+    .summary-item span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tabs{height:42px;display:flex;align-items:flex-end;padding:0 12px;border-bottom:1px solid #dde3eb;background:#fff}
+    .tab{height:42px;padding:0 18px;border:0;background:transparent;color:#667489;cursor:pointer;border-bottom:2px solid transparent}
+    .tab.active{color:#126bdc;border-bottom-color:#1677ff;font-weight:700}
+    .tab-pane{display:none;background:#fff;padding:12px}
+    .tab-pane.active{display:block}
+    .compare-table{min-width:0;width:100%}
+    .compare-table th,.compare-table td{position:static!important;white-space:normal;padding:8px 10px}
+    .compare-table th{background:#f5f7fa}
+    .compare-table .metric{font-weight:600;background:#fafbfd;width:150px}
+    .fee-lines{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .fee-box{border:1px solid #e1e6ee;border-radius:5px;overflow:hidden}
+    .fee-box h4{margin:0;background:#f6f8fb;padding:8px 10px;font-size:13px}
+    .fee-row{display:flex;justify-content:space-between;padding:7px 10px;border-top:1px solid #edf0f4}
+    .fee-label{display:flex;align-items:center;gap:6px}
+    .fee-kind{font-style:normal;font-size:11px;padding:1px 5px;border-radius:3px;background:#edf5ff;color:#1267d3}
+    .fee-kind.surcharge{background:#fff5e9;color:#b76508}
+    .fee-kind.incidental{background:#f4efff;color:#7050b8}
+    .fee-amount{text-align:right}
+    .fee-original{display:block;color:#8a95a6;font-size:11px;font-weight:400;margin-bottom:2px}
+    .fee-row.total{font-weight:700;background:#fbfcfe}
+    .product-table{min-width:0;width:100%}
+    .product-table th,.product-table td{position:static!important;white-space:normal;padding:8px}
+    .empty-dash{color:#a4adba}
+    .footer-note{padding:9px 12px;background:#fff8eb;color:#945f16;border:1px solid #f2d59f;border-radius:5px;margin-top:10px}
+    .export-mask{position:fixed;inset:0;background:rgba(28,39,58,.42);display:none;align-items:center;justify-content:center;z-index:110;padding:28px}
+    .export-mask.show{display:flex}
+    .export-dialog{width:min(980px,96vw);max-height:88vh;background:#fff;border-radius:8px;box-shadow:0 18px 48px rgba(20,37,65,.28);display:flex;flex-direction:column;overflow:hidden}
+    .export-head{height:54px;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid var(--border)}
+    .export-head h3{font-size:16px;margin:0}
+    .export-head .export-sub{color:#7d899b;margin-left:10px;font-size:12px}
+    .export-body{padding:14px 18px 18px;overflow:auto;background:#f7f9fc}
+    .export-tip{padding:10px 12px;border:1px solid #b9d8ff;background:#eef6ff;color:#345b88;border-radius:5px;margin-bottom:12px}
+    .sheet-card{background:#fff;border:1px solid #dfe5ee;border-radius:6px;margin-top:12px;overflow:hidden}
+    .sheet-title{padding:9px 12px;background:#f5f8fc;border-bottom:1px solid #e3e8f0;font-weight:700;display:flex;align-items:center;gap:8px}
+    .sheet-title span{font-weight:400;color:#778397;font-size:12px}
+    .export-fields{min-width:0;width:100%;border-collapse:collapse}
+    .export-fields th,.export-fields td{position:static!important;white-space:normal;padding:8px 10px;border-right:1px solid #e8ecf2;border-bottom:1px solid #e8ecf2;vertical-align:top}
+    .export-fields th{width:150px;background:#fbfcfe;color:#4d5c72}
+    .export-fields tr:last-child th,.export-fields tr:last-child td{border-bottom:0}
+    .export-foot{height:58px;padding:0 18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:8px;background:#fff}
+    .toast{position:fixed;left:50%;top:66px;transform:translateX(-50%);background:#293a52;color:#fff;padding:9px 16px;border-radius:5px;box-shadow:var(--shadow);display:none;z-index:120}
+    .toast.show{display:block;animation:fade 2.3s both}
+    @keyframes fade{0%{opacity:0;transform:translate(-50%,-8px)}12%,82%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+    @media(max-width:1300px){.filter-grid{grid-template-columns:repeat(4,minmax(160px,1fr))}.table-wrap{max-height:calc(100vh - 342px)}}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="crumb"><span>订单系统</span><span>›</span><span>深圳订单管理</span><span>›</span><strong class="current">海外仓尾程匹配记录</strong></div>
+    <div class="top-actions"><span class="help">?</span><span class="user"><span class="avatar">黄</span>黄思敏</span></div>
+  </header>
+
+  <main class="layout">
+    <section class="panel search-panel">
+      <div class="search-head"><h2>查询条件</h2><span class="tip">默认查询近30天、每个订单只展示最新一次有效结果</span></div>
+      <div class="filter-grid">
+        <div class="field"><label>更新时间</label><div class="date-wrap"><input class="control" value="2026-10-24"><span>至</span><input class="control" value="2026-11-23"></div></div>
+        <div class="field"><label>订单编号</label><input id="orderSearch" class="control" placeholder="OA/原始平台/物流商单号"></div>
+        <div class="field"><label>处理中心</label><select class="control"><option>全部</option><option>西邮处理中心</option><option>谷仓处理中心</option><option>万邑通处理中心</option></select></div>
+        <div class="field"><label>仓库</label><select class="control"><option>全部</option><option>西邮美南6号仓</option><option>谷仓美东仓</option><option>万邑通英国仓</option></select></div>
+        <div class="field"><label>国家</label><select class="control"><option>全部</option><option>美国</option><option>英国</option><option>德国</option><option>加拿大</option></select></div>
+        <div class="field"><label>分区</label><input class="control" placeholder="分区ID/名称"></div>
+        <div class="field"><label>尾程渠道</label><select class="control"><option>全部</option><option>GCUS-V3US-LTL｜西邮-US-VC-PO-LTL-卡派</option><option>GC-US-FEDEX-GROUND｜谷仓-US-FEDEX-GROUND</option><option>WNT-UK-DPD-HOME｜DPD住宅派送</option><option>GC-CA-UPS-STANDARD｜UPS Standard</option></select></div>
+        <div class="field"><label>规格来源</label><select class="control"><option>全部</option><option>海外仓规格</option><option>OA装箱规格</option><option>OA产品规格</option></select></div>
+        <div class="field"><label>运费来源</label><select class="control"><option>全部</option><option>系统计算</option><option>人工导入</option></select></div>
+        <div class="field"><label>复核类型</label><select class="control"><option>全部</option><option>特别复核</option><option>一般复核</option><option>不参与复核</option></select></div>
+      </div>
+      <div class="search-actions"><button id="resetBtn" class="btn">重置</button><button id="queryBtn" class="btn primary">查询</button></div>
+    </section>
+
+    <section class="panel list-panel">
+      <div class="toolbar">
+        <div class="toolbar-title">匹配记录列表<span>查询到 2,846 条</span></div>
+        <div class="toolbar-right">
+          <div class="legend"><span><i style="background:#d92d20"></i>特别复核</span><span><i style="background:#1f9d68"></i>一般复核</span></div>
+          <button id="exportBtn" class="btn ghost-primary">⇩ 导出</button>
+          <button class="btn" onclick="showToast('已刷新最新匹配记录')">↻ 刷新</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="recordTable">
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:42px"><input type="checkbox" class="row-check"></th>
+              <th rowspan="2" style="width:135px">OA订单编号</th>
+              <th rowspan="2">平台</th>
+              <th rowspan="2">原始平台订单编号</th>
+              <th rowspan="2">物流商单号</th>
+              <th rowspan="2">处理中心 / 仓库</th>
+              <th rowspan="2">国家 / 州省 / 邮编</th>
+              <th rowspan="2">分区</th>
+              <th rowspan="2">最终尾程渠道</th>
+              <th rowspan="2">匹配规格来源</th>
+              <th colspan="3" class="group-head actual-head">匹配规格尺寸重量信息</th>
+              <th colspan="4" class="group-head calc-head">计算尺寸重量信息</th>
+              <th colspan="3" class="group-head fee-head">费用信息</th>
+              <th rowspan="2">当前公司运费</th>
+              <th rowspan="2">复核类型</th>
+              <th rowspan="2">创建时间</th>
+              <th rowspan="2">更新时间</th>
+            </tr>
+            <tr>
+              <th class="actual-sub">尺寸</th>
+              <th class="actual-sub">产品重</th>
+              <th class="actual-sub">体积重</th>
+              <th class="calc-sub">计费尺寸</th>
+              <th class="calc-sub">计费重量</th>
+              <th class="calc-sub">计费体积重</th>
+              <th class="calc-sub">实际计费重</th>
+              <th class="fee-sub">匹配总费用</th>
+              <th class="fee-sub">OA尺寸试算总费用</th>
+              <th class="fee-sub">总费用差异</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-order="A261102010175">
+              <td><input type="checkbox" class="row-check"></td>
+              <td><span class="order-id" onclick="openDrawer('A261102010175','system-alert')">A261102010175</span></td>
+              <td>eBay</td>
+              <td>G1378-261102-0879</td>
+              <td>YT12641021462819497</td>
+              <td>西邮处理中心<span class="sub">西邮美南6号仓</span></td>
+              <td>美国 · TX<span class="sub">76051</span></td>
+              <td><strong>4区</strong></td>
+              <td>西邮-US-VC-PO-LTL-卡派<span class="sub">GCUS-V3US-LTL</span></td>
+              <td><span class="pill blue">海外仓规格</span></td>
+              <td>25.5 × 22.3 × 21.6 cm</td><td>0.633 kg</td><td>1.535 kg</td>
+              <td>25.5 × 22.3 × 21.6 cm</td><td>0.633 kg</td><td>1.535 kg</td><td><strong>1.535 kg</strong></td>
+              <td class="money">USD 59.9171<span class="sub">CNY 427.1068</span></td><td class="money">USD 64.1083<span class="sub">CNY 456.9830</span></td><td><span class="diff-up">+USD 4.1912 / +6.99%</span><span class="sub">+CNY 29.8762</span></td>
+              <td>—</td>
+              <td><span class="pill red">特别复核</span></td>
+              <td>2026-11-21 08:20:16</td>
+              <td>2026-11-23 10:11:55</td>
+            </tr>
+            <tr data-order="A261102040571">
+              <td><input type="checkbox" class="row-check"></td>
+              <td><span class="order-id" onclick="openDrawer('A261102040571','fedex')">A261102040571</span></td>
+              <td>AmazonVC</td>
+              <td>7V421IPQ-112</td>
+              <td>GCUS-V3US-1870100956D2</td>
+              <td>西邮处理中心<span class="sub">西邮美南6号仓</span></td>
+              <td>美国 · CA<span class="sub">91761</span></td>
+              <td><strong>8区</strong></td>
+              <td>谷仓-US-FEDEX-GROUND<span class="sub">GC-US-FEDEX-GROUND</span></td>
+              <td><span class="pill blue">海外仓规格</span></td>
+              <td>120.0 × 42.0 × 38.0 cm</td><td>46.000 kg</td><td>38.304 kg</td>
+              <td>48 × 17 × 15 in</td><td>101.200 lb</td><td>39.942 kg</td><td><strong>101.200 lb</strong></td>
+              <td class="money">USD 121.0027<span class="sub">CNY 862.5433</span></td><td class="money">USD 121.0027<span class="sub">CNY 862.5433</span></td><td><span class="diff-down">USD 0.0000 / 0.00%</span><span class="sub">CNY 0.0000</span></td>
+              <td>—</td>
+              <td><span class="pill green">一般复核</span></td>
+              <td>2026-11-22 09:38:50</td>
+              <td>2026-11-23 09:38:50</td>
+            </tr>
+            <tr data-order="A261108006284">
+              <td><input type="checkbox" class="row-check"></td>
+              <td><span class="order-id" onclick="openDrawer('A261108006284','manual')">A261108006284</span></td>
+              <td>Wayfair</td>
+              <td>WF-88450129</td>
+              <td>GC-WF-20261108006284</td>
+              <td>谷仓处理中心<span class="sub">谷仓美东仓</span></td>
+              <td>美国 · NJ<span class="sub">07001</span></td>
+              <td><strong>5区</strong></td>
+              <td>GC-GC-WAYFAIR-ZTQD<span class="sub">Wayfair宅配</span></td>
+              <td><span class="pill gray">—</span></td>
+              <td><span class="empty-dash">—</span></td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+              <td>—</td><td>—</td><td>—</td>
+              <td class="money manual-fee">1,967.6904 CNY<span class="sub">人工导入</span></td>
+              <td><span class="pill orange">不参与复核</span></td>
+              <td>2026-11-20 12:06:42</td>
+              <td>2026-11-22 17:26:14</td>
+            </tr>
+            <tr data-order="A261115003892">
+              <td><input type="checkbox" class="row-check"></td>
+              <td><span class="order-id" onclick="openDrawer('A261115003892','failed')">A261115003892</span></td>
+              <td>Amazon</td>
+              <td>114-9385620-001</td>
+              <td>WNT-GB-20261115003892</td>
+              <td>万邑通处理中心<span class="sub">万邑通英国仓</span></td>
+              <td>英国 · London<span class="sub">SW1A 1AA</span></td>
+              <td><strong>UK-2区</strong></td>
+              <td>WNT-UK-DPD-HOME<span class="sub">DPD住宅派送</span></td>
+              <td><span class="pill blue">海外仓规格</span></td>
+              <td>48.0 × 32.0 × 20.0 cm</td><td>4.820 kg</td><td>6.144 kg</td>
+              <td>48.0 × 32.0 × 20.0 cm</td><td>4.820 kg</td><td>6.144 kg</td><td><strong>6.200 kg</strong></td>
+              <td class="money">GBP 10.6786<span class="sub">CNY 96.4810</span></td><td>—</td><td>—</td>
+              <td>—</td>
+              <td><span class="pill red">特别复核</span></td>
+              <td>2026-11-20 10:12:05</td>
+              <td>2026-11-22 14:06:22</td>
+            </tr>
+            <tr data-order="A261120019936">
+              <td><input type="checkbox" class="row-check"></td>
+              <td><span class="order-id" onclick="openDrawer('A261120019936','system-ok')">A261120019936</span></td>
+              <td>eBay</td>
+              <td>18-12065-98122</td>
+              <td>GC-CA-20261120019936</td>
+              <td>谷仓处理中心<span class="sub">谷仓加拿大仓</span></td>
+              <td>加拿大 · ON<span class="sub">M5V 2T6</span></td>
+              <td><strong>CA-3区</strong></td>
+              <td>GC-CA-UPS-STANDARD<span class="sub">UPS Standard</span></td>
+              <td><span class="pill green">OA产品规格</span></td>
+              <td>36.0 × 28.0 × 14.0 cm</td><td>2.700 kg</td><td>2.822 kg</td>
+              <td>36.0 × 28.0 × 14.0 cm</td><td>2.700 kg</td><td>2.822 kg</td><td><strong>3.000 kg</strong></td>
+              <td class="money">EUR 10.6290<span class="sub">CNY 82.1300</span></td><td class="money">EUR 10.8334<span class="sub">CNY 83.7100</span></td><td><span class="diff-up">+EUR 0.2044 / +1.92%</span><span class="sub">+CNY 1.5800</span></td>
+              <td>—</td>
+              <td><span class="pill green">一般复核</span></td>
+              <td>2026-11-21 11:48:09</td>
+              <td>2026-11-21 11:48:09</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination"><span>第 1-50 条，共 2,846 条</span><div class="pages"><span class="page">‹</span><span class="page active">1</span><span class="page">2</span><span class="page">3</span><span>…</span><span class="page">57</span><span class="page">›</span><select class="control" style="width:88px;margin-left:5px"><option>50条/页</option><option>100条/页</option></select></div></div>
+    </section>
+  </main>
+
+  <div id="mask" class="mask" onclick="if(event.target===this) closeDrawer()">
+    <aside class="drawer">
+      <div class="drawer-head"><h2>尾程匹配记录详情</h2><span id="recordNo" class="record-no"></span><button class="close" onclick="closeDrawer()">×</button></div>
+      <div class="drawer-body">
+        <div id="detailNotice" class="notice"><strong>最新有效结果</strong>此处展示匹配时点定存数据，不随海外仓或OA产品规格后续调整而变化。</div>
+        <section class="detail-card">
+          <div class="card-title">固定计算条件</div>
+          <div class="summary-grid">
+            <div class="summary-item"><label>订单编号</label><span id="detailOrder">A261102010175</span></div>
+            <div class="summary-item"><label>处理中心 / 仓库</label><span>西邮处理中心 / 西邮美南6号仓</span></div>
+            <div class="summary-item"><label>最终尾程渠道</label><span id="detailChannel">GCUS-V3US-LTL</span></div>
+            <div class="summary-item"><label>承运商</label><span id="detailCarrier">UPS</span></div>
+            <div class="summary-item"><label>分区</label><span>4区</span></div>
+            <div class="summary-item"><label>国家 / 州 / 城市 / 邮编</label><span>US / TX / GRAPEVINE / 76051</span></div>
+            <div class="summary-item"><label>体积系数</label><span id="detailCoefficient">8000 cm³/kg</span></div>
+            <div class="summary-item"><label>基础运费币种 / 汇率</label><span>USD / 7.128300</span></div>
+            <div class="summary-item"><label>运费来源</label><span id="feeSource">系统计算</span></div>
+            <div class="summary-item"><label>匹配规格来源</label><span id="detailSpecSource">海外仓规格</span></div>
+          </div>
+        </section>
+
+        <section class="detail-card">
+          <div class="tabs">
+            <button class="tab active" data-tab="compare">订单级对比</button>
+            <button class="tab" data-tab="product">产品规格明细</button>
+            <button class="tab" data-tab="fee">费用项明细</button>
+          </div>
+          <div id="compare" class="tab-pane active">
+            <table class="compare-table">
+              <thead><tr><th>指标</th><th>匹配尺寸数据</th><th>同渠道OA尺寸数据</th><th>差异（OA－匹配）</th><th>差异绝对值</th><th>差异比例</th></tr></thead>
+              <tbody id="compareBody">
+                <tr><td class="metric">计费尺寸</td><td>25.5 × 22.3 × 21.6 cm</td><td>28.0 × 24.0 × 24.0 cm</td><td class="diff-up">+2.5 / +1.7 / +2.4 cm</td><td>2.5 / 1.7 / 2.4 cm</td><td class="diff-up">+9.80% / +7.62% / +11.11%</td></tr>
+                <tr><td class="metric">产品重量</td><td>0.633 kg</td><td>0.604 kg</td><td class="diff-down">-0.029 kg</td><td>0.029 kg</td><td class="diff-down">-4.58%</td></tr>
+                <tr><td class="metric">计费体积重</td><td>1.535 kg</td><td>2.112 kg</td><td class="diff-up">+0.577 kg</td><td>0.577 kg</td><td class="diff-up">+37.59%</td></tr>
+                <tr><td class="metric">实际计费重</td><td>1.535 kg</td><td>2.112 kg</td><td class="diff-up">+0.577 kg</td><td>0.577 kg</td><td class="diff-up">+37.59%</td></tr>
+                <tr><td class="metric">基础运费</td><td>USD 53.0845<span class="sub">CNY 378.4020</span></td><td>USD 55.8647<span class="sub">CNY 398.2200</span></td><td class="diff-up">+USD 2.7802<span class="sub">+CNY 19.8180</span></td><td>USD 2.7802<span class="sub">CNY 19.8180</span></td><td class="diff-up">+5.24%</td></tr>
+                <tr><td class="metric">附加费</td><td>USD 6.8326<span class="sub">CNY 48.7048</span></td><td>USD 8.2436<span class="sub">CNY 58.7630</span></td><td class="diff-up">+USD 1.4110<span class="sub">+CNY 10.0582</span></td><td>USD 1.4110<span class="sub">CNY 10.0582</span></td><td class="diff-up">+20.65%</td></tr>
+                <tr><td class="metric">其他杂费合计</td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>0.00%</td></tr>
+                <tr><td class="metric">尾程总费用</td><td><strong>USD 59.9171</strong><span class="sub">CNY 427.1068</span></td><td><strong>USD 64.1083</strong><span class="sub">CNY 456.9830</span></td><td class="diff-up">+USD 4.1912<span class="sub">+CNY 29.8762</span></td><td><strong>USD 4.1912</strong><span class="sub">CNY 29.8762</span></td><td class="diff-up">+6.99%</td></tr>
+              </tbody>
+            </table>
+            <div id="resultNote" class="footer-note">复核类型：特别复核</div>
+          </div>
+          <div id="product" class="tab-pane">
+            <table class="product-table">
+              <thead><tr><th>产品编号</th><th>数量</th><th>规格来源</th><th>匹配规格尺寸 / 产品重</th><th>计费尺寸 / 计费重量</th><th>OA规格尺寸 / 产品重</th></tr></thead>
+              <tbody><tr><td>I500385102A1</td><td>1</td><td><span class="pill blue">海外仓规格</span></td><td>25.5 × 22.3 × 21.6 cm / 0.633 kg</td><td>25.5 × 22.3 × 21.6 cm / 0.633 kg</td><td>21.0 × 20.0 × 20.0 cm / 0.604 kg</td></tr></tbody>
+            </table>
+          </div>
+          <div id="fee" class="tab-pane">
+            <div class="fee-lines">
+              <div class="fee-box"><h4>匹配尺寸费用</h4><div class="fee-row"><span class="fee-label"><em class="fee-kind">基础运费</em>基础运费</span><strong class="fee-amount"><small class="fee-original">USD 53.0845 × 汇率 7.128300</small>CNY 378.4020</strong></div><div class="fee-row"><span class="fee-label"><em class="fee-kind surcharge">附加费</em>住宅地址附加费</span><strong class="fee-amount"><small class="fee-original">USD 4.5593 × 汇率 7.128300</small>CNY 32.5000</strong></div><div class="fee-row"><span class="fee-label"><em class="fee-kind surcharge">附加费</em>燃油附加费</span><strong class="fee-amount"><small class="fee-original">USD 2.2733 × 汇率 7.128300</small>CNY 16.2048</strong></div><div class="fee-row"><span class="fee-label"><em class="fee-kind incidental">其他杂费</em>其他杂费合计</span><strong class="fee-amount"><small class="fee-original">USD 0.0000 × 汇率 7.128300</small>CNY 0.0000</strong></div><div class="fee-row total"><span>尾程总费用</span><strong class="fee-amount"><small class="fee-original">USD 59.9171</small>CNY 427.1068</strong></div></div>
+              <div class="fee-box"><h4>OA尺寸费用</h4><div class="fee-row"><span class="fee-label"><em class="fee-kind">基础运费</em>基础运费</span><strong class="fee-amount"><small class="fee-original">USD 55.8647 × 汇率 7.128300</small>CNY 398.2200</strong></div><div class="fee-row"><span class="fee-label"><em class="fee-kind surcharge">附加费</em>住宅地址附加费</span><strong class="fee-amount"><small class="fee-original">USD 5.0222 × 汇率 7.128300</small>CNY 35.8000</strong></div><div class="fee-row"><span class="fee-label"><em class="fee-kind surcharge">附加费</em>燃油附加费</span><strong class="fee-amount"><small class="fee-original">USD 3.2214 × 汇率 7.128300</small>CNY 22.9630</strong></div><div class="fee-row"><span class="fee-label"><em class="fee-kind incidental">其他杂费</em>其他杂费合计</span><strong class="fee-amount"><small class="fee-original">USD 0.0000 × 汇率 7.128300</small>CNY 0.0000</strong></div><div class="fee-row total"><span>尾程总费用</span><strong class="fee-amount"><small class="fee-original">USD 64.1083</small>CNY 456.9830</strong></div></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <div id="exportMask" class="export-mask" onclick="if(event.target===this) closeExportDialog()">
+    <section class="export-dialog">
+      <div class="export-head"><h3>导出字段确认</h3><span class="export-sub">按当前查询条件导出</span><button class="close" onclick="closeExportDialog()">×</button></div>
+      <div class="export-body">
+        <div class="export-tip">导出文件包含 2 个工作表：“订单维度对比”一行对应一个订单；“费用项差异明细”一行对应一个订单的一项费用，避免一个订单的动态费用项被挤在同一行。</div>
+        <div class="sheet-card">
+          <div class="sheet-title">Sheet 1：订单维度对比 <span>列表字段＋OA尺寸重量及双边计算结果</span></div>
+          <table class="export-fields">
+            <tbody>
+              <tr><th>订单标识</th><td>OA订单编号、平台、原始平台订单编号、物流商单号</td></tr>
+              <tr><th>匹配条件</th><td>处理中心、仓库、国家、州省、邮编、分区、最终尾程渠道、承运商、匹配规格来源</td></tr>
+              <tr><th>匹配规格尺寸重量</th><td>尺寸长(cm)、尺寸宽(cm)、尺寸高(cm)、产品重(kg)、体积重(kg)</td></tr>
+              <tr><th>OA规格尺寸重量</th><td>OA规格来源、OA尺寸长(cm)、OA尺寸宽(cm)、OA尺寸高(cm)、OA产品重(kg)、OA体积重(kg)</td></tr>
+              <tr><th>匹配计算结果</th><td>计费尺寸单位、计费重量单位、计费尺寸长、计费尺寸宽、计费尺寸高、计费重量、计费体积重(kg)、实际计费重</td></tr>
+              <tr><th>OA计算结果</th><td>OA计费尺寸长、OA计费尺寸宽、OA计费尺寸高、OA计费重量、OA计费体积重(kg)、OA实际计费重</td></tr>
+              <tr><th>费用信息</th><td>原币币种、汇率、匹配总费用(原币)、匹配总费用(CNY)、OA尺寸总费用(原币)、OA尺寸总费用(CNY)、总费用差异(原币)、总费用差异(CNY)、总费用差异比例</td></tr>
+              <tr><th>订单生效费用</th><td>当前公司运费、运费来源（系统计算记录的当前公司运费导出为空；人工导入时导出人工金额）</td></tr>
+              <tr><th>复核与时间</th><td>复核类型、创建时间、更新时间</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="sheet-card">
+          <div class="sheet-title">Sheet 2：费用项差异明细 <span>同一订单可导出多行费用项</span></div>
+          <table class="export-fields">
+            <tbody>
+              <tr><th>订单及渠道</th><td>OA订单编号、平台、原始平台订单编号、物流商单号、最终尾程渠道、承运商、分区</td></tr>
+              <tr><th>费用项</th><td>费用项分类、费用项名称、原币币种、汇率</td></tr>
+              <tr><th>匹配尺寸费用</th><td>匹配金额(原币)、匹配金额(CNY)</td></tr>
+              <tr><th>OA尺寸费用</th><td>OA金额(原币)、OA金额(CNY)</td></tr>
+              <tr><th>费用项差异</th><td>差异金额(原币)、差异金额(CNY)、差异绝对值(原币)、差异绝对值(CNY)、差异比例</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="export-foot"><button class="btn" onclick="closeExportDialog()">取消</button><button class="btn primary" onclick="confirmExport()">确认导出</button></div>
+    </section>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    function showToast(message){
+      var toast=document.getElementById('toast');
+      toast.textContent=message;
+      toast.classList.remove('show');
+      void toast.offsetWidth;
+      toast.classList.add('show');
+    }
+    function openDrawer(order,type){
+      document.getElementById('mask').classList.add('show');
+      document.getElementById('recordNo').textContent='记录号：TM-20261123-000182';
+      document.getElementById('detailOrder').textContent=order;
+      var compare=document.getElementById('compareBody');
+      var note=document.getElementById('resultNote');
+      var feeSource=document.getElementById('feeSource');
+      var notice=document.getElementById('detailNotice');
+      var detailChannel=document.getElementById('detailChannel');
+      var detailCarrier=document.getElementById('detailCarrier');
+      var detailCoefficient=document.getElementById('detailCoefficient');
+      var detailSpecSource=document.getElementById('detailSpecSource');
+      detailChannel.textContent='GCUS-V3US-LTL';
+      detailCarrier.textContent='UPS';
+      detailCoefficient.textContent='8000 cm³/kg';
+      detailSpecSource.textContent='海外仓规格';
+      if(type==='manual'){
+        feeSource.innerHTML='<span class="pill orange">人工导入</span>';
+        compare.innerHTML='<tr><td colspan="6" style="text-align:center;padding:38px;color:#7c8798">当前为人工导入运费，不生成OA尺寸与匹配尺寸的系统费用对比。</td></tr>';
+        note.textContent='复核类型：不参与复核；当前公司运费为1,967.6904 CNY。';
+        notice.innerHTML='<strong>人工运费</strong>此记录只保留订单生效人工金额和来源，不将此前系统计算结果作为当前对比结果。';
+      }else if(type==='failed'){
+        feeSource.textContent='系统计算';
+        compare.innerHTML='<tr><td class="metric">匹配尺寸费用</td><td>GBP 10.6786<span class="sub">CNY 96.4810</span></td><td colspan="4" class="empty-dash">OA尺寸数据在该渠道计算失败：尺寸超过允许上限</td></tr><tr><td class="metric">计费重</td><td>6.200 kg</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>';
+        note.textContent='复核类型：特别复核；OA尺寸试算失败：尺寸超过该渠道允许上限。';
+        notice.innerHTML='<strong>最新有效结果</strong>最终渠道正常计费成功；OA尺寸在同渠道试算失败。';
+      }else if(type==='fedex'){
+        detailChannel.textContent='GC-US-FEDEX-GROUND';
+        detailCarrier.textContent='FedEx';
+        detailCoefficient.textContent='139 in³/lb';
+        detailSpecSource.textContent='海外仓规格';
+        feeSource.textContent='系统计算';
+        compare.innerHTML='<tr><td class="metric">计费尺寸</td><td>48 × 17 × 15 in</td><td>46 × 16 × 14 in</td><td class="diff-down">-2 / -1 / -1 in</td><td>2 / 1 / 1 in</td><td class="diff-down">-4.17% / -5.88% / -6.67%</td></tr><tr><td class="metric">产品重量</td><td>101.200 lb</td><td>99.000 lb</td><td class="diff-down">-2.200 lb</td><td>2.200 lb</td><td class="diff-down">-2.17%</td></tr><tr><td class="metric">体积重</td><td>88.058 lb</td><td>74.158 lb</td><td class="diff-down">-13.900 lb</td><td>13.900 lb</td><td class="diff-down">-15.78%</td></tr><tr><td class="metric">计费重</td><td>101.200 lb</td><td>99.000 lb</td><td class="diff-down">-2.200 lb</td><td>2.200 lb</td><td class="diff-down">-2.17%</td></tr><tr><td class="metric">基础运费</td><td>USD 113.9884<span class="sub">CNY 812.5433</span></td><td>USD 113.9884<span class="sub">CNY 812.5433</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>0.00%</td></tr><tr><td class="metric">附加费</td><td>USD 7.0143<span class="sub">CNY 50.0000</span></td><td>USD 7.0143<span class="sub">CNY 50.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>0.00%</td></tr><tr><td class="metric">其他杂费合计</td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>0.00%</td></tr><tr><td class="metric">尾程总费用</td><td><strong>USD 121.0027</strong><span class="sub">CNY 862.5433</span></td><td><strong>USD 121.0027</strong><span class="sub">CNY 862.5433</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td><strong>USD 0.0000</strong><span class="sub">CNY 0.0000</span></td><td>0.00%</td></tr>';
+        note.textContent='复核类型：一般复核';
+        notice.innerHTML='<strong>最新有效结果</strong>匹配尺寸数据与同渠道OA尺寸数据均转换为该渠道配置的 in、lb 单位后计算并定存。';
+      }else{
+        feeSource.textContent='系统计算';
+        compare.innerHTML='<tr><td class="metric">计费尺寸</td><td>25.5 × 22.3 × 21.6 cm</td><td>28.0 × 24.0 × 24.0 cm</td><td class="diff-up">+2.5 / +1.7 / +2.4 cm</td><td>2.5 / 1.7 / 2.4 cm</td><td class="diff-up">+9.80% / +7.62% / +11.11%</td></tr><tr><td class="metric">产品重量</td><td>0.633 kg</td><td>0.604 kg</td><td class="diff-down">-0.029 kg</td><td>0.029 kg</td><td class="diff-down">-4.58%</td></tr><tr><td class="metric">体积重</td><td>1.535 kg</td><td>2.112 kg</td><td class="diff-up">+0.577 kg</td><td>0.577 kg</td><td class="diff-up">+37.59%</td></tr><tr><td class="metric">计费重</td><td>1.535 kg</td><td>2.112 kg</td><td class="diff-up">+0.577 kg</td><td>0.577 kg</td><td class="diff-up">+37.59%</td></tr><tr><td class="metric">基础运费</td><td>USD 53.0845<span class="sub">CNY 378.4020</span></td><td>USD 55.8647<span class="sub">CNY 398.2200</span></td><td class="diff-up">+USD 2.7802<span class="sub">+CNY 19.8180</span></td><td>USD 2.7802<span class="sub">CNY 19.8180</span></td><td class="diff-up">+5.24%</td></tr><tr><td class="metric">附加费</td><td>USD 6.8326<span class="sub">CNY 48.7048</span></td><td>USD 8.2436<span class="sub">CNY 58.7630</span></td><td class="diff-up">+USD 1.4110<span class="sub">+CNY 10.0582</span></td><td>USD 1.4110<span class="sub">CNY 10.0582</span></td><td class="diff-up">+20.65%</td></tr><tr><td class="metric">其他杂费合计</td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>USD 0.0000<span class="sub">CNY 0.0000</span></td><td>0.00%</td></tr><tr><td class="metric">尾程总费用</td><td><strong>USD 59.9171</strong><span class="sub">CNY 427.1068</span></td><td><strong>USD 64.1083</strong><span class="sub">CNY 456.9830</span></td><td class="diff-up">+USD 4.1912<span class="sub">+CNY 29.8762</span></td><td><strong>USD 4.1912</strong><span class="sub">CNY 29.8762</span></td><td class="diff-up">+6.99%</td></tr>';
+        note.textContent=type==='system-ok'?'复核类型：一般复核':'复核类型：特别复核';
+        notice.innerHTML='<strong>最新有效结果</strong>此处展示匹配时点定存数据，不随海外仓或OA产品规格后续调整而变化。';
+      }
+      compare.querySelectorAll('.metric').forEach(function(cell){
+        if(cell.textContent==='计费重')cell.textContent='实际计费重';
+        if(cell.textContent==='体积重')cell.textContent='计费体积重';
+      });
+      if(type==='fedex'){
+        var volumeMetric=Array.from(compare.querySelectorAll('.metric')).find(function(cell){return cell.textContent==='计费体积重'});
+        if(volumeMetric){
+          var volumeCells=volumeMetric.parentElement.children;
+          volumeCells[1].textContent='39.942 kg';
+          volumeCells[2].textContent='33.638 kg';
+          volumeCells[3].textContent='-6.305 kg';
+          volumeCells[4].textContent='6.305 kg';
+        }
+      }
+      document.querySelectorAll('.tab').forEach(function(x){x.classList.toggle('active',x.dataset.tab==='compare')});
+      document.querySelectorAll('.tab-pane').forEach(function(x){x.classList.toggle('active',x.id==='compare')});
+    }
+    function closeDrawer(){document.getElementById('mask').classList.remove('show')}
+    function openExportDialog(){document.getElementById('exportMask').classList.add('show')}
+    function closeExportDialog(){document.getElementById('exportMask').classList.remove('show')}
+    function confirmExport(){closeExportDialog();showToast('已按当前查询条件创建导出任务，请稍后在导出中心下载')}
+    document.querySelectorAll('.tab').forEach(function(tab){
+      tab.addEventListener('click',function(){
+        document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active')});
+        document.querySelectorAll('.tab-pane').forEach(function(x){x.classList.remove('active')});
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+    document.getElementById('queryBtn').addEventListener('click',function(){
+      var key=document.getElementById('orderSearch').value.trim().toLowerCase();
+      var rows=document.querySelectorAll('#recordTable tbody tr');
+      var count=0;
+      rows.forEach(function(row){var show=!key||row.textContent.toLowerCase().indexOf(key)>-1;row.style.display=show?'':'none';if(show)count++});
+      showToast('查询完成，当前示例显示 '+count+' 条记录');
+    });
+    document.getElementById('resetBtn').addEventListener('click',function(){
+      document.getElementById('orderSearch').value='';
+      document.querySelectorAll('#recordTable tbody tr').forEach(function(row){row.style.display=''});
+      showToast('查询条件已重置');
+    });
+    document.getElementById('exportBtn').addEventListener('click',openExportDialog);
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeDrawer();closeExportDialog()}});
+  </script>
+</body>
+</html>
