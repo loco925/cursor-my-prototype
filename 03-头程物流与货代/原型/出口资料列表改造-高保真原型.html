@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WMS 出口资料列表改造原型</title>
+  <style>
+    :root{
+      --primary:#00899e;--primary-soft:#e9f7f8;--line:#d9e0e8;--head:#e7ecf3;
+      --text:#303844;--muted:#687386;--bg:#eef2f6;--yellow:#fff3ca;--green:#add88d;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;font:13px/1.45 "Microsoft YaHei","Segoe UI",Arial,sans-serif;color:var(--text);background:var(--bg)}
+    button,input{font:inherit}
+    .app{min-width:0;min-height:720px;height:100vh;display:flex;flex-direction:column;background:#f4f6f8}
+    .topbar{height:48px;flex:none;display:flex;align-items:center;padding:0 18px;background:#fff;border-bottom:1px solid #dfe4ea;box-shadow:0 1px 3px rgba(35,48,65,.04)}
+    .logo{display:flex;align-items:center;gap:8px;color:#263445;font-weight:700;font-size:15px}
+    .logo-mark{width:24px;height:24px;border-radius:5px;background:linear-gradient(145deg,#00a4b9,#007b91);position:relative}
+    .logo-mark:before,.logo-mark:after{content:"";position:absolute;background:#fff;border-radius:2px}.logo-mark:before{width:12px;height:3px;left:6px;top:6px}.logo-mark:after{width:8px;height:8px;left:8px;top:11px}
+    .crumb{margin-left:24px;color:#7a8491}.crumb b{color:#344054;font-weight:600}.top-actions{margin-left:auto;display:flex;align-items:center;gap:14px;color:#6b7582}.avatar{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#dff2f4;color:#007c91;font-weight:700}
+    .workspace{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;min-height:0;flex:1}
+    .card{background:#fff;border:1px solid #e0e5eb;border-radius:5px}
+    .search-card{padding:5px 7px 7px;display:flex;flex-wrap:wrap;gap:5px 6px;align-items:center;position:relative}
+    .radio-wrap{height:30px;display:flex;align-items:center;gap:12px;padding:0 8px;border:1px solid #d6dde6;border-radius:4px;background:#fff;color:#4f5968}
+    .radio{display:flex;align-items:center;gap:5px}.dot{width:13px;height:13px;border:1px solid #aeb8c5;border-radius:50%;display:inline-block;background:#fff}.radio.active .dot{border:4px solid var(--primary)}.radio.active{color:var(--primary)}
+    .control{height:30px;min-width:138px;padding:0 10px;border:1px solid #cfd7e1;border-radius:4px;background:#fff;color:#567bb0;display:flex;align-items:center;justify-content:space-between;white-space:nowrap}
+    .control.wide{min-width:198px}.control.xwide{min-width:260px}.control .caret{color:#9aa5b1;font-size:10px;margin-left:12px}.input{justify-content:flex-start;color:#567bb0}.range{min-width:330px;gap:8px}.range span{color:#8792a2}.search-spacer{flex:1;min-width:20px}
+    .btn{height:30px;padding:0 14px;border:1px solid #c8d2dc;border-radius:4px;background:#fff;color:#475467;cursor:pointer;white-space:nowrap}.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}.btn.tool{color:#16859a;border-color:#9ccbd2;background:#f5fbfc}.btn .arrow{margin-left:8px;font-size:10px}.switch{width:34px;height:18px;border-radius:10px;background:#d5dbe3;position:relative;margin-left:8px}.switch:after{content:"";position:absolute;width:14px;height:14px;left:2px;top:2px;border-radius:50%;background:white;box-shadow:0 1px 2px rgba(0,0,0,.22)}
+    .action-card{min-height:42px;padding:5px 7px;display:flex;align-items:center;gap:6px}.legend{margin-left:auto;color:#7b8491;font-size:12px;display:flex;align-items:center;gap:8px}.legend i{width:8px;height:8px;border-radius:50%;background:#e5484d;display:inline-block}
+    .table-card{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#fff}
+    .table-toolbar{height:38px;flex:none;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid var(--line);color:#687386}.table-toolbar strong{color:#2f3a49}.pager{margin-left:auto;display:flex;align-items:center;gap:10px}.pager span{border:1px solid #d5dce5;background:#fff;border-radius:3px;padding:3px 8px}.pager .current{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .table-scroll{flex:1;overflow:auto;position:relative}.data-table{border-collapse:separate;border-spacing:0;min-width:2310px;width:100%;table-layout:fixed;font-size:12px}.data-table th,.data-table td{border-right:1px solid #d9e0e8;border-bottom:1px solid #d9e0e8;padding:7px 7px;text-align:left;vertical-align:top}.data-table th{height:39px;background:var(--head);color:#4e5969;font-weight:600;vertical-align:middle;position:sticky;top:0;z-index:2}.data-table td{height:88px;background:#fff;color:#475467}.data-table tbody tr:hover td{background:#f7fbfc}.data-table .check-col{width:42px;text-align:center}.checkbox{width:14px;height:14px;border:1px solid #b7c1cc;border-radius:2px;background:#fff;display:inline-block}.list-checkbox{width:14px;height:14px;margin:0;accent-color:var(--primary);cursor:pointer}.data-table .group-yellow{background:var(--yellow)}.data-table .group-green{background:var(--green);color:#34422e}.data-table .group-red{background:#c91d31;color:white}.data-table .new-head{background:#fff7ed;color:#9a3412}.new-badge{display:inline-block;margin-left:4px;padding:1px 4px;border-radius:8px;background:#e5484d;color:#fff;font-size:10px;font-weight:400;line-height:1.2}.cell-line{display:block;white-space:nowrap;margin-bottom:3px}.muted{color:#778292}.link{color:#00899e;text-decoration:none;cursor:pointer}.ref-link{color:#00899e;text-decoration:underline;text-underline-offset:2px;cursor:pointer}.suppliers{line-height:1.5}.op{white-space:nowrap}.op a{color:#00899e;margin-right:7px;cursor:pointer}.data-table .operation-sticky{position:sticky;right:0;z-index:4;border-left:2px solid #cfd7e1!important;border-right:1px solid #cfd7e1!important;box-shadow:-4px 0 8px rgba(31,45,61,.08)}.data-table th.operation-sticky{background:var(--head);z-index:6}.data-table td.operation-sticky{background:#fff}.table-foot{height:30px;flex:none;display:flex;align-items:center;padding:0 10px;background:#fafbfc;color:#7b8491;border-top:1px solid #e3e7ec}
+
+    .mask{position:fixed;inset:0;background:rgba(22,31,43,.42);z-index:20;display:none}.mask.open{display:block}.drawer{position:absolute;right:0;top:0;height:100%;width:80%;min-width:1180px;background:#f4f6f8;box-shadow:-8px 0 30px rgba(17,24,39,.24);display:flex;flex-direction:column}.drawer-head{height:56px;flex:none;display:flex;align-items:center;padding:0 20px;background:#fff;border-bottom:1px solid #dce2e9}.drawer-head h2{margin:0;font-size:17px;color:#344054}.drawer-head .ref{margin-left:12px;padding:3px 9px;border-radius:12px;background:#eef8fa;color:#007f93;font-size:12px}.close{margin-left:auto;border:0;background:transparent;font-size:25px;color:#768191;cursor:pointer}.tabs{height:42px;flex:none;display:flex;align-items:flex-end;padding:0 20px;background:#fff;border-bottom:1px solid #dce2e9;gap:8px}.tab{height:41px;min-width:150px;padding:0 22px;border:0;background:transparent;color:#596575;font-weight:600;cursor:pointer;position:relative}.tab.active{color:var(--primary)}.tab.active:after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:4px;border-radius:4px 4px 0 0;background:var(--primary)}
+    .drawer-body{padding:8px 10px 10px;flex:1;min-height:0;display:flex;flex-direction:column;gap:6px}.drawer-search{min-height:42px;padding:5px 7px;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e0e5eb;border-radius:5px}.drawer-search .push{margin-left:auto}.tab-panel{flex:1;min-height:0;display:none;flex-direction:column;background:#fff;border:1px solid #dce2e9;border-radius:5px;overflow:hidden}.tab-panel.active{display:flex}.panel-note{height:35px;flex:none;padding:0 10px;display:flex;align-items:center;border-bottom:1px solid #e1e6eb;background:#fbfcfd;color:#6e7a89}.panel-note b{color:#344054}.panel-note .right{margin-left:auto}.tiny-red{display:inline-flex;align-items:center;gap:5px}.tiny-red:before{content:"";width:7px;height:7px;border-radius:50%;background:#e5484d}
+    .detail-scroll{flex:1;overflow:auto}.detail-table{border-collapse:separate;border-spacing:0;min-width:2130px;width:100%;table-layout:fixed;font-size:12px}.detail-table th,.detail-table td{border-right:1px solid #d9e0e8;border-bottom:1px solid #d9e0e8;padding:7px 6px;text-align:left;vertical-align:middle}.detail-table th{height:46px;background:var(--head);color:#4e5969;font-weight:600;position:sticky;top:0;z-index:2}.detail-table th.added{background:#fff1f0;color:#cf1322}.detail-table td{height:44px;color:#3e4957;white-space:nowrap}.detail-table tbody tr:nth-child(even) td{background:#fbfcfd}.detail-table tbody tr.zero-qty td{background:#f2f4f7;color:#98a2b3}.detail-table tbody tr.zero-qty.hidden-zero{display:none}.detail-table tfoot td{height:44px;background:#f4f6f8;font-weight:700;color:#263445;position:sticky;bottom:0}.detail-table.compact{min-width:980px}.detail-table.compact th,.detail-table.compact td{font-size:13px}.panel-actions{height:43px;flex:none;padding:6px 9px;display:flex;align-items:center;border-bottom:1px solid #e1e6eb;background:#fff}.hide-zero{margin-left:auto;display:flex;align-items:center;gap:7px;color:#475467}.native-switch{appearance:none;width:34px;height:18px;border-radius:10px;background:#cfd6de;position:relative;cursor:pointer;outline:0}.native-switch:after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.24);transition:.15s}.native-switch:checked{background:var(--primary)}.native-switch:checked:after{left:18px}.drawer-foot{height:45px;flex:none;display:flex;align-items:center;padding:0 12px;background:#fff;border-top:1px solid #dce2e9;color:#7b8491}.drawer-foot .btn{margin-left:auto}
+    .edit-mask{z-index:80}.edit-drawer{width:88%;min-width:1280px;background:#f4f6f8}.edit-body{padding:10px;flex:1;min-height:0;display:flex;flex-direction:column;gap:8px}.edit-tip{padding:9px 12px;border:1px solid #cfe4e7;border-radius:5px;background:#eef8fa;color:#456675}.edit-card{flex:1;min-height:0;background:#fff;border:1px solid #dce2e9;border-radius:5px;overflow:hidden;display:flex;flex-direction:column}.edit-card-head{height:42px;flex:none;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #e1e6eb}.edit-card-head b{font-size:14px}.edit-card-head span{margin-left:10px;color:#7b8491}.inline-edit-scroll{flex:1;overflow:auto}.inline-edit-table{width:100%;min-width:1250px;border-collapse:separate;border-spacing:0;table-layout:fixed}.inline-edit-table th,.inline-edit-table td{height:54px;padding:8px;border-right:1px solid #d9e0e8;border-bottom:1px solid #d9e0e8;vertical-align:middle}.inline-edit-table th{height:44px;position:sticky;top:0;z-index:2;background:var(--head);color:#4e5969;text-align:left}.inline-edit-table th.required-head:before{content:"*";color:#d92d20;margin-right:3px}.row-input{width:100%;height:34px;padding:0 8px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;color:#344054;outline:0}.row-input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(0,137,158,.12)}.row-ops{display:flex;align-items:center;justify-content:center;gap:8px}.row-op{width:28px;height:28px;padding:0;border:1px solid #90c7cf;border-radius:4px;background:#f2fbfc;color:#00899e;font-size:18px;line-height:1;cursor:pointer}.row-op.minus{border-color:#efb6b6;background:#fff7f7;color:#d92d20}.edit-foot{height:54px;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 18px;border-top:1px solid #dce2e9;background:#fff}.toast{position:fixed;top:74px;left:50%;transform:translateX(-50%);z-index:120;padding:9px 16px;border-radius:4px;background:#fff;border:1px solid #dce2e9;box-shadow:0 6px 22px rgba(15,23,42,.16);color:#475467;display:none}.toast.show{display:block}.toast:before{content:"!";display:inline-grid;place-items:center;width:18px;height:18px;margin-right:7px;border-radius:50%;background:#f59e0b;color:#fff;font-weight:700}
+    .prototype-caption{position:fixed;left:18px;bottom:15px;z-index:50;padding:7px 10px;border-radius:4px;background:rgba(38,52,69,.92);color:#fff;font-size:12px}.prototype-caption.hide{display:none}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="logo"><span class="logo-mark"></span>IMC WMS</div>
+      <div class="crumb">出库管理 &gt; 大件发货 &gt; <b>出口资料</b></div>
+      <div class="top-actions"><span>刷新</span><span>保存搜索条件</span><span>快捷搜索条件⌄</span><span class="avatar">黄</span></div>
+    </header>
+    <section class="workspace">
+      <div class="card search-card">
+        <div class="radio-wrap"><span class="radio active"><i class="dot"></i>全部（1）</span><span class="radio"><i class="dot"></i>含税（0）</span><span class="radio"><i class="dot"></i>不含税（1）</span><span class="radio"><i class="dot"></i>混合（0）</span></div>
+        <div class="control">处理中心<span class="caret">▼</span></div><div class="control wide">仓库<span class="caret">▼</span></div><div class="control input">柜号</div><div class="control input">提单号</div><div class="control input">产品编号</div>
+        <div class="control">是否存在 <span class="switch"></span></div><div class="control xwide">文件类型<span class="caret">▼</span></div><div class="control range"><span>创建时间</span><b>2026-11-01</b><em>至</em><b>2026-11-25</b></div><div class="control wide"><span>参考单号</span><span class="caret">▼</span></div><div class="control xwide input">多个值使用空格隔开</div>
+        <span class="search-spacer"></span><button class="btn primary">搜索</button><button class="btn">重置</button>
+      </div>
+      <div class="card action-card">
+        <button class="btn tool">上传附件资料<span class="arrow">▼</span></button><button class="btn tool">导出<span class="arrow">▼</span></button><button class="btn tool">下载<span class="arrow">▼</span></button><button class="btn tool" id="openInlineEdit">商品信息编辑</button><button class="btn tool" id="exportReplenishment" title="支持勾选多条出口资料后导出">导出补料</button>
+        <div class="legend"><i></i>“新增”角标仅用于原型评审，正式页面不显示</div>
+      </div>
+      <section class="card table-card">
+        <div class="table-toolbar"><span>已选 <strong id="selectedCount">0</strong> 条</span><div class="pager">共 1 条 <span>20 条/页⌄</span><span>‹</span><span class="current">1</span><span>›</span><b>⚙</b></div></div>
+        <div class="table-scroll">
+          <table class="data-table">
+            <colgroup><col style="width:42px"><col style="width:145px"><col style="width:185px"><col style="width:145px"><col style="width:78px"><col style="width:120px"><col style="width:160px"><col style="width:85px"><col style="width:95px"><col style="width:180px"><col style="width:82px"><col style="width:88px"><col style="width:88px"><col style="width:88px"><col style="width:88px"><col style="width:80px"><col style="width:108px"><col style="width:92px"><col style="width:75px"><col style="width:70px"><col style="width:70px"><col style="width:70px"><col style="width:125px"><col style="width:125px"><col style="width:110px"></colgroup>
+            <thead><tr>
+              <th class="check-col"><input class="list-checkbox" type="checkbox" id="selectAll" aria-label="全选"></th><th>货柜信息</th><th>运输信息</th><th>目的地</th><th>是否含税</th>
+              <th class="new-head">港口<span class="new-badge">新增</span></th><th class="new-head">第三方入库单号<span class="new-badge">新增</span></th><th class="new-head">是否DDP<span class="new-badge">新增</span></th><th class="new-head">贸易方式<span class="new-badge">新增</span></th>
+              <th class="group-yellow">供应商信息</th><th class="group-yellow">商检单</th><th class="group-yellow">商检资料</th><th class="group-yellow">报关资料</th><th class="group-yellow">装柜清单</th>
+              <th class="group-green">装柜轨迹</th><th class="group-green">报关单</th><th class="group-green">报关委托协议</th><th class="group-green">放行通知书</th><th class="group-green">申报单</th><th class="group-green">其他</th>
+              <th class="group-red">SO</th><th class="group-red">税金单</th><th>创建信息</th><th>更新信息</th><th class="operation-sticky">操作</th>
+            </tr></thead>
+            <tbody><tr>
+              <td class="check-col"><input class="list-checkbox row-select" type="checkbox" aria-label="选择 PG2610302002"></td>
+              <td><span class="cell-line">参考号：<a class="ref-link" id="openByReference">PG2610302002</a></span><span class="cell-line">柜号：SEGUS573032</span><span class="cell-line">提单号：—</span></td>
+              <td><span class="cell-line">头程单号：FT261112153</span><span class="cell-line">调拨单号：ACCN26111000565</span></td>
+              <td><span class="cell-line">长迈处理中心</span><span class="cell-line">长迈美西仓</span></td><td>否</td>
+              <td><span class="cell-line">起运港：Xiamen</span><span class="cell-line">目的港：New York</span></td>
+              <td><span class="cell-line">RWYCXF-261125-0002</span><span class="cell-line">RWYCXF-261125-0001</span></td><td>是</td><td>DDP</td>
+              <td class="suppliers"><span class="cell-line">赵金刚｜漳州市爱哒工贸有限公司</span><span class="cell-line">赵金刚｜泉州瑞翌藤编家居有限公司</span><span class="cell-line">杨典华｜贝加美（福建）投资集团有限公司</span><span class="cell-line">赵金刚｜福清市鑫福融家居用品有限公司</span></td>
+              <td></td><td></td><td></td><td><a class="link">已上传(1)</a></td><td><a class="link">已上传(2)</a></td><td></td><td></td><td></td><td></td><td></td><td><a class="link">已上传(1)</a></td><td></td>
+              <td><span class="cell-line">黄思敏</span><span class="cell-line muted">2026-11-25 10:23</span></td><td><span class="cell-line">黄思敏</span><span class="cell-line muted">2026-11-25 11:08</span></td><td class="op operation-sticky"><a id="openDetail">查看</a><a>日志</a></td>
+            </tr></tbody>
+          </table>
+        </div>
+        <div class="table-foot">当前展示 1 条数据</div>
+      </section>
+    </section>
+  </main>
+
+  <section class="mask" id="detailMask">
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="商品信息">
+      <header class="drawer-head"><h2>商品信息</h2><span class="ref">参考号：PG2610302002</span><button class="close" id="closeDrawer">×</button></header>
+      <nav class="tabs"><button class="tab active" data-tab="product">商品编号维度</button><button class="tab" data-tab="supplier">供应商维度</button></nav>
+      <div class="drawer-body">
+        <div class="drawer-search" id="productSearch"><div class="control input">采购单号</div><div class="control input">请购单号</div><div class="control input">产品编号</div><span class="push"></span><button class="btn primary">搜索</button><button class="btn">重置</button></div>
+
+        <section class="tab-panel active" id="productPanel">
+          <div class="panel-note"><b>商品编号维度</b>：按产品编号展示本柜商品、装箱规格及报关信息。<span class="right tiny-red">红色表头为本次新增字段</span></div>
+          <div class="panel-actions"><span class="muted">此处仅查看商品信息；如需调整，请返回列表点击“商品信息编辑”。</span><label class="hide-zero"><input class="native-switch" type="checkbox" id="hideZeroToggle" checked>默认隐藏拼柜数量为 0 的明细</label></div>
+          <div class="detail-scroll">
+            <table class="detail-table">
+              <colgroup><col style="width:105px"><col style="width:80px"><col style="width:68px"><col style="width:76px"><col style="width:64px"><col style="width:64px"><col style="width:64px"><col style="width:100px"><col style="width:130px"><col style="width:92px"><col style="width:92px"><col style="width:220px"><col style="width:112px"><col style="width:82px"><col style="width:120px"><col style="width:92px"><col style="width:102px"><col style="width:118px"><col style="width:96px"><col style="width:70px"><col style="width:88px"><col style="width:82px"></colgroup>
+              <thead><tr><th>产品编号</th><th>拼柜数量</th><th class="added">箱数</th><th class="added">每箱数量</th><th class="added">长(CM)</th><th class="added">宽(CM)</th><th class="added">高(CM)</th><th class="added">单箱重量(KG)</th><th class="added">外箱尺寸(CM)</th><th class="added">总重量(KG)</th><th class="added">总体积(CBM)</th><th class="added">供应商</th><th class="added">报关单位</th><th>是否含税</th><th>销售组</th><th class="added">贸易方式</th><th class="added">是否反倾销</th><th class="added">中文品名</th><th class="added">hscode</th><th>单价</th><th>总金额</th><th>采购员</th></tr></thead>
+              <tbody>
+                <tr data-product="I870001319B1" data-cabinet="50" data-box="50" data-each="1" data-weight="38.2" data-size="106.0*68.5*18.5" data-supplier="宁德市信本家具有限公司"><td>I870001319B1</td><td>50</td><td>50</td><td>1</td><td>106</td><td>68.5</td><td>18.5</td><td>38.2</td><td>106.0*68.5*18.5</td><td>1910</td><td>6.71643</td><td>宁德市信本家具有限公司</td><td>—</td><td>否</td><td>周傲组</td><td>EXW</td><td>—</td><td>软包床</td><td>9403509990</td><td>45</td><td>2250</td><td>杨典华</td></tr>
+                <tr data-product="I87000189E3" data-cabinet="35" data-box="35" data-each="1" data-weight="46.85" data-size="173.5*50.0*19.0" data-supplier="福清市鑫福融家居用品有限公司"><td>I87000189E3</td><td>35</td><td>35</td><td>1</td><td>173.5</td><td>50</td><td>19</td><td>46.85</td><td>173.5*50.0*19.0</td><td>1639.75</td><td>5.76888</td><td>福清市鑫福融家居用品有限公司</td><td>—</td><td>否</td><td>周傲组</td><td>EXW</td><td>是</td><td>儿童床椅套装</td><td>9403609990</td><td>60</td><td>2100</td><td>杨典华</td></tr>
+                <tr data-product="I87000189E2" data-cabinet="40" data-box="40" data-each="1" data-weight="47" data-size="174.0*50.0*19.0" data-supplier="贝加美（福建）投资集团有限公司"><td>I87000189E2</td><td>40</td><td>40</td><td>1</td><td>174</td><td>50</td><td>19</td><td>47</td><td>174.0*50.0*19.0</td><td>1896</td><td>6.612</td><td>贝加美（福建）投资集团有限公司</td><td>—</td><td>否</td><td>周傲组</td><td>EXW</td><td>是</td><td>斗柜</td><td>9403609990</td><td>10</td><td>400</td><td>杨典华</td></tr>
+                <tr data-product="I870000999B2" data-cabinet="50" data-box="25" data-each="1" data-weight="42.6" data-size="103.0*49.0*26.0" data-supplier="宁德市信本家具有限公司"><td>I870000999B2</td><td>50</td><td>25</td><td>1</td><td>103</td><td>49</td><td>26</td><td>42.6</td><td>103.0*49.0*26.0</td><td>2130</td><td>6.5611</td><td>宁德市信本家具有限公司</td><td>—</td><td>否</td><td>杨淑娟大件组</td><td>EXW</td><td>—</td><td>厨房储物柜</td><td>9403400090</td><td>20</td><td>1000</td><td>杨典华</td></tr>
+                <tr class="zero-qty hidden-zero" data-product="I87000000Z0" data-cabinet="0"><td>I87000000Z0（示例）</td><td>0</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>0</td><td>0</td><td>宁德市信本家具有限公司</td><td>—</td><td>否</td><td>周傲组</td><td>EXW</td><td>—</td><td>—</td><td>—</td><td>0</td><td>0</td><td>杨典华</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-foot" id="productCount">共 4 条（已隐藏 1 条拼柜数量为 0 的明细）</div>
+        </section>
+
+        <section class="tab-panel" id="supplierPanel">
+          <div class="panel-note"><b>供应商维度</b>：按供应商汇总本柜拼柜数量、箱数、总重量和总体积。</div>
+          <div class="detail-scroll">
+            <table class="detail-table compact">
+              <colgroup><col style="width:43%"><col style="width:14%"><col style="width:12%"><col style="width:16%"><col style="width:15%"></colgroup>
+              <thead><tr><th>供应商</th><th>拼柜数量</th><th>箱数</th><th>总重量(KG)</th><th>总体积(CBM)</th></tr></thead>
+              <tbody><tr><td>宁德市信本家具有限公司</td><td>100</td><td>100</td><td>4040</td><td>13.27753</td></tr><tr><td>福清市鑫福融家居用品有限公司</td><td>35</td><td>35</td><td>1639.75</td><td>5.76888</td></tr><tr><td>贝加美（福建）投资集团有限公司</td><td>40</td><td>25</td><td>1896</td><td>6.612</td></tr></tbody>
+              <tfoot><tr><td>合计</td><td>175</td><td>160</td><td>7575.75</td><td>25.68</td></tr></tfoot>
+            </table>
+          </div>
+          <div class="table-foot">共 3 家供应商</div>
+        </section>
+      </div>
+      <footer class="drawer-foot"><span>商品信息抽屉宽度与现有代码一致：页面宽度的 80%</span><button class="btn" id="footerClose">关闭</button></footer>
+    </aside>
+  </section>
+  <section class="mask edit-mask" id="editMask">
+    <aside class="drawer edit-drawer" role="dialog" aria-modal="true" aria-label="商品信息编辑">
+      <header class="drawer-head"><h2>商品信息编辑</h2><span class="ref">参考号：PG2610302002</span><button class="close" id="closeEdit">×</button></header>
+      <div class="edit-body">
+        <div class="edit-tip">按当前出口资料单条记录维护商品明细。拼柜数量为 0 的明细不带入编辑；全部字段必填。点击每行末尾“＋”在该行下方新增一行，点击“－”删除该行。</div>
+        <section class="edit-card">
+          <div class="edit-card-head"><b>商品编号维度</b><span>字段顺序与“大件订柜列表－导出出货计划”的共享字段顺序一致</span></div>
+          <div class="inline-edit-scroll">
+            <table class="inline-edit-table">
+              <colgroup><col style="width:145px"><col style="width:115px"><col style="width:105px"><col style="width:115px"><col style="width:135px"><col style="width:190px"><col style="width:285px"><col style="width:100px"></colgroup>
+              <thead><tr><th class="required-head">产品编号</th><th class="required-head">拼柜数量</th><th class="required-head">箱数</th><th class="required-head">每箱数量</th><th class="required-head">单箱重量(KG)</th><th class="required-head">外箱尺寸(CM)</th><th class="required-head">供应商</th><th>操作</th></tr></thead>
+              <tbody id="editRows"></tbody>
+            </table>
+          </div>
+          <div class="table-foot" id="editCount">共 4 条可编辑商品明细</div>
+        </section>
+      </div>
+      <footer class="edit-foot"><button class="btn" id="cancelEdit">取消</button><button class="btn primary" id="saveEdit">保存</button></footer>
+    </aside>
+  </section>
+  <div class="toast" id="toast">请先勾选一条商品明细</div>
+  <div class="prototype-caption" id="caption">原型：出口资料列表（调整后）｜支持单选编辑商品信息、多选导出补料</div>
+  <script>
+    const mask=document.getElementById('detailMask');
+    const editMask=document.getElementById('editMask');
+    const caption=document.getElementById('caption');
+    const productSearch=document.getElementById('productSearch');
+    const hideZeroToggle=document.getElementById('hideZeroToggle');
+    const productCount=document.getElementById('productCount');
+    const toast=document.getElementById('toast');
+    const editRows=document.getElementById('editRows');
+    const editCount=document.getElementById('editCount');
+    const rowSelections=[...document.querySelectorAll('.row-select')];
+    const selectAll=document.getElementById('selectAll');
+    const selectedCount=document.getElementById('selectedCount');
+    const initialProducts=[
+      {product:'I870001319B1',cabinet:'50',box:'50',each:'1',weight:'38.2',size:'106.0*68.5*18.5',supplier:'宁德市信本家具有限公司'},
+      {product:'I87000189E3',cabinet:'35',box:'35',each:'1',weight:'46.85',size:'173.5*50.0*19.0',supplier:'福清市鑫福融家居用品有限公司'},
+      {product:'I87000189E2',cabinet:'40',box:'40',each:'1',weight:'47',size:'174.0*50.0*19.0',supplier:'贝加美（福建）投资集团有限公司'},
+      {product:'I870000999B2',cabinet:'50',box:'25',each:'1',weight:'42.6',size:'103.0*49.0*26.0',supplier:'宁德市信本家具有限公司'}
+    ];
+    function selectTab(name){
+      document.querySelectorAll('.tab').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));
+      document.getElementById('productPanel').classList.toggle('active',name==='product');
+      document.getElementById('supplierPanel').classList.toggle('active',name==='supplier');
+      productSearch.style.display=name==='product'?'flex':'none';
+      caption.textContent=name==='product'?'原型：商品信息｜商品编号维度':'原型：商品信息｜供应商维度';
+    }
+    function openDrawer(tab='product'){mask.classList.add('open');selectTab(tab)}
+    function closeDrawer(){mask.classList.remove('open');caption.textContent='原型：出口资料列表（调整后）｜支持单选编辑商品信息、多选导出补料'}
+    function showToast(message){toast.textContent=message;toast.classList.add('show');window.clearTimeout(showToast.timer);showToast.timer=window.setTimeout(()=>toast.classList.remove('show'),2200)}
+    function rowMarkup(data={}){
+      const input=(field,type='text',placeholder='请输入')=>`<input class="row-input" data-field="${field}" type="${type}" ${type==='number'?'min="0" step="0.01"':''} value="${data[field]||''}" placeholder="${placeholder}">`;
+      return `<tr><td>${input('product','text','请输入产品编号')}</td><td>${input('cabinet','number','大于0')}</td><td>${input('box','number','请输入箱数')}</td><td>${input('each','number','请输入数量')}</td><td>${input('weight','number','请输入重量')}</td><td>${input('size','text','长*宽*高')}</td><td>${input('supplier','text','请输入供应商')}</td><td><div class="row-ops"><button class="row-op plus" title="在下方新增一行">＋</button><button class="row-op minus" title="删除本行">－</button></div></td></tr>`;
+    }
+    function updateEditCount(){editCount.textContent=`共 ${editRows.children.length} 条可编辑商品明细`}
+    function renderEditRows(){editRows.innerHTML=initialProducts.map(rowMarkup).join('');updateEditCount()}
+    function openEdit(force=false){
+      const checked=rowSelections.filter(item=>item.checked);
+      if(!force&&checked.length===0){showToast('请先勾选一条出口资料');return}
+      if(!force&&checked.length>1){showToast('商品信息编辑一次只能选择一条出口资料');return}
+      renderEditRows();editMask.classList.add('open');caption.textContent='原型：商品信息编辑｜行内新增与删除'
+    }
+    function closeEdit(){editMask.classList.remove('open');caption.textContent='原型：出口资料列表（调整后）｜支持单选编辑商品信息、多选导出补料'}
+    function updateListSelection(){
+      const count=rowSelections.filter(item=>item.checked).length;
+      selectedCount.textContent=String(count);
+      selectAll.checked=rowSelections.length>0&&count===rowSelections.length;
+      selectAll.indeterminate=count>0&&count<rowSelections.length;
+    }
+    function addRow(afterRow){afterRow.insertAdjacentHTML('afterend',rowMarkup());updateEditCount();afterRow.nextElementSibling.querySelector('.row-input').focus()}
+    function removeRow(row){
+      if(editRows.children.length===1){showToast('至少保留一条商品明细');return}
+      row.remove();updateEditCount()
+    }
+    function saveEdit(){
+      const rows=[...editRows.querySelectorAll('tr')];
+      for(let i=0;i<rows.length;i++){
+        const fields=[...rows[i].querySelectorAll('.row-input')];
+        if(fields.some(field=>!field.value.trim())){showToast(`请填写第 ${i+1} 行的全部必填字段`);fields.find(field=>!field.value.trim()).focus();return}
+        if(Number(rows[i].querySelector('[data-field="cabinet"]').value)<=0){showToast(`第 ${i+1} 行拼柜数量必须大于 0`);return}
+      }
+      closeEdit();showToast('商品信息保存成功（原型演示）');
+    }
+    hideZeroToggle.addEventListener('change',()=>{
+      document.querySelectorAll('.zero-qty').forEach(row=>row.classList.toggle('hidden-zero',hideZeroToggle.checked));
+      productCount.textContent=hideZeroToggle.checked?'共 4 条（已隐藏 1 条拼柜数量为 0 的明细）':'共 5 条（拼柜数量为 0 的明细不可编辑）';
+    });
+    document.getElementById('openDetail').addEventListener('click',()=>openDrawer('product'));
+    document.getElementById('openByReference').addEventListener('click',()=>openDrawer('product'));
+    document.getElementById('openInlineEdit').addEventListener('click',()=>openEdit());
+    document.getElementById('exportReplenishment').addEventListener('click',()=>{
+      const count=rowSelections.filter(item=>item.checked).length;
+      if(count===0){showToast('请先勾选需要导出补料的出口资料');return}
+      showToast(`已选择 ${count} 条，正在生成导出补料 Excel（原型演示）`);
+    });
+    rowSelections.forEach(item=>item.addEventListener('change',updateListSelection));
+    selectAll.addEventListener('change',()=>{rowSelections.forEach(item=>item.checked=selectAll.checked);updateListSelection()});
+    document.getElementById('closeDrawer').addEventListener('click',closeDrawer);
+    document.getElementById('footerClose').addEventListener('click',closeDrawer);
+    document.getElementById('closeEdit').addEventListener('click',closeEdit);
+    document.getElementById('cancelEdit').addEventListener('click',closeEdit);
+    document.getElementById('saveEdit').addEventListener('click',saveEdit);
+    editRows.addEventListener('click',event=>{
+      const row=event.target.closest('tr');if(!row)return;
+      if(event.target.classList.contains('plus'))addRow(row);
+      if(event.target.classList.contains('minus'))removeRow(row);
+    });
+    document.querySelectorAll('.tab').forEach(el=>el.addEventListener('click',()=>selectTab(el.dataset.tab)));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(editMask.classList.contains('open'))closeEdit();else if(mask.classList.contains('open'))closeDrawer()}});
+    const params=new URLSearchParams(location.search);const view=params.get('view');
+    if(view==='product'||view==='supplier')openDrawer(view);
+    if(view==='inlineEdit')openEdit(true);
+    if(view==='inlineEditAdd'){openEdit(true);addRow(editRows.querySelector('tr'))}
+  </script>
+</body>
+</html>
